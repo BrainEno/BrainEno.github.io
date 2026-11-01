@@ -45,7 +45,7 @@ export const defaultContent: PortfolioContent = {
       { zh: "全栈开发", en: "Full Stack" },
     ],
     image: {
-      src: "/images/figure.jpg",
+      src: "/images/headline.png",
       alt: { zh: "人物主视觉", en: "Portrait artwork" },
     },
   },
