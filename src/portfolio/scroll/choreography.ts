@@ -80,6 +80,7 @@ export type ChoreographyOptions = {
   onSection: (section: SectionId) => void;
   onWork: (index: number) => void;
   lastWork: () => number;
+  syncPointer?: () => void;
 };
 
 function heroScroll(desktop: boolean) {
@@ -252,23 +253,12 @@ function journeyMobile(scope: HTMLElement) {
   }
 }
 
-const SCREEN = {
-  idle: { "--screen-top": "#777a76", "--screen-mid": "#626560", "--screen-bottom": "#545651", "--screen-glow": "rgba(255,255,255,0.08)" },
-  phone: { "--screen-top": "#5d6159", "--screen-mid": "#4d514a", "--screen-bottom": "#3c403a", "--screen-glow": "rgba(255,255,255,0.06)" },
-  // Powered-down tube: a dark phosphor with visible glass texture, never a
-  // flat black hole. The gradient and glass streaks stay alive through the
-  // exit zoom so the screen keeps the same material as the opening frame.
-  blank: { "--screen-top": "#2b2f29", "--screen-mid": "#1b1e1a", "--screen-bottom": "#0f1110", "--screen-glow": "rgba(190,230,200,0.05)" },
-  // The tube burns out to paper white right before the contact sheet takes
-  // over, so the next section rises out of the same white the screen becomes.
-  white: { "--screen-top": "#ffffff", "--screen-mid": "#ffffff", "--screen-bottom": "#fbfaf8", "--screen-glow": "rgba(255,255,255,0.9)" },
-} as const;
-
 type TvPhase = "rows" | "phone" | "exit";
 
 function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: boolean) {
   const section = scope.querySelector<HTMLElement>("#works");
   if (!section) return;
+  const hoverCapable = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
   let phase: TvPhase = "rows";
   const setPhase = (next: TvPhase) => {
     phase = next;
@@ -310,14 +300,31 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
       delay: 0.12,
       scrollTrigger: reveal,
     });
-    ScrollTrigger.create({
-      trigger: row,
-      start: desktop ? "top 58%" : "top 62%",
-      end: desktop ? "bottom 58%" : "bottom 62%",
-      onToggle: (self) => {
-        if (self.isActive && phase === "rows") opts.onWork(index);
-      },
-    });
+    // On fine-pointer devices the TV stays on the untouched `tv.webp` until the
+    // cursor dot actually hovers a `.work-row`; touch devices have no cursor,
+    // so rows preview as they cross the reading band and return to `tv.webp`
+    // once the last row finishes scrolling.
+    if (!hoverCapable) {
+      ScrollTrigger.create({
+        trigger: row,
+        start: "top 62%",
+        end: "bottom 62%",
+        onToggle: (self) => {
+          if (self.isActive && phase === "rows") opts.onWork(index);
+        },
+      });
+    }
+  });
+
+  ScrollTrigger.create({
+    trigger: ".work-rows",
+    start: hoverCapable ? "top bottom" : "top 62%",
+    end: hoverCapable ? "bottom top" : "bottom 62%",
+    onUpdate: () => {
+      if (hoverCapable && phase === "rows") opts.syncPointer?.();
+    },
+    onLeave: () => opts.onWork(-1),
+    onLeaveBack: () => opts.onWork(-1),
   });
 
   const phoneTl = gsap.timeline({
@@ -337,22 +344,21 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
       },
       onLeaveBack: () => {
         setPhase("rows");
-        opts.onWork(opts.lastWork());
+        if (hoverCapable) opts.syncPointer?.();
+        else opts.onWork(opts.lastWork());
       },
     },
   });
 
   phoneTl
-    .to(".tv-showreel", { autoAlpha: 0, duration: 0.08 }, 0)
     .to(".tv-box", { scale: 1.14, rotation: -1.5, duration: 0.34, ease: "sine.inOut" }, 0)
-    .to(".tv-screen-base", { ...SCREEN.phone, duration: 0.2 }, 0.06)
     .fromTo(
       ".tv-number",
-      { autoAlpha: 0, yPercent: 18, filter: "blur(6px)" },
-      { autoAlpha: 1, yPercent: 0, filter: "blur(0px)", duration: 0.16, ease: "power2.out" },
+      { autoAlpha: 0, yPercent: 18, scale: 0.92, filter: "blur(6px)" },
+      { autoAlpha: 1, yPercent: 0, scale: 1, filter: "blur(0px)", duration: 0.18, ease: "power2.out" },
       0.1
     )
-    .to(".tv-number", { autoAlpha: 1, duration: 0.74 }, 0.26);
+    .to(".tv-number", { autoAlpha: 1, duration: 0.72 }, 0.28);
 
   const exitTl = gsap.timeline({
     defaults: { ease: "none" },
@@ -366,36 +372,24 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
     },
   });
 
-  // Exit, in four overlapping beats so there is never a still white screen:
-  //   1. the wordmark swells (a camera push into the glass) and blurs away,
-  //   2. the stripe filter and the glass sheen melt off the tube,
-  //   3. the tube burns out to white while the box is still pushing in,
-  //   4. the contact sheet's white background fades in under the copy, which
-  //      is already rising out of the bottom edge of the frame.
-  // Everything is scroll-scrubbed, so scrolling back up rewinds it exactly.
+  // Exit over the untouched `tv.webp` photograph:
+  //   1. `@BrainEno` zooms up inside the original TV screen and dissolves out,
+  //   2. the TV pushes in while cross-fading cleanly by opacity into `.tv-whiteout`
+  //      and the rising Contact sheet — zero screen-overlay sticker to misalign.
   exitTl
-    .to(".tv-screen-base", { ...SCREEN.blank, duration: 0.08 }, 0)
-    .to(".tv-number", { scale: desktop ? 4.8 : 3.2, duration: 0.26, ease: "power2.in" }, 0)
-    .to(".tv-number", { autoAlpha: 0, filter: "blur(16px)", duration: 0.18, ease: "power1.in" }, 0.06)
-    .to(".tv-scanlines", { autoAlpha: 0, duration: 0.16, ease: "power1.inOut" }, 0.04)
-    // The glass goes first so the burn-out is clean white, not a grey tube.
-    .to(".tv-glass", { autoAlpha: 0, duration: 0.14, ease: "power1.in" }, 0.02)
-    .to(".tv-box", { scale: 1.2, rotation: -2.5, duration: 0.12, ease: "sine.inOut" }, 0.06)
-    // The push runs over a quarter of the exit (~270px of scroll) so a single
-    // wheel tick cannot skip it; the tube whitens early in the push, so what
-    // fills the frame is a growing white flash rather than a grey slab.
-    .to(".tv-box", { scale: 5.6, rotation: -6, duration: 0.3, ease: "power2.in" }, 0.14)
-    .to(".tv-screen-base", { ...SCREEN.white, duration: 0.16, ease: "power1.in" }, 0.2)
-    .fromTo(".tv-whiteout", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18, ease: "power1.in" }, 0.3)
-    // The contact sheet materialises in the same white (instead of sliding in
-    // as a white card over a dark scene); its copy is already rising by then.
+    .to(".tv-number", { scale: desktop ? 4.8 : 3.2, duration: 0.28, ease: "power2.in" }, 0)
+    .to(".tv-number", { autoAlpha: 0, filter: "blur(14px)", duration: 0.2, ease: "power1.in" }, 0.08)
+    .to(".tv-box", { scale: 1.22, rotation: -2.4, duration: 0.12, ease: "sine.inOut" }, 0.04)
+    .to(".tv-box", { scale: 5.2, rotation: -5.5, duration: 0.32, ease: "power2.in" }, 0.14)
+    .to(".tv-box", { autoAlpha: 0, duration: 0.22, ease: "power1.inOut" }, 0.24)
+    .fromTo(".tv-whiteout", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.24, ease: "power1.inOut" }, 0.22)
     .fromTo(
       ".contact",
       { backgroundColor: "rgba(255,255,255,0)" },
-      { backgroundColor: "rgba(255,255,255,1)", duration: 0.16, ease: "power1.inOut" },
-      0.3
+      { backgroundColor: "rgba(255,255,255,1)", duration: 0.2, ease: "power1.inOut" },
+      0.28
     )
-    .to(".tv-whiteout", { autoAlpha: 1, duration: 0.62 }, 0.42);
+    .to(".tv-whiteout", { autoAlpha: 1, duration: 0.54 }, 0.46);
 }
 
 function contact(scope: HTMLElement, desktop: boolean, reduce: boolean) {

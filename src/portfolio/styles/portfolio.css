@@ -700,7 +700,7 @@ body {
   position: absolute;
   top: 58%;
   left: 50%;
-  width: max(160vw, 230vh);
+  width: max(185vw, 295vh);
   aspect-ratio: var(--tv-ratio);
   transform: translate(calc(var(--screen-cx) * -1), calc(var(--screen-cy) * -1));
 }
@@ -713,163 +713,136 @@ body {
   will-change: transform;
 }
 
-.tv-screen,
-.tv-number-layer {
-  position: absolute;
-  top: var(--screen-top);
-  left: var(--screen-left);
-  width: var(--screen-width);
-  height: var(--screen-height);
-  overflow: hidden;
-  border-radius: 9% 7% 8% 10% / 9% 8% 9% 10%;
-}
-
-.tv-screen {
-  /* Above `.tv-frame` on purpose. The artwork used to sit on top with a
-     `darken` blend so its (near-white) vector glass let the picture through —
-     a photo's glass is much darker, and `darken` would cap every still at its
-     ~96/255 luminance, i.e. a murky tube. Layering the screen above the
-     artwork means the picture renders at its own brightness and the photo only
-     supplies the cabinet; the glass rectangle (`.works.tv.screen`) is the
-     visible boundary, which is why it is measured rather than guessed. */
-  z-index: 2;
-  background: #020202;
-  transform: translateZ(0);
-  /* `clip` (unlike `hidden`) does not force a scroll container, so the
-     screen crop still travels with the zoomed `.tv-box` instead of being
-     pinned to the viewport-sized stage. */
-  overflow: hidden;
-  overflow: clip;
-  /* SVG clip-path traces the exact inner bezel edge with bezier curves
-     (like Photoshop's pen tool path masking). This replaces the crude
-     border-radius approximation so the content seamlessly fits the TV frame.
-     Border-radius kept as fallback for browsers without clip-path support. */
-  clip-path: url(#tv-screen-clip);
-  /* Subtle inner shadow blends the content edge with the bezel, hiding any
-     remaining anti-aliasing artifacts and preventing the "pasted-on" look. */
-  box-shadow: inset 0 0 2.5vmin rgba(0, 0, 0, 0.35);
-}
-
-.tv-screen-base,
-.tv-showreel {
-  position: absolute;
-  inset: 0;
-}
-
-.tv-screen-base {
-  --screen-top: #777a76;
-  --screen-mid: #626560;
-  --screen-bottom: #545651;
-  --screen-glow: rgba(255, 255, 255, 0.08);
-  background:
-    radial-gradient(circle at 48% 42%, var(--screen-glow), transparent 46%),
-    linear-gradient(180deg, var(--screen-top) 0%, var(--screen-mid) 54%, var(--screen-bottom) 100%);
-}
-
-.tv-showreel {
-  opacity: 0;
-  transition: opacity 0.25s ease-out;
-}
-
-.tv-screen.has-preview .tv-showreel {
-  opacity: 1;
-}
-
-.tv-showreel::before,
-.tv-showreel::after {
-  content: "";
+.tv-frame {
   position: absolute;
   inset: 0;
   z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
   pointer-events: none;
 }
 
-.tv-showreel::before {
-  background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.24) 0, rgba(0, 0, 0, 0.24) 1px, transparent 1px, transparent 3px);
-  opacity: 0.6;
-}
-
-.tv-showreel::after {
+/* Active CRT composite rig: completely invisible (`opacity: 0`) when no work
+   is hovered and again after scrolling past the works list, so `tv.webp`
+   renders untouched with zero screen sticker. */
+.tv-active-rig {
+  position: absolute;
+  inset: 0;
   z-index: 2;
-  background:
-    radial-gradient(ellipse at 16% 9%, rgba(255, 244, 218, 0.22), transparent 30%),
-    linear-gradient(103deg, transparent 58%, rgba(202, 255, 229, 0.14) 79%, transparent 88%),
-    linear-gradient(180deg, rgba(120, 160, 130, 0.1), rgba(40, 60, 50, 0.16)),
-    radial-gradient(ellipse at 50% 46%, transparent 46%, rgba(0, 0, 0, 0.18) 78%, rgba(0, 0, 0, 0.52) 112%),
-    /* Stronger edge darkening to blend with the bezel and hide clip-path seams. */
-    radial-gradient(ellipse at 50% 50%, transparent 50%, rgba(0, 0, 0, 0.15) 75%, rgba(0, 0, 0, 0.38) 100%);
-  box-shadow: inset 0 0 4.5vmin rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity;
 }
 
-/* The project still sits *behind* curved glass: a dense, photographic
-   image (no screen-blend lift) with the tube's scanlines, phosphor tint
-   and edge falloff laid over it. */
+.tv-active-rig[data-active="true"] .tv-video {
+  pointer-events: auto;
+}
+
+/* Placed *underneath* `.tv-frame-alpha` (`tv-alpha.webp`) and grown ~0.4% past
+   the alpha hole on all four sides so its outer edge is tucked safely beneath
+   the opaque recessed bezel — no sub-pixel seam can ever open. */
+.tv-screen {
+  position: absolute;
+  top: calc(var(--screen-top) - 0.45%);
+  left: calc(var(--screen-left) - 0.38%);
+  width: calc(var(--screen-width) + 0.76%);
+  height: calc(var(--screen-height) + 0.9%);
+  z-index: 1;
+  background: #060908;
+  transform: translateZ(0);
+  overflow: hidden;
+  overflow: clip;
+}
+
+.tv-picture {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  will-change: transform, opacity, filter;
+}
+
 .tv-cover {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: saturate(1.12) contrast(1.06) brightness(0.88);
-  transform: scale(1.04);
-  /* The channel change is choreographed in `ui/TvShowreel.tsx` (collapse →
-     snow → re-lock); no CSS animation may touch transform/filter here, or the
-     two would fight over the same properties. */
 }
 
 /* Video variant of the cover: identical box model to `.tv-cover` so the CRT
-   channel-change animation reads identically on stills and clips. The extra
-   rules here just make sure a paused video with a poster fills the tube the
-   same way an `<img>` does. */
+   channel-change animation reads identically on stills and clips. */
 .tv-video {
   background: #000;
   cursor: pointer;
-  /* The poster may not cover the full CRT aspect ratio; `object-fit: cover`
-     on the element itself handles the crop, and `-webkit-media-controls` are
-     suppressed because we draw our own play affordance. */
   -webkit-media-controls-display: none;
 }
 
-/* The click-to-play glyph: sits above the cover (z 5) but under scanlines
-   and glass (z 3 / 4) so it reads as part of the tube's surface. Fades out
-   the moment the clip starts rolling. */
+/* Curved CRT front-glass optics: subtle scanlines, cool night-sky arc sheen,
+   right-edge curvature glint, and cushion falloff into the recessed bezel. */
+.tv-crt-optics {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.2) 0,
+      rgba(0, 0, 0, 0.2) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    radial-gradient(
+      ellipse at 28% 18%,
+      rgba(204, 238, 255, 0.16),
+      rgba(136, 187, 204, 0.05) 45%,
+      transparent 72%
+    ),
+    linear-gradient(
+      96deg,
+      rgba(255, 255, 255, 0.05) 0%,
+      transparent 14%,
+      transparent 84%,
+      rgba(216, 255, 240, 0.1) 93%,
+      rgba(0, 0, 0, 0.28) 100%
+    ),
+    radial-gradient(
+      ellipse at 50% 50%,
+      transparent 56%,
+      rgba(0, 0, 0, 0.26) 84%,
+      rgba(0, 0, 0, 0.68) 100%
+    );
+  box-shadow: inset 0 0 2.4vmin rgba(0, 0, 0, 0.5);
+}
+
 .tv-play-btn {
   position: absolute;
   inset: 0;
-  z-index: 5;
+  z-index: 4;
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.76);
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.55));
   transition: opacity 0.25s ease-out;
 }
 
-/* Analogue snow between channels. The tile is generated once at runtime and
-   repeated; GSAP only nudges it a few steps, so the layer costs one composited
-   background instead of a per-frame canvas blit. */
+/* Analogue snow between channels. */
 .tv-static {
   position: absolute;
   inset: -4%;
-  /* Above the glass (z 4) on purpose: while the grain is up, nothing else on
-     the tube may show through, or the swapped frame reads as a decal on the
-     noise instead of a channel change. */
   z-index: 5;
   opacity: 0;
   pointer-events: none;
   background-repeat: repeat;
   background-size: 160px 160px;
   image-rendering: pixelated;
-  /* Opaque on purpose: between channels there is nothing else on the tube, so
-     the grain has to cover the outgoing frame completely — a `screen` blend
-     would let the old picture glow through and give the swap away. */
   will-change: opacity, background-position;
 }
 
-/* The sync line left behind when vertical hold goes: a hot horizontal band
-   that sits at the centre of the glass for a couple of frames. Positioned with
-   `top` (never a transform) so GSAP can own `transform` for its scale-up. */
+/* Hot horizontal sync band when vertical hold breaks. */
 .tv-sync-line {
   position: absolute;
   left: -3%;
@@ -885,7 +858,7 @@ body {
   will-change: opacity, transform;
 }
 
-/* The white bar that rolls through the frame as the tuner loses sync. */
+/* Rolling white bar during tuner re-lock. */
 .tv-roll {
   position: absolute;
   left: -6%;
@@ -900,55 +873,115 @@ body {
   will-change: opacity, transform;
 }
 
-/* Scanlines live on their own layer so the exit can strip the filter away
-   independently of the glass sheen: the stripes melt, the picture goes white,
-   and the contact section takes over from that white. */
-.tv-scanlines {
+/* Alpha-cutout frame (`tv-alpha.webp`) layered *above* `.tv-screen`.
+   Feathered smoothly inside the jet-black recessed bezel pocket (anchored to
+   `--screen-*` so it tracks the content's screen rect automatically) while the
+   rest of the cabinet and street stays on `tv.webp` with zero shift. */
+.tv-frame-alpha {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+  -webkit-mask-image:
+    linear-gradient(
+      90deg,
+      transparent calc(var(--screen-left) - 1.05%),
+      #000 calc(var(--screen-left) - 0.55%),
+      #000 calc(var(--screen-left) + var(--screen-width) + 0.55%),
+      transparent calc(var(--screen-left) + var(--screen-width) + 1.05%)
+    ),
+    linear-gradient(
+      180deg,
+      transparent calc(var(--screen-top) - 1.45%),
+      #000 calc(var(--screen-top) - 0.7%),
+      #000 calc(var(--screen-top) + var(--screen-height) + 0.7%),
+      transparent calc(var(--screen-top) + var(--screen-height) + 1.55%)
+    );
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(
+      90deg,
+      transparent calc(var(--screen-left) - 1.05%),
+      #000 calc(var(--screen-left) - 0.55%),
+      #000 calc(var(--screen-left) + var(--screen-width) + 0.55%),
+      transparent calc(var(--screen-left) + var(--screen-width) + 1.05%)
+    ),
+    linear-gradient(
+      180deg,
+      transparent calc(var(--screen-top) - 1.45%),
+      #000 calc(var(--screen-top) - 0.7%),
+      #000 calc(var(--screen-top) + var(--screen-height) + 0.7%),
+      transparent calc(var(--screen-top) + var(--screen-height) + 1.55%)
+    );
+  mask-composite: intersect;
+}
+
+/* Color-adaptive ambient light cast by the active CRT image onto the recessed
+   bezel bevels and the dark asphalt in front of the television. */
+.tv-ambient {
   position: absolute;
   inset: 0;
   z-index: 3;
+  opacity: 0;
   pointer-events: none;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.22) 0,
-    rgba(0, 0, 0, 0.22) 1px,
-    transparent 1px,
-    transparent 3px
+  mix-blend-mode: screen;
+  will-change: opacity;
+}
+
+.tv-ambient-halo {
+  position: absolute;
+  top: calc(var(--screen-cy) - 12%);
+  left: calc(var(--screen-cx) - 10.5%);
+  width: 21%;
+  height: 24%;
+  object-fit: cover;
+  border-radius: 50%;
+  filter: blur(2vw) saturate(1.45);
+  opacity: 0.34;
+  -webkit-mask-image: radial-gradient(ellipse at 50% 50%, #000 18%, rgba(0, 0, 0, 0.45) 54%, transparent 76%);
+  mask-image: radial-gradient(ellipse at 50% 50%, #000 18%, rgba(0, 0, 0, 0.45) 54%, transparent 76%);
+}
+
+.tv-ambient-ground {
+  position: absolute;
+  top: calc(var(--screen-top) + var(--screen-height) + 3%);
+  left: calc(var(--screen-cx) - 9.5%);
+  width: 23%;
+  height: 14%;
+  object-fit: cover;
+  border-radius: 50%;
+  filter: blur(2.2vw) saturate(1.4);
+  opacity: 0.3;
+  -webkit-mask-image: radial-gradient(ellipse at 50% 24%, #000 14%, rgba(0, 0, 0, 0.4) 52%, transparent 76%);
+  mask-image: radial-gradient(ellipse at 50% 24%, #000 14%, rgba(0, 0, 0, 0.4) 52%, transparent 76%);
+}
+
+.tv-ambient-bloom {
+  position: absolute;
+  top: calc(var(--screen-cy) - 13%);
+  left: calc(var(--screen-cx) - 9.5%);
+  width: 19%;
+  height: 26%;
+  background: radial-gradient(
+    ellipse at 50% 44%,
+    rgba(214, 244, 234, 0.13) 0%,
+    rgba(140, 205, 195, 0.05) 48%,
+    transparent 74%
   );
 }
 
-/* Persistent glass: sheen + edge falloff that never fade with the showreel,
-   so the powered-down tube keeps its material through the phone beat instead
-   of turning into a black hole. */
-.tv-glass {
-  position: absolute;
-  inset: 0;
-  z-index: 4;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse at 50% 0%, rgba(255, 252, 240, 0.1), transparent 42%),
-    linear-gradient(103deg, transparent 60%, rgba(202, 255, 229, 0.08) 80%, transparent 90%),
-    radial-gradient(ellipse at 50% 46%, transparent 52%, rgba(0, 0, 0, 0.22) 82%, rgba(0, 0, 0, 0.5) 115%),
-    /* Enhanced edge falloff: stronger darkening near the bezel to blend the
-       content seamlessly and hide any clip-path artifacts. */
-    radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.18) 78%, rgba(0, 0, 0, 0.42) 100%);
-}
-
-.tv-frame {
-  position: absolute;
-  inset: 0;
-  /* Below the screen (see `.tv-screen`): no blend mode, because there is
-     nothing left for it to do — the artwork's job is the cabinet, the tube is
-     the picture's job. */
-  z-index: 1;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  pointer-events: none;
-}
-
 .tv-number-layer {
+  position: absolute;
+  top: var(--screen-top);
+  left: var(--screen-left);
+  width: var(--screen-width);
+  height: var(--screen-height);
   z-index: 3;
+  overflow: hidden;
+  border-radius: 10% / 11%;
   container-type: inline-size;
   pointer-events: none;
 }
@@ -960,12 +993,15 @@ body {
   align-items: center;
   justify-content: center;
   padding: 0 6%;
-  color: rgb(247, 252, 240);
+  color: rgb(248, 253, 242);
   font-size: 6.6cqi;
   font-weight: 600;
   letter-spacing: 0.055em;
   white-space: nowrap;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65), 0 0 0.35em rgba(240, 250, 226, 0.55), 0 0 1em rgba(214, 255, 200, 0.3);
+  text-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.72),
+    0 0 0.32em rgba(240, 252, 226, 0.62),
+    0 0 0.95em rgba(196, 250, 200, 0.34);
   opacity: 0;
   visibility: hidden;
 }
@@ -1347,9 +1383,8 @@ body {
   height: 100%;
 }
 
-/* Flat cutout underneath the canvas: shown until the model is parsed, and
-   permanently when WebGL is unavailable. Opaque white backing, so `multiply`
-   removes the backdrop instead of tracing a rectangle. */
+/* Flat alpha cutout underneath the canvas: shown until the model is parsed,
+   and permanently when WebGL is unavailable. */
 .contact-booth-still {
   position: absolute;
   inset: 0;
@@ -1357,7 +1392,6 @@ body {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  mix-blend-mode: multiply;
   pointer-events: none;
   user-select: none;
   transition: opacity 0.6s var(--ease-out);

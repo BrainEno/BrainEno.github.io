@@ -45,7 +45,7 @@ export const defaultContent: PortfolioContent = {
       { zh: "全栈开发", en: "Full Stack" },
     ],
     image: {
-      src: "/images/figure.jpg",
+      src: "/images/headline.png",
       alt: { zh: "人物主视觉", en: "Portrait artwork" },
     },
   },
@@ -61,10 +61,10 @@ export const defaultContent: PortfolioContent = {
       en: "BrainEno is a frontend engineer and UI designer, a former programmer, and now a freelance vibe coder. He turns the latest AI capabilities into shipped products: designing and building high-quality, highly customisable personal sites and application services end to end — visual language, motion, frontend architecture and the data layer included. His work spans brand sites, content products and cross-platform tools, alongside the open-source repositories he maintains in public.",
     },
     gallery: [
-      { src: "/images/work1.jpg", alt: { zh: "作品照1", en: "Work photo 1" } },
+      { src: "/images/red2.webp", alt: { zh: "作品照1", en: "Work photo 1" } },
       { src: "/images/work3.jpg", alt: { zh: "作品照2", en: "Work photo 2" } },
       { src: "/images/work4.jpg", alt: { zh: "作品照3", en: "Work photo 3" } },
-      { src: "/images/work2.jpg", alt: { zh: "作品照4", en: "Work photo 4" } },
+      { src: "/images/red1.webp", alt: { zh: "作品照4", en: "Work photo 4" } },
       { src: "/images/work5.jpg", alt: { zh: "作品照5", en: "Work photo 5" } },
     ],
     accentImages: [
@@ -81,20 +81,15 @@ export const defaultContent: PortfolioContent = {
     period: "2026",
     tv: {
       src: "/images/tv.webp",
-      width: 2560,
-      height: 1707,
-      // Glass bounds of `tv.webp` (2560x1707), measured from the photo's
-      // gradients: the lit tube runs x 1124-1440 / y 986-1248. The rect is
-      // grown ~12px on every side so it can never be *smaller* than the glass —
-      // a sliver of the photo's own screen beside the picture is the one thing
-      // that reads as broken during the zoom. The bleed lands on the dark
-      // inner bezel, so it costs nothing visibly and absorbs the tube's curved
-      // corners, which a rectangle cannot follow.
-      //
-      // The CRT picture is layered *above* the artwork (see .tv-screen in
-      // portfolio.css), which is what lets it render at full brightness; this
-      // rect is therefore the visible boundary and needs to be right.
-      screen: { top: 57.18, left: 43.45, width: 12.9688, height: 15.8781 },
+      alphaSrc: "/images/tv-alpha.webp",
+      width: 1536,
+      height: 1024,
+      // Exact opening of the alpha cutout in `tv-alpha.webp`
+      // (x 655–821 / 1536, y 670–791 / 1024). When idle or past the works list,
+      // `tv.webp` renders untouched with zero overlay; only while a work is
+      // active does `.tv-screen` sit *underneath* `tv-alpha.webp` (bleeding
+      // slightly under the opaque recessed bezel so no seam can ever appear).
+      screen: { top: 65.4, left: 42.62, width: 10.92, height: 11.98 },
     },
     items: [
       // Five repositories with the highest 2026 commit counts on github.com/BrainEno
@@ -135,7 +130,7 @@ export const defaultContent: PortfolioContent = {
         year: "2026.10.24",
         credit: { zh: "TypeScript · pnpm · Node", en: "TypeScript · pnpm · Node" },
         image: {
-          src: "/images/works/no-wave.jpg",
+          src: "/images/no-wave1.webp",
           alt: { zh: "no-wave 仓库", en: "no-wave repository" },
         },
         url: "https://github.com/BrainEno/no-wave",
@@ -145,7 +140,7 @@ export const defaultContent: PortfolioContent = {
         },
         detailImages: [
           {
-            src: "/images/works/no-wave.jpg",
+            src: "/images/no-wave1.webp",
             alt: { zh: "no-wave 项目结构", en: "no-wave project structure" },
           },
         ],
@@ -221,7 +216,7 @@ export const defaultContent: PortfolioContent = {
     headlines: ["CALL ME", "FOR THE", "MARQUEE MOON"],
     marquee: { zh: "联系我 —", en: "Contact me —" },
     image: {
-      src: "/images/phone-booth-cutout.png",
+      src: "/images/telephone-booth.webp",
       alt: { zh: "电话亭", en: "Telephone booth" },
     },
     copyright: "© 2026 BrainEno. All rights reserved.",

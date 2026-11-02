@@ -112,7 +112,7 @@ try {
   if (BASE_PATH) {
     // Outside the prefix is somebody else's site on the same origin
     // (`<user>.github.io/<other-repo>/`): it must not be served from here.
-    const outside = await head("/images/figure.jpg");
+    const outside = await head("/images/headline.png");
     check("assets outside the base path are not served", outside.status === 404, `status ${outside.status}`);
   }
 

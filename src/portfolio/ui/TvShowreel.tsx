@@ -12,8 +12,8 @@
 import { gsap } from "gsap";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { LocalizedText } from "../content/types";
-import { srcSetFor } from "./Img";
 import { asset } from "../seo/asset";
+import { Img, srcSetFor } from "./Img";
 
 export type TvWork = {
   id: string;
@@ -26,44 +26,51 @@ export type TvWork = {
 };
 
 type Props = {
-  /** The work the page wants on screen; `null` powers the tube down. */
+  /** The work the page wants on screen; `null` returns to the untouched `tv.webp`. */
   active: TvWork | null;
+  /** Photoshop alpha-cutout frame (`tv-alpha.webp`) layered above `.tv-screen`. */
+  alphaSrc: string;
+  frameWidth: number;
+  frameHeight: number;
   /** Alt text for the current language. */
   label: (text: LocalizedText) => string;
 };
 
+const RESTING_FILTER = "saturate(1.06) contrast(1.04) brightness(0.93)";
+
 /**
- * The screen of the television in the works section.
+ * Active CRT channel rig for the television in the works section.
  *
- * Changing the picture is a **channel change**, not a cross-fade: the tube loses
- * vertical hold (the frame collapses to a bright line), the space between
- * channels comes through as analogue snow, and the new picture snaps back into
- * sync from that line. That is the whole grammar of a CRT tuner — collapse,
- * snow, re-lock — so it reads as one physical event rather than a slideshow
- * effect.
+ * When `active` is `null` (no work hovered, or after scrolling past the works
+ * list), the entire rig stays at `opacity: 0` so the base `tv.webp` photograph
+ * shows completely untouched — zero screen sticker, zero lighting seam.
  *
- * The timeline is deliberately short (≈580 ms end to end) and front-loaded: the
- * collapse is 110 ms, the snow owns the tube for most of the next third, and the
- * new frame expands faster than it collapsed, which is how a real set behaves
- * when the tuner lands on a station.
- * Everything is driven by GSAP on three cheap layers (the frame, a snow tile and
- * a rolling white bar) — no WebGL, no per-pixel work, nothing that can jank a
- * scroll.
+ * Selecting/hovering a work brings up the rig:
+ *  - `.tv-screen` sits *underneath* `tv-alpha.webp` (bleeding slightly under the
+ *    opaque recessed bezel so no gap can ever appear) and runs the CRT channel
+ *    change: vertical-hold collapse → analogue snow → re-lock.
+ *  - `.tv-frame-alpha` (`tv-alpha.webp`) sits *above* `.tv-screen`, masking the
+ *    picture through the exact Photoshop alpha cutout of the curved glass tube.
+ *  - `.tv-ambient` casts a subtle, color-adaptive glow from the active project
+ *    onto the inner bezel bevels and the dark night asphalt in front of the set.
  */
-export default function TvShowreel({ active, label }: Props) {
-  const coverRef = useRef<HTMLImageElement>(null);
+export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, label }: Props) {
+  const rigRef = useRef<HTMLDivElement>(null);
+  const ambientRef = useRef<HTMLDivElement>(null);
+  const pictureRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const staticRef = useRef<HTMLDivElement>(null);
   const rollRef = useRef<HTMLDivElement>(null);
   const lineRef = useRef<HTMLDivElement>(null);
-  /** What is actually painted right now — swapped in the middle of the timeline. */
+
+  /** What is actually painted inside the tube right now — swapped mid-snow. */
   const [shown, setShown] = useState<TvWork | null>(active);
   const shownRef = useRef<TvWork | null>(active);
+  const rigActiveRef = useRef<boolean>(Boolean(active));
   const timeline = useRef<gsap.core.Timeline | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const isPlayingRef = useRef(false);
 
-  /** One 160 px tile of analogue snow, reused as a repeating background. */
+  /** One 160 px tile of analogue snow, generated once and stepped by GSAP. */
   useEffect(() => {
     const tile = document.createElement("canvas");
     tile.width = 160;
@@ -72,14 +79,10 @@ export default function TvShowreel({ active, label }: Props) {
     if (!ctx) return;
     const image = ctx.createImageData(tile.width, tile.height);
     for (let i = 0; i < image.data.length; i += 4) {
-      // Mostly dark grain with occasional hot pixels, like real snow seen
-      // through a thick glass front. A dark-but-not-black grain: bright specks on grey, which is what makes
-      // the layer opaque enough to actually hide the outgoing picture instead
-      // of merely glowing on top of it.
-      const value = Math.random() < 0.9 ? 40 + Math.random() * 120 : 205 + Math.random() * 50;
+      const value = Math.random() < 0.88 ? 36 + Math.random() * 124 : 200 + Math.random() * 55;
       image.data[i] = value;
-      image.data[i + 1] = value;
-      image.data[i + 2] = value;
+      image.data[i + 1] = value * 1.01;
+      image.data[i + 2] = value * 0.99;
       image.data[i + 3] = 255;
     }
     ctx.putImageData(image, 0, 0);
@@ -89,23 +92,21 @@ export default function TvShowreel({ active, label }: Props) {
   useEffect(() => {
     const nextId = active?.id ?? null;
     const currentId = shownRef.current?.id ?? null;
-    if (nextId === currentId) return;
+    if (nextId === currentId && Boolean(active) === rigActiveRef.current) return;
 
+    const rig = rigRef.current;
+    const ambient = ambientRef.current;
+    const picture = pictureRef.current;
     const staticLayer = staticRef.current;
     const roll = rollRef.current;
     const line = lineRef.current;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    // Pause the outgoing video before it leaves the tube — a looping video
-    // collapsing into the sync line would still be draining bandwidth and,
-    // worse, its audio (muted, but still decoded) could steal CPU from the
-    // incoming channel.
     const video = videoRef.current;
     if (video) {
       video.pause();
       video.currentTime = 0;
       setIsPlaying(false);
-      isPlayingRef.current = false;
     }
 
     const commit = (work: TvWork | null) => {
@@ -113,30 +114,23 @@ export default function TvShowreel({ active, label }: Props) {
       setShown(work);
     };
 
-    if (reduce || !staticLayer || !roll || !line) {
+    timeline.current?.kill();
+
+    if (reduce || !rig || !ambient || !picture || !staticLayer || !roll || !line) {
+      rigActiveRef.current = Boolean(active);
       commit(active);
+      if (rig) gsap.set(rig, { opacity: active ? 1 : 0 });
+      if (ambient) gsap.set(ambient, { opacity: active ? 1 : 0 });
+      if (picture) gsap.set(picture, { opacity: active ? 1 : 0, scaleY: 1, filter: RESTING_FILTER });
+      if (staticLayer && roll && line) gsap.set([staticLayer, roll, line], { opacity: 0 });
       return;
     }
 
-    timeline.current?.kill();
-    const hadPicture = Boolean(currentId) && Boolean(active);
+    const wasActive = rigActiveRef.current && (Number(gsap.getProperty(rig, "opacity")) > 0.15 || Boolean(currentId));
+    rigActiveRef.current = Boolean(active);
 
-    // The cover element is whichever medium the active work carries. A still
-    // animates the `<img>`; a video animates the `<video>` — same CSS classes,
-    // same scaleY / filter / opacity grammar, so the CRT channel change reads
-    // identically either way.
-    const cover = (active?.videoSrc ? videoRef.current : coverRef.current) ?? null;
-
-    const tl = gsap.timeline({
-      defaults: { ease: "power2.out" },
-      onComplete: () => {
-        gsap.set([staticLayer, roll], { opacity: 0 });
-      },
-    });
+    const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
     timeline.current = tl;
-    // QA hook: lets the screenshot harness slow the channel change down to a
-    // crawl so it can be inspected frame by frame. Development only — the
-    // branch is dropped from production builds.
     if (process.env.NODE_ENV !== "production") {
       const w = window as unknown as Record<string, unknown>;
       w.__tvTl = tl;
@@ -144,59 +138,80 @@ export default function TvShowreel({ active, label }: Props) {
       if (rate) tl.timeScale(rate);
     }
 
-    // Nothing on the tube yet (first hover): come up out of pure snow.
-    // Losing the picture (leaving the rows): collapse to the line and go dark.
-    if (!hadPicture) {
-      gsap.set([staticLayer, roll, line], { clearProps: "opacity" });
-      gsap.set(cover, { scaleY: currentId ? 1 : 0.02, opacity: currentId ? 1 : 0, transformOrigin: "50% 50%" });
-      tl.to(staticLayer, { opacity: 1, duration: 0.08 }, 0)
-        .to(line, { opacity: 0.85, duration: 0.05 }, 0)
-        .to(roll, { opacity: 0.5, duration: 0.06 }, 0);
-      if (active) {
-        tl.call(() => commit(active), undefined, 0.1)
-          .to(cover, { scaleY: 1, opacity: 1, duration: 0.3, ease: "power3.out" }, 0.1)
-          .to(line, { opacity: 0, duration: 0.14 }, 0.12)
-          .to(staticLayer, { opacity: 0, duration: 0.24 }, 0.14)
-          .to(roll, { opacity: 0, duration: 0.2 }, 0.16);
-      } else {
-        tl.to(cover, { scaleY: 0.02, duration: 0.14, ease: "power2.in" }, 0)
-          .to(staticLayer, { opacity: 0, duration: 0.2 }, 0.12)
-          .to(line, { opacity: 0, duration: 0.2 }, 0.12)
-          .to(roll, { opacity: 0, duration: 0.18 }, 0.12);
-      }
+    // 1 — Returning to the untouched `tv.webp` (unhovering or scrolling past the last work).
+    if (!active) {
+      tl.to(picture, { scaleY: 0.03, transformOrigin: "50% 50%", duration: 0.1, ease: "power2.in" }, 0)
+        .to(picture, { filter: "brightness(2.5) saturate(0) contrast(1.3)", duration: 0.09 }, 0)
+        .to(picture, { opacity: 0, duration: 0.05, ease: "none" }, 0.07)
+        .to(staticLayer, { opacity: 0.85, duration: 0.05, ease: "none" }, 0.02)
+        .fromTo(
+          staticLayer,
+          { backgroundPosition: "0px 0px" },
+          { backgroundPosition: "240px 120px", duration: 0.22, ease: "steps(5)" },
+          0.02
+        )
+        .to(line, { opacity: 0.78, duration: 0.04, ease: "none" }, 0.04)
+        .to(ambient, { opacity: 0, duration: 0.22, ease: "power2.out" }, 0)
+        .to([staticLayer, line, roll], { opacity: 0, duration: 0.16, ease: "power1.out" }, 0.1)
+        .to(rig, { opacity: 0, duration: 0.18, ease: "power2.inOut" }, 0.08)
+        .call(() => commit(null));
       return;
     }
 
-    // A real channel change. The order matters: the picture has to leave the
-    // glass *before* the snow arrives, and the new picture may only start
-    // expanding while the snow is already clearing — otherwise the swap shows
-    // up as a frame pasted onto the grain instead of emerging from it.
-    tl
-      // 1 — vertical hold goes: the picture squashes into the sync line and
-      //     blows out, exactly like a set that lost the field pulse.
-      .to(cover, { scaleY: 0.02, transformOrigin: "50% 50%", duration: 0.11, ease: "power2.in" }, 0)
-      .to(cover, { filter: "brightness(3.4) saturate(0) contrast(1.4)", duration: 0.11 }, 0)
-      .to(cover, { opacity: 0, duration: 0.04, ease: "none" }, 0.09)
-      // 2 — the sync line holds for a beat, then smears out.
+    // 2 — First hover from idle `tv.webp`: snow bursts inside the alpha-cutout
+    //     glass, then locks onto the project picture while ambient light blooms.
+    if (!wasActive) {
+      gsap.set(rig, { opacity: 1 });
+      gsap.set(picture, {
+        opacity: 0,
+        scaleY: 0.03,
+        transformOrigin: "50% 50%",
+        filter: "brightness(2.6) saturate(0) contrast(1.3)",
+      });
+      tl.to(staticLayer, { opacity: 1, duration: 0.06, ease: "none" }, 0)
+        .fromTo(
+          staticLayer,
+          { backgroundPosition: "0px 0px" },
+          { backgroundPosition: "420px 210px", duration: 0.36, ease: "steps(8)" },
+          0
+        )
+        .fromTo(line, { opacity: 0, scaleX: 0.96 }, { opacity: 0.88, scaleX: 1, duration: 0.05, ease: "none" }, 0)
+        .fromTo(roll, { opacity: 0, yPercent: -130 }, { opacity: 0.55, yPercent: 130, duration: 0.32, ease: "power1.in" }, 0)
+        .call(() => commit(active), undefined, 0.09)
+        .to(picture, { opacity: 1, duration: 0.08, ease: "none" }, 0.11)
+        .to(picture, { scaleY: 1, duration: 0.25, ease: "power3.out" }, 0.11)
+        .to(picture, { filter: RESTING_FILTER, duration: 0.28 }, 0.13)
+        .to(ambient, { opacity: 1, duration: 0.36, ease: "power2.out" }, 0.1)
+        .to(line, { opacity: 0, duration: 0.14 }, 0.14)
+        .to(staticLayer, { opacity: 0, duration: 0.2, ease: "power1.out" }, 0.18)
+        .to(roll, { opacity: 0, duration: 0.18 }, 0.18);
+      return;
+    }
+
+    // 3 — Switching between two works: classic CRT channel change.
+    gsap.set(rig, { opacity: 1 });
+    tl.to(picture, { scaleY: 0.02, transformOrigin: "50% 50%", duration: 0.11, ease: "power2.in" }, 0)
+      .to(picture, { filter: "brightness(3.2) saturate(0) contrast(1.4)", duration: 0.11 }, 0)
+      .to(picture, { opacity: 0, duration: 0.04, ease: "none" }, 0.09)
+      .to(ambient, { opacity: 0.42, duration: 0.12, ease: "power1.in" }, 0)
       .fromTo(line, { opacity: 0, scaleX: 0.98 }, { opacity: 0.9, scaleX: 1, duration: 0.03, ease: "none" }, 0.06)
       .to(line, { opacity: 0, duration: 0.14, ease: "power1.in" }, 0.2)
-      // 3 — between stations: full analogue snow and a rolling bar. The grain
-      //     owns the tube from 0.12 until 0.30, and the source is swapped
-      //     underneath it at 0.2.
       .to(staticLayer, { opacity: 1, duration: 0.04, ease: "none" }, 0.1)
       .to(roll, { opacity: 0.6, duration: 0.05 }, 0.1)
-      .fromTo(staticLayer, { backgroundPosition: "0px 0px" }, { backgroundPosition: "480px 240px", duration: 0.42, ease: "steps(9)" }, 0.1)
+      .fromTo(
+        staticLayer,
+        { backgroundPosition: "0px 0px" },
+        { backgroundPosition: "480px 240px", duration: 0.42, ease: "steps(9)" },
+        0.1
+      )
       .fromTo(roll, { yPercent: -140 }, { yPercent: 140, duration: 0.36, ease: "power1.in" }, 0.1)
       .call(() => commit(active), undefined, 0.2)
-      // 4 — the tuner lands. The picture re-locks *behind* the grain (still a
-      //     full screen of noise at this point), and only once it is a solid
-      //     frame does the snow clear away: the new channel resolves out of the
-      //     noise instead of being drawn on top of it.
-      .to(cover, { scaleY: 1, duration: 0.24, ease: "power3.out" }, 0.26)
-      .to(cover, { opacity: 1, duration: 0.1, ease: "none" }, 0.26)
-      .to(cover, { filter: "saturate(1.12) contrast(1.06) brightness(0.88)", duration: 0.3 }, 0.3)
-      .to(staticLayer, { opacity: 0, duration: 0.16, ease: "power1.out" }, 0.42)
-      .to(roll, { opacity: 0, duration: 0.16 }, 0.42);
+      .to(picture, { scaleY: 1, duration: 0.24, ease: "power3.out" }, 0.26)
+      .to(picture, { opacity: 1, duration: 0.1, ease: "none" }, 0.26)
+      .to(picture, { filter: RESTING_FILTER, duration: 0.28 }, 0.28)
+      .to(ambient, { opacity: 1, duration: 0.32, ease: "power2.out" }, 0.26)
+      .to(staticLayer, { opacity: 0, duration: 0.16, ease: "power1.out" }, 0.4)
+      .to(roll, { opacity: 0, duration: 0.16 }, 0.4);
   }, [active]);
 
   useEffect(
@@ -212,10 +227,6 @@ export default function TvShowreel({ active, label }: Props) {
     []
   );
 
-  /**
-   * Click the tube to play or pause the video. A still work has nothing to
-   * toggle, so the handler is a no-op in that case.
-   */
   const handleScreenClick = useCallback(() => {
     const video = videoRef.current;
     if (!video || !video.src) return;
@@ -227,9 +238,6 @@ export default function TvShowreel({ active, label }: Props) {
     }
   }, []);
 
-  // Keep a local playing flag in sync with what the <video> element is actually
-  // doing — the play button overlay reads from this, and a tab-switch or
-  // autoplay-policy rejection could stop the clip without us knowing.
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -241,64 +249,97 @@ export default function TvShowreel({ active, label }: Props) {
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onPause);
     };
-  }, []);
+  }, [shown?.videoSrc]);
 
   const isVideoWork = Boolean(shown?.videoSrc);
   const posterSrc = shown?.videoPoster ?? shown?.src;
 
   return (
-    <>
-      {isVideoWork ? (
-        // Video on the CRT: preload only metadata so we never burn bandwidth on
-        // a clip the visitor never watches; muted + loop + playsInline keep it
-        // behaving like a still that can spring to life on click. The poster
-        // (or the work's image as fallback) is what the channel-change animation
-        // reveals before playback starts.
-        <video
-          ref={videoRef}
-          className="tv-cover tv-video"
-          src={shown?.videoSrc ? asset(shown.videoSrc) : undefined}
-          poster={posterSrc ? asset(posterSrc) : undefined}
-          preload="metadata"
-          muted
-          loop
-          playsInline
-          onClick={handleScreenClick}
-          aria-label={shown ? label(shown.alt) : ""}
-          draggable={false}
-        />
-      ) : (
-        /* The tube is ~21vw wide when it rests, but the works choreography
-           zooms it to the full viewport, so the candidate ladder is chosen for
-           the zoomed size — a screen that pixelates mid-transition would be a
-           far worse trade than the extra ~20 KB. */
-        /* eslint-disable-next-line @next/next/no-img-element -- GSAP drives this
-           node directly (the channel change animates the element itself), so it
-           needs the ref; the responsive candidates are attached above. */
-        <img
-          ref={coverRef}
-          className="tv-cover"
-          src={shown ? asset(shown.src) : undefined}
-          srcSet={shown ? srcSetFor(shown.src) : undefined}
-          sizes={shown?.src ? "(max-width: 767px) 80vw, 55vw" : undefined}
-          alt={shown ? label(shown.alt) : ""}
-          decoding="async"
-          draggable={false}
-        />
-      )}
-      <div ref={staticRef} className="tv-static" aria-hidden="true" />
-      <div ref={lineRef} className="tv-sync-line" aria-hidden="true" />
-      <div ref={rollRef} className="tv-roll" aria-hidden="true" />
-      {/* The play affordance sits above the glass but below the scanlines so it
-          reads as printed onto the CRT, not floating in front of it. Hidden on
-          still works and while the video is already rolling. */}
-      {isVideoWork && !isPlaying ? (
-        <div className="tv-play-btn" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor">
-            <path d="M8 5v14l11-7z" />
-          </svg>
+    <div ref={rigRef} className="tv-active-rig" data-active={active ? "true" : "false"} aria-hidden={!active || undefined}>
+      {/* Subtle ambient light cast by the active screen onto the bezel & night asphalt */}
+      <div ref={ambientRef} className="tv-ambient" aria-hidden="true">
+        {posterSrc ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              className="tv-ambient-halo"
+              src={asset(posterSrc)}
+              srcSet={srcSetFor(posterSrc)}
+              sizes="28vw"
+              alt=""
+              decoding="async"
+              draggable={false}
+            />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              className="tv-ambient-ground"
+              src={asset(posterSrc)}
+              srcSet={srcSetFor(posterSrc)}
+              sizes="28vw"
+              alt=""
+              decoding="async"
+              draggable={false}
+            />
+          </>
+        ) : null}
+        <div className="tv-ambient-bloom" />
+      </div>
+
+      {/* Screen aperture layered *underneath* `tv-alpha.webp` so the Photoshop
+          alpha cutout masks the curved bezel edge with zero seam. */}
+      <div className="tv-screen">
+        <div ref={pictureRef} className="tv-picture">
+          {isVideoWork ? (
+            <video
+              ref={videoRef}
+              className="tv-cover tv-video"
+              src={shown?.videoSrc ? asset(shown.videoSrc) : undefined}
+              poster={posterSrc ? asset(posterSrc) : undefined}
+              preload="metadata"
+              muted
+              loop
+              playsInline
+              onClick={handleScreenClick}
+              aria-label={shown ? label(shown.alt) : ""}
+              draggable={false}
+            />
+          ) : (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              className="tv-cover"
+              src={shown ? asset(shown.src) : undefined}
+              srcSet={shown ? srcSetFor(shown.src) : undefined}
+              sizes={shown?.src ? "(max-width: 767px) 80vw, 55vw" : undefined}
+              alt={shown ? label(shown.alt) : ""}
+              decoding="async"
+              draggable={false}
+            />
+          )}
         </div>
-      ) : null}
-    </>
+        <div className="tv-crt-optics" aria-hidden="true" />
+        {isVideoWork && !isPlaying ? (
+          <div className="tv-play-btn" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </div>
+        ) : null}
+        <div ref={staticRef} className="tv-static" aria-hidden="true" />
+        <div ref={lineRef} className="tv-sync-line" aria-hidden="true" />
+        <div ref={rollRef} className="tv-roll" aria-hidden="true" />
+      </div>
+
+      <Img
+        className="tv-frame-alpha"
+        src={alphaSrc}
+        alt=""
+        sizes="(max-aspect-ratio: 4/3) 295vh, 185vw"
+        hidden
+        loading="lazy"
+        draggable={false}
+        width={frameWidth}
+        height={frameHeight}
+      />
+    </div>
   );
 }

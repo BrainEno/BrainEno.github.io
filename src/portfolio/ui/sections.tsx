@@ -148,7 +148,7 @@ type WorksProps = SectionProps<"works"> & {
 export function Works({ lang, content, phone, activeIndex, onPreview }: WorksProps) {
   const zh = lang === "zh";
   const active = activeIndex >= 0 ? content.items[activeIndex] : undefined;
-  const { screen, width, height, src } = content.tv;
+  const { screen, width, height, src, alphaSrc } = content.tv;
   const tvStyle = {
     "--tv-ratio": `${width} / ${height}`,
     "--screen-top": `${screen.top}%`,
@@ -161,60 +161,39 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
 
   return (
     <section id="works" className="works" aria-label={t(content.heading, lang)}>
-      {/* SVG clip-path that traces the exact inner bezel edge of the TV screen.
-          This replaces the crude border-radius approximation with a precise path
-          (like Photoshop's pen tool), so the content seamlessly fits inside the
-          TV frame even when zoomed and rotated. */}
-      <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
-        <defs>
-          <clipPath id="tv-screen-clip" clipPathUnits="objectBoundingBox">
-            {/* Rounded rectangle with bezier curves matching the actual bezel opening.
-                Corner radii: TL 9%/9%, TR 7%/8%, BR 8%/9%, BL 10%/10%.
-                Bezier approximation factor: 0.5523 for smooth quarter-circle arcs. */}
-            <path d="M 0.09 0 L 0.93 0 C 0.93 0.0442, 0.9687 0.08, 1 0.08 L 1 0.91 C 1 0.9597, 0.9558 1, 0.92 1 L 0.10 1 C 0.0448 1, 0 0.9552, 0 0.90 L 0 0.09 C 0 0.0403, 0.0497 0, 0.09 0 Z" />
-          </clipPath>
-        </defs>
-      </svg>
       <div className="tv-stage">
         <div className="tv-anchor" style={tvStyle}>
           <div className="tv-box">
-            <div className={cx("tv-screen", active && "has-preview")}>
-              <div className="tv-screen-base" />
-            <div className="tv-showreel">
-              <TvShowreel
-                active={
-                  active
-                    ? {
-                        id: active.id,
-                        src: active.image.src,
-                        alt: active.image.alt,
-                        videoSrc: active.video?.src,
-                        videoPoster: active.video?.poster,
-                      }
-                    : null
-                }
-                label={(text) => t(text, lang)}
-              />
-            </div>
-              <div className="tv-scanlines" aria-hidden="true" />
-              <div className="tv-glass" aria-hidden="true" />
-            </div>
-            {/* Below the fold: no `<link rel=preload>` for artwork nobody has
-                scrolled to yet.
-                `sizes` mirrors `.tv-anchor`'s `max(160vw, 230vh)`: the cabinet
-                is laid out far wider than the viewport (the glass, not the
-                box, is what fits the screen), so the default ladder would be
-                blurry. Portrait-ish viewports are height-driven. */}
+            {/* Base television photograph (`tv.webp`): rendered untouched whenever
+                no work is hovered and again once the works list scrolls past into
+                the `@BrainEno` zoom & opacity exit. */}
             <Img
               className="tv-frame"
               src={src}
               alt=""
-              sizes="(max-aspect-ratio: 4/3) 230vh, 160vw"
+              sizes="(max-aspect-ratio: 4/3) 295vh, 185vw"
               hidden
               loading="lazy"
               draggable={false}
               width={width}
               height={height}
+            />
+            <TvShowreel
+              active={
+                active
+                  ? {
+                      id: active.id,
+                      src: active.image.src,
+                      alt: active.image.alt,
+                      videoSrc: active.video?.src,
+                      videoPoster: active.video?.poster,
+                    }
+                  : null
+              }
+              alphaSrc={alphaSrc || src}
+              frameWidth={width}
+              frameHeight={height}
+              label={(text) => t(text, lang)}
             />
             <div className="tv-number-layer" aria-hidden="true">
               <div className="tv-number">{phone}</div>
@@ -230,7 +209,19 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
             {t(content.heading, lang)} <span className="works-period">{content.period}</span>
           </span>
         </h2>
-        <ol className="work-rows">
+        <ol
+          className="work-rows"
+          onMouseLeave={(event) => {
+            if (!(event.relatedTarget as Element | null)?.closest?.(".tv-video")) {
+              onPreview(-1);
+            }
+          }}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+              onPreview(-1);
+            }
+          }}
+        >
           {content.items.map((work, index) => {
             const title = zh ? `《${t(work.title, lang)}》` : t(work.title, lang);
             return (
@@ -238,6 +229,7 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
                 key={work.id}
                 className={cx("work-row", zh && "is-zh", index === activeIndex && "is-active")}
                 data-cursor="view"
+                data-work-index={index}
                 tabIndex={0}
                 onMouseEnter={() => onPreview(index)}
                 onFocus={() => onPreview(index)}

@@ -89,6 +89,8 @@ export type PortfolioContent = {
     period: string;
     tv: {
       src: string;
+      /** Alpha-cutout TV frame shown only while a work is active on the screen. */
+      alphaSrc?: string;
       width: number;
       height: number;
       screen: ScreenRect;

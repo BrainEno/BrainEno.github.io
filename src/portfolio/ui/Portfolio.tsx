@@ -11,7 +11,7 @@
 
 import { gsap } from "gsap";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
-import { memo, useCallback, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { memo, useCallback, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type RefObject } from "react";
 import { t } from "../content/normalize";
 import type { Language, PortfolioContent, SectionId } from "../content/types";
 import {
@@ -104,38 +104,73 @@ function Preloader({ name }: { name: string }) {
   );
 }
 
-function Cursor() {
+function Cursor({
+  onHoverWork,
+  syncRef,
+}: {
+  onHoverWork: (index: number) => void;
+  syncRef: RefObject<(() => void) | null>;
+}) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = ref.current;
-    if (!el || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    if (!el || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      syncRef.current = null;
+      return;
+    }
     const xTo = gsap.quickTo(el, "x", { duration: 0.45, ease: "power3" });
     const yTo = gsap.quickTo(el, "y", { duration: 0.45, ease: "power3" });
     let visible = false;
+    let pointerX = 0;
+    let pointerY = 0;
+
+    const evaluateTarget = (element: Element | null) => {
+      const target = element?.closest<HTMLElement>("[data-cursor], a, button");
+      el.dataset.state = target?.dataset.cursor ?? (target ? "link" : "");
+
+      const worksSection = document.getElementById("works");
+      const inRowsPhase = !worksSection?.dataset.tvPhase || worksSection.dataset.tvPhase === "rows";
+      const row = inRowsPhase ? element?.closest<HTMLElement>(".work-row[data-work-index]") : null;
+      if (row) {
+        onHoverWork(Number(row.dataset.workIndex));
+      } else if (inRowsPhase && element?.closest(".tv-video")) {
+        // Allow clicking a video work directly on the CRT tube without powering it off mid-click.
+      } else if (!document.activeElement?.closest(".work-row")) {
+        onHoverWork(-1);
+      }
+    };
+
+    syncRef.current = () => {
+      if (!visible) return;
+      evaluateTarget(document.elementFromPoint(pointerX, pointerY));
+    };
 
     const onMove = (event: PointerEvent) => {
+      pointerX = event.clientX;
+      pointerY = event.clientY;
       if (!visible) {
         visible = true;
-        gsap.set(el, { x: event.clientX, y: event.clientY });
+        gsap.set(el, { x: pointerX, y: pointerY });
         gsap.to(el, { autoAlpha: 1, duration: 0.3 });
       }
-      xTo(event.clientX);
-      yTo(event.clientY);
-      const target = (event.target as Element | null)?.closest<HTMLElement>("[data-cursor], a, button");
-      el.dataset.state = target?.dataset.cursor ?? (target ? "link" : "");
+      xTo(pointerX);
+      yTo(pointerY);
+      evaluateTarget(event.target as Element | null);
     };
     const onLeave = () => {
       visible = false;
       gsap.to(el, { autoAlpha: 0, duration: 0.3 });
+      if (!document.activeElement?.closest(".work-row")) onHoverWork(-1);
     };
     window.addEventListener("pointermove", onMove, { passive: true });
     document.documentElement.addEventListener("pointerleave", onLeave);
     return () => {
+      syncRef.current = null;
       window.removeEventListener("pointermove", onMove);
       document.documentElement.removeEventListener("pointerleave", onLeave);
     };
-  }, []);
+  }, [onHoverWork, syncRef]);
 
   return <div ref={ref} className="cursor" aria-hidden="true"><span className="cursor-dot" /></div>;
 }
@@ -144,6 +179,7 @@ function Cursor() {
 export default function Portfolio({ content }: { content: PortfolioContent }) {
   const scopeRef = useRef<HTMLDivElement>(null);
   const lastWorkRef = useRef(-1);
+  const syncPointerRef = useRef<(() => void) | null>(null);
   // Language preference: the stored value is read as an external store rather
   // than copied into state from an effect (which would render the wrong
   // language for a frame, and fights hydration).
@@ -273,6 +309,7 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
       onSection: setSection,
       onWork: preview,
       lastWork: () => lastWorkRef.current,
+      syncPointer: () => syncPointerRef.current?.(),
     });
     return teardown;
     // `layoutKey` bumps on a viewport-size change: the choreography measures the
@@ -287,7 +324,7 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
   return (
     <div ref={scopeRef} className={cx("pf", lang === "zh" && "lang-zh")} style={themeStyle}>
       <Preloader name={content.identity.name} />
-      <Cursor />
+      <Cursor onHoverWork={preview} syncRef={syncPointerRef} />
       <Header
         name={content.identity.name}
         lang={lang}

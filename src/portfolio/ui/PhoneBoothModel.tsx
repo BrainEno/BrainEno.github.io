@@ -12,6 +12,7 @@
 import { useEffect, useRef } from "react";
 import type { BoothHandle } from "../three/booth";
 import { asset } from "../seo/asset";
+import { srcSetFor } from "./Img";
 
 type Props = {
   /** Optimised GLB of the uploaded telephone model. */
@@ -111,10 +112,18 @@ export function PhoneBoothModel({ src, fallback, spin = 0.16, plateText }: Props
   return (
     <div ref={hostRef} className="contact-booth-canvas" aria-hidden="true">
       {/* Kept a raw `<img>` rather than `Img`: the hand-over hides this node by
-          writing `style.opacity` straight to the DOM, so it needs the ref, and it
-          is a transparent cutout that must not be re-encoded. */}
+          writing `style.opacity` straight to the DOM, so it needs the ref. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img ref={stillRef} className="contact-booth-still" src={asset(fallback)} alt="" loading="lazy" decoding="async" />
+      <img
+        ref={stillRef}
+        className="contact-booth-still"
+        src={asset(fallback)}
+        srcSet={srcSetFor(fallback)}
+        sizes="(max-width: 1023px) 34vh, 44vh"
+        alt=""
+        loading="lazy"
+        decoding="async"
+      />
     </div>
   );
 }

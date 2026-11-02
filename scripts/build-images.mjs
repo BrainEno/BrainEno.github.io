@@ -41,20 +41,21 @@ const QUALITY = 78;
 /** A derivative is only useful if it is at least this much smaller than the next one. */
 const MIN_STEP = 1.15;
 /**
- * Files that must keep their original bytes: the booth cutout is a transparent
- * PNG used as the pre-WebGL state (a lossy re-encode shows as a halo around the
- * silhouette).
+ * Files that must keep their original bytes without WebP derivatives.
  */
-const SKIP = new Set(["phone-booth-cutout.png"]);
+const SKIP = new Set([]);
 
 /**
  * Per-file overrides. The television artwork is the one image that is *not*
  * laid out at a CSS size: `.tv-anchor` is `max(160vw, 230vh)`, i.e. ~2300 px
  * wide on a desktop and ~1900 px on a phone (portrait), so the default
- * 480/800/1200 ladder would be a soft mess. It gets its own, wider ladder.
+ * 480/800/1200 ladder would be a soft mess. Both the base TV photo and the
+ * alpha-cutout frame get high-resolution ladders, with lossless alpha on the
+ * cutout so the Photoshop screen edge stays razor-sharp.
  */
 const OVERRIDES = {
-  "tv.webp": { widths: [1280, 1920, 2560], quality: 76 },
+  "tv.webp": { widths: [1280, 1536], quality: 84 },
+  "tv-alpha.webp": { widths: [1280, 1536], quality: 84, alphaQuality: 100 },
 };
 
 const force = process.argv.includes("--force");
@@ -112,7 +113,11 @@ async function main() {
         await sharp(file)
           .rotate()
           .resize({ width: target, withoutEnlargement: true })
-          .webp({ quality, effort: 5 })
+          .webp({
+            quality,
+            ...(override?.alphaQuality ? { alphaQuality: override.alphaQuality } : {}),
+            effort: 5,
+          })
           .toFile(out);
         written += 1;
       } else {
