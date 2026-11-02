@@ -700,7 +700,7 @@ body {
   position: absolute;
   top: 58%;
   left: 50%;
-  width: max(160vw, 230vh);
+  width: max(185vw, 295vh);
   aspect-ratio: var(--tv-ratio);
   transform: translate(calc(var(--screen-cx) * -1), calc(var(--screen-cy) * -1));
 }
@@ -713,46 +713,54 @@ body {
   will-change: transform;
 }
 
-/* The original photo remains untouched until a work is selected. In live mode
-   the picture extends past the entire alpha opening, and the supplied cutout
-   (not a synthetic clip path) paints the bezel and its antialiased edge. */
 .tv-frame {
   position: absolute;
   inset: 0;
+  z-index: 1;
   width: 100%;
   height: 100%;
   object-fit: fill;
   pointer-events: none;
 }
 
-.tv-live {
+/* Active CRT composite rig: completely invisible (`opacity: 0`) when no work
+   is hovered and again after scrolling past the works list, so `tv.webp`
+   renders untouched with zero screen sticker. */
+.tv-active-rig {
   position: absolute;
   inset: 0;
+  z-index: 2;
   opacity: 0;
-  transition: opacity 0.22s ease;
   pointer-events: none;
+  will-change: opacity;
 }
 
-.tv-live.is-active {
-  opacity: 1;
+.tv-active-rig[data-active="true"] .tv-video {
   pointer-events: auto;
 }
 
-.tv-screen, .tv-number-layer {
-  position: absolute;
-  top: var(--screen-top);
-  left: var(--screen-left);
-  width: var(--screen-width);
-  height: var(--screen-height);
-  overflow: hidden;
-}
-
+/* Placed *underneath* `.tv-frame-alpha` (`tv-alpha.webp`) and grown ~0.4% past
+   the alpha hole on all four sides so its outer edge is tucked safely beneath
+   the opaque recessed bezel — no sub-pixel seam can ever open. */
 .tv-screen {
+  position: absolute;
+  top: calc(var(--screen-top) - 0.45%);
+  left: calc(var(--screen-left) - 0.38%);
+  width: calc(var(--screen-width) + 0.76%);
+  height: calc(var(--screen-height) + 0.9%);
   z-index: 1;
-  background: #141a16;
+  background: #060908;
+  transform: translateZ(0);
+  overflow: hidden;
+  overflow: clip;
 }
 
-.tv-alpha { z-index: 2; }
+.tv-picture {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  will-change: transform, opacity, filter;
+}
 
 .tv-cover {
   position: absolute;
@@ -760,47 +768,220 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: saturate(0.87) brightness(0.82) contrast(0.96);
 }
 
-.tv-video { background: #111; cursor: pointer; }
-
-/* Restrained room-coloured reflections and edge falloff, only in live mode. */
-.tv-glass {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  background:
-    linear-gradient(100deg, rgba(255, 201, 140, 0.12), transparent 52%, rgba(118, 210, 158, 0.1)),
-    radial-gradient(ellipse at 30% 30%, rgba(255, 236, 205, 0.15), transparent 20%),
-    radial-gradient(ellipse at center, transparent 48%, rgba(0, 0, 0, 0.38) 100%),
-    repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.09) 0 1px, transparent 1px 3px);
+/* Video variant of the cover: identical box model to `.tv-cover` so the CRT
+   channel-change animation reads identically on stills and clips. */
+.tv-video {
+  background: #000;
+  cursor: pointer;
+  -webkit-media-controls-display: none;
 }
 
-.tv-static {
+/* Curved CRT front-glass optics: subtle scanlines, cool night-sky arc sheen,
+   right-edge curvature glint, and cushion falloff into the recessed bezel. */
+.tv-crt-optics {
   position: absolute;
   inset: 0;
   z-index: 3;
-  opacity: 0;
   pointer-events: none;
-  background-color: #515a53;
-  background-repeat: repeat;
-  background-size: 160px 160px;
-  image-rendering: pixelated;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.2) 0,
+      rgba(0, 0, 0, 0.2) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    radial-gradient(
+      ellipse at 28% 18%,
+      rgba(204, 238, 255, 0.16),
+      rgba(136, 187, 204, 0.05) 45%,
+      transparent 72%
+    ),
+    linear-gradient(
+      96deg,
+      rgba(255, 255, 255, 0.05) 0%,
+      transparent 14%,
+      transparent 84%,
+      rgba(216, 255, 240, 0.1) 93%,
+      rgba(0, 0, 0, 0.28) 100%
+    ),
+    radial-gradient(
+      ellipse at 50% 50%,
+      transparent 56%,
+      rgba(0, 0, 0, 0.26) 84%,
+      rgba(0, 0, 0, 0.68) 100%
+    );
+  box-shadow: inset 0 0 2.4vmin rgba(0, 0, 0, 0.5);
 }
 
-.tv-roll {
+.tv-play-btn {
   position: absolute;
   inset: 0;
   z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  color: rgba(255, 255, 255, 0.76);
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.55));
+  transition: opacity 0.25s ease-out;
+}
+
+/* Analogue snow between channels. */
+.tv-static {
+  position: absolute;
+  inset: -4%;
+  z-index: 5;
   opacity: 0;
   pointer-events: none;
-  background: linear-gradient(180deg, transparent 35%, rgba(244, 255, 240, 0.38) 49%, transparent 63%);
+  background-repeat: repeat;
+  background-size: 160px 160px;
+  image-rendering: pixelated;
+  will-change: opacity, background-position;
+}
+
+/* Hot horizontal sync band when vertical hold breaks. */
+.tv-sync-line {
+  position: absolute;
+  left: -3%;
+  right: -3%;
+  top: calc(50% - 1.4%);
+  height: 2.8%;
+  z-index: 6;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #fff 42%, #fff 58%, rgba(255, 255, 255, 0) 100%);
+  box-shadow: 0 0 3vmin rgba(255, 255, 255, 0.55);
+  mix-blend-mode: screen;
+  will-change: opacity, transform;
+}
+
+/* Rolling white bar during tuner re-lock. */
+.tv-roll {
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  top: 0;
+  height: 18%;
+  z-index: 6;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.5) 42%, rgba(255, 255, 255, 0.7) 55%, transparent 100%);
+  mix-blend-mode: screen;
+  will-change: opacity, transform;
+}
+
+/* Alpha-cutout frame (`tv-alpha.webp`) layered *above* `.tv-screen`.
+   Feathered smoothly inside the jet-black recessed bezel pocket (anchored to
+   `--screen-*` so it tracks the content's screen rect automatically) while the
+   rest of the cabinet and street stays on `tv.webp` with zero shift. */
+.tv-frame-alpha {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+  -webkit-mask-image:
+    linear-gradient(
+      90deg,
+      transparent calc(var(--screen-left) - 1.05%),
+      #000 calc(var(--screen-left) - 0.55%),
+      #000 calc(var(--screen-left) + var(--screen-width) + 0.55%),
+      transparent calc(var(--screen-left) + var(--screen-width) + 1.05%)
+    ),
+    linear-gradient(
+      180deg,
+      transparent calc(var(--screen-top) - 1.45%),
+      #000 calc(var(--screen-top) - 0.7%),
+      #000 calc(var(--screen-top) + var(--screen-height) + 0.7%),
+      transparent calc(var(--screen-top) + var(--screen-height) + 1.55%)
+    );
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(
+      90deg,
+      transparent calc(var(--screen-left) - 1.05%),
+      #000 calc(var(--screen-left) - 0.55%),
+      #000 calc(var(--screen-left) + var(--screen-width) + 0.55%),
+      transparent calc(var(--screen-left) + var(--screen-width) + 1.05%)
+    ),
+    linear-gradient(
+      180deg,
+      transparent calc(var(--screen-top) - 1.45%),
+      #000 calc(var(--screen-top) - 0.7%),
+      #000 calc(var(--screen-top) + var(--screen-height) + 0.7%),
+      transparent calc(var(--screen-top) + var(--screen-height) + 1.55%)
+    );
+  mask-composite: intersect;
+}
+
+/* Color-adaptive ambient light cast by the active CRT image onto the recessed
+   bezel bevels and the dark asphalt in front of the television. */
+.tv-ambient {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  will-change: opacity;
+}
+
+.tv-ambient-halo {
+  position: absolute;
+  top: calc(var(--screen-cy) - 12%);
+  left: calc(var(--screen-cx) - 10.5%);
+  width: 21%;
+  height: 24%;
+  object-fit: cover;
+  border-radius: 50%;
+  filter: blur(2vw) saturate(1.45);
+  opacity: 0.34;
+  -webkit-mask-image: radial-gradient(ellipse at 50% 50%, #000 18%, rgba(0, 0, 0, 0.45) 54%, transparent 76%);
+  mask-image: radial-gradient(ellipse at 50% 50%, #000 18%, rgba(0, 0, 0, 0.45) 54%, transparent 76%);
+}
+
+.tv-ambient-ground {
+  position: absolute;
+  top: calc(var(--screen-top) + var(--screen-height) + 3%);
+  left: calc(var(--screen-cx) - 9.5%);
+  width: 23%;
+  height: 14%;
+  object-fit: cover;
+  border-radius: 50%;
+  filter: blur(2.2vw) saturate(1.4);
+  opacity: 0.3;
+  -webkit-mask-image: radial-gradient(ellipse at 50% 24%, #000 14%, rgba(0, 0, 0, 0.4) 52%, transparent 76%);
+  mask-image: radial-gradient(ellipse at 50% 24%, #000 14%, rgba(0, 0, 0, 0.4) 52%, transparent 76%);
+}
+
+.tv-ambient-bloom {
+  position: absolute;
+  top: calc(var(--screen-cy) - 13%);
+  left: calc(var(--screen-cx) - 9.5%);
+  width: 19%;
+  height: 26%;
+  background: radial-gradient(
+    ellipse at 50% 44%,
+    rgba(214, 244, 234, 0.13) 0%,
+    rgba(140, 205, 195, 0.05) 48%,
+    transparent 74%
+  );
 }
 
 .tv-number-layer {
+  position: absolute;
+  top: var(--screen-top);
+  left: var(--screen-left);
+  width: var(--screen-width);
+  height: var(--screen-height);
   z-index: 3;
+  overflow: hidden;
+  border-radius: 10% / 11%;
   container-type: inline-size;
   pointer-events: none;
 }
@@ -812,12 +993,15 @@ body {
   align-items: center;
   justify-content: center;
   padding: 0 6%;
-  color: rgb(247, 252, 240);
+  color: rgb(248, 253, 242);
   font-size: 6.6cqi;
   font-weight: 600;
   letter-spacing: 0.055em;
   white-space: nowrap;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65), 0 0 0.35em rgba(240, 250, 226, 0.55), 0 0 1em rgba(214, 255, 200, 0.3);
+  text-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.72),
+    0 0 0.32em rgba(240, 252, 226, 0.62),
+    0 0 0.95em rgba(196, 250, 200, 0.34);
   opacity: 0;
   visibility: hidden;
 }
@@ -1199,9 +1383,8 @@ body {
   height: 100%;
 }
 
-/* Flat cutout underneath the canvas: shown until the model is parsed, and
-   permanently when WebGL is unavailable. Opaque white backing, so `multiply`
-   removes the backdrop instead of tracing a rectangle. */
+/* Flat alpha cutout underneath the canvas: shown until the model is parsed,
+   and permanently when WebGL is unavailable. */
 .contact-booth-still {
   position: absolute;
   inset: 0;
@@ -1209,7 +1392,6 @@ body {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  mix-blend-mode: multiply;
   pointer-events: none;
   user-select: none;
   transition: opacity 0.6s var(--ease-out);
@@ -1675,10 +1857,10 @@ body {
 @media (prefers-reduced-motion: reduce) {
   /* The channel change is skipped entirely in JS; the snow layers never show. */
   .tv-static,
-  .tv-roll {
+  .tv-roll,
+  .tv-sync-line {
     display: none;
   }
-  .tv-live { transition: none; }
   .contact-booth-float {
     animation: none;
     transition: none;

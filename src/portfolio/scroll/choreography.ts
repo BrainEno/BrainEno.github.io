@@ -80,6 +80,7 @@ export type ChoreographyOptions = {
   onSection: (section: SectionId) => void;
   onWork: (index: number) => void;
   lastWork: () => number;
+  syncPointer?: () => void;
 };
 
 function heroScroll(desktop: boolean) {
@@ -257,6 +258,7 @@ type TvPhase = "rows" | "phone" | "exit";
 function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: boolean) {
   const section = scope.querySelector<HTMLElement>("#works");
   if (!section) return;
+  const hoverCapable = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
   let phase: TvPhase = "rows";
   const setPhase = (next: TvPhase) => {
     phase = next;
@@ -298,16 +300,31 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
       delay: 0.12,
       scrollTrigger: reveal,
     });
-    ScrollTrigger.create({
-      trigger: row,
-      start: desktop ? "top 58%" : "top 62%",
-      end: desktop ? "bottom 58%" : "bottom 62%",
-      onToggle: (self) => {
-        // Coarse pointers have no hover; scrolling selects a work on touch.
-        // A mouse must actually hover (or focus) a row to switch the set on.
-        if (self.isActive && phase === "rows" && !window.matchMedia("(hover: hover) and (pointer: fine)").matches) opts.onWork(index);
-      },
-    });
+    // On fine-pointer devices the TV stays on the untouched `tv.webp` until the
+    // cursor dot actually hovers a `.work-row`; touch devices have no cursor,
+    // so rows preview as they cross the reading band and return to `tv.webp`
+    // once the last row finishes scrolling.
+    if (!hoverCapable) {
+      ScrollTrigger.create({
+        trigger: row,
+        start: "top 62%",
+        end: "bottom 62%",
+        onToggle: (self) => {
+          if (self.isActive && phase === "rows") opts.onWork(index);
+        },
+      });
+    }
+  });
+
+  ScrollTrigger.create({
+    trigger: ".work-rows",
+    start: hoverCapable ? "top bottom" : "top 62%",
+    end: hoverCapable ? "bottom top" : "bottom 62%",
+    onUpdate: () => {
+      if (hoverCapable && phase === "rows") opts.syncPointer?.();
+    },
+    onLeave: () => opts.onWork(-1),
+    onLeaveBack: () => opts.onWork(-1),
   });
 
   const phoneTl = gsap.timeline({
@@ -327,7 +344,8 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
       },
       onLeaveBack: () => {
         setPhase("rows");
-        if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) opts.onWork(opts.lastWork());
+        if (hoverCapable) opts.syncPointer?.();
+        else opts.onWork(opts.lastWork());
       },
     },
   });
@@ -336,11 +354,11 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
     .to(".tv-box", { scale: 1.14, rotation: -1.5, duration: 0.34, ease: "sine.inOut" }, 0)
     .fromTo(
       ".tv-number",
-      { autoAlpha: 0, yPercent: 18, filter: "blur(6px)" },
-      { autoAlpha: 1, yPercent: 0, filter: "blur(0px)", duration: 0.16, ease: "power2.out" },
+      { autoAlpha: 0, yPercent: 18, scale: 0.92, filter: "blur(6px)" },
+      { autoAlpha: 1, yPercent: 0, scale: 1, filter: "blur(0px)", duration: 0.18, ease: "power2.out" },
       0.1
     )
-    .to(".tv-number", { autoAlpha: 1, duration: 0.74 }, 0.26);
+    .to(".tv-number", { autoAlpha: 1, duration: 0.72 }, 0.28);
 
   const exitTl = gsap.timeline({
     defaults: { ease: "none" },
@@ -354,23 +372,24 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
     },
   });
 
-  // The unmodified photo is back by this point. Enlarge the wordmark on its
-  // glass, then fade the entire image to white as contact rises underneath.
+  // Exit over the untouched `tv.webp` photograph:
+  //   1. `@BrainEno` zooms up inside the original TV screen and dissolves out,
+  //   2. the TV pushes in while cross-fading cleanly by opacity into `.tv-whiteout`
+  //      and the rising Contact sheet — zero screen-overlay sticker to misalign.
   exitTl
-    .to(".tv-number", { scale: desktop ? 4.8 : 3.2, duration: 0.26, ease: "power2.in" }, 0)
-    .to(".tv-number", { autoAlpha: 0, filter: "blur(16px)", duration: 0.18, ease: "power1.in" }, 0.06)
-    .to(".tv-box", { scale: 1.2, rotation: -2.5, duration: 0.12, ease: "sine.inOut" }, 0.06)
-    .to(".tv-box", { scale: 5.6, rotation: -6, duration: 0.3, ease: "power2.in" }, 0.14)
-    .fromTo(".tv-whiteout", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18, ease: "power1.in" }, 0.3)
-    // The contact sheet materialises in the same white (instead of sliding in
-    // as a white card over a dark scene); its copy is already rising by then.
+    .to(".tv-number", { scale: desktop ? 4.8 : 3.2, duration: 0.28, ease: "power2.in" }, 0)
+    .to(".tv-number", { autoAlpha: 0, filter: "blur(14px)", duration: 0.2, ease: "power1.in" }, 0.08)
+    .to(".tv-box", { scale: 1.22, rotation: -2.4, duration: 0.12, ease: "sine.inOut" }, 0.04)
+    .to(".tv-box", { scale: 5.2, rotation: -5.5, duration: 0.32, ease: "power2.in" }, 0.14)
+    .to(".tv-box", { autoAlpha: 0, duration: 0.22, ease: "power1.inOut" }, 0.24)
+    .fromTo(".tv-whiteout", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.24, ease: "power1.inOut" }, 0.22)
     .fromTo(
       ".contact",
       { backgroundColor: "rgba(255,255,255,0)" },
-      { backgroundColor: "rgba(255,255,255,1)", duration: 0.16, ease: "power1.inOut" },
-      0.3
+      { backgroundColor: "rgba(255,255,255,1)", duration: 0.2, ease: "power1.inOut" },
+      0.28
     )
-    .to(".tv-whiteout", { autoAlpha: 1, duration: 0.62 }, 0.42);
+    .to(".tv-whiteout", { autoAlpha: 1, duration: 0.54 }, 0.46);
 }
 
 function contact(scope: HTMLElement, desktop: boolean, reduce: boolean) {

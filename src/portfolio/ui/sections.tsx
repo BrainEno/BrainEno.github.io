@@ -9,7 +9,7 @@
  */
 "use client";
 
-import { memo, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { memo, useLayoutEffect, useRef, type CSSProperties } from "react";
 import TvShowreel from "./TvShowreel";
 import { Img } from "./Img";
 import { asset } from "../seo/asset";
@@ -147,15 +147,8 @@ type WorksProps = SectionProps<"works"> & {
 
 export function Works({ lang, content, phone, activeIndex, onPreview }: WorksProps) {
   const zh = lang === "zh";
-  const [alphaReady, setAlphaReady] = useState(false);
-  const alphaRef = useRef<HTMLImageElement>(null);
-  useEffect(() => {
-    // An SSR image may finish before React attaches its load handler.
-    const image = alphaRef.current;
-    if (image?.complete && image.naturalWidth > 0) setAlphaReady(true);
-  }, []);
   const active = activeIndex >= 0 ? content.items[activeIndex] : undefined;
-  const { screen, width, height, src } = content.tv;
+  const { screen, width, height, src, alphaSrc } = content.tv;
   const tvStyle = {
     "--tv-ratio": `${width} / ${height}`,
     "--screen-top": `${screen.top}%`,
@@ -171,38 +164,37 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
       <div className="tv-stage">
         <div className="tv-anchor" style={tvStyle}>
           <div className="tv-box">
-            {/* The untouched photo is always underneath. Only a selected work
-                fades in the alpha-cut cabinet and the overscanned picture. */}
+            {/* Base television photograph (`tv.webp`): rendered untouched whenever
+                no work is hovered and again once the works list scrolls past into
+                the `@BrainEno` zoom & opacity exit. */}
             <Img
               className="tv-frame"
               src={src}
               alt=""
-              sizes="(max-aspect-ratio: 4/3) 230vh, 160vw"
+              sizes="(max-aspect-ratio: 4/3) 295vh, 185vw"
               hidden
               loading="lazy"
               draggable={false}
               width={width}
               height={height}
             />
-            <div className={cx("tv-live", active && alphaReady && "is-active")}>
-              <div className="tv-screen">
-                <TvShowreel
-                  active={active && alphaReady ? {
-                    id: active.id,
-                    src: active.image.src,
-                    alt: active.image.alt,
-                    videoSrc: active.video?.src,
-                    videoPoster: active.video?.poster,
-                  } : null}
-                  label={(text) => t(text, lang)}
-                />
-                <div className="tv-glass" aria-hidden="true" />
-              </div>
-              {/* Use the supplied alpha at its native resolution: independently
-                  resized derivatives can soften the carefully cut edge. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img ref={alphaRef} className="tv-frame tv-alpha" src={asset("/images/tv-alpha.webp")} alt="" aria-hidden="true" loading="lazy" draggable={false} onLoad={() => setAlphaReady(true)} onError={() => setAlphaReady(false)} />
-            </div>
+            <TvShowreel
+              active={
+                active
+                  ? {
+                      id: active.id,
+                      src: active.image.src,
+                      alt: active.image.alt,
+                      videoSrc: active.video?.src,
+                      videoPoster: active.video?.poster,
+                    }
+                  : null
+              }
+              alphaSrc={alphaSrc || src}
+              frameWidth={width}
+              frameHeight={height}
+              label={(text) => t(text, lang)}
+            />
             <div className="tv-number-layer" aria-hidden="true">
               <div className="tv-number">{phone}</div>
             </div>
@@ -217,7 +209,19 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
             {t(content.heading, lang)} <span className="works-period">{content.period}</span>
           </span>
         </h2>
-        <ol className="work-rows">
+        <ol
+          className="work-rows"
+          onMouseLeave={(event) => {
+            if (!(event.relatedTarget as Element | null)?.closest?.(".tv-video")) {
+              onPreview(-1);
+            }
+          }}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+              onPreview(-1);
+            }
+          }}
+        >
           {content.items.map((work, index) => {
             const title = zh ? `《${t(work.title, lang)}》` : t(work.title, lang);
             return (
@@ -225,19 +229,10 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
                 key={work.id}
                 className={cx("work-row", zh && "is-zh", index === activeIndex && "is-active")}
                 data-cursor="view"
+                data-work-index={index}
                 tabIndex={0}
-                onMouseEnter={() => {
-                  if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) onPreview(index);
-                }}
-                onMouseLeave={(event) => {
-                  if (window.matchMedia("(hover: hover) and (pointer: fine)").matches && !event.currentTarget.matches(":focus-visible")) onPreview(-1);
-                }}
-                onFocus={(event) => {
-                  if (event.currentTarget.matches(":focus-visible")) onPreview(index);
-                }}
-                onBlur={(event) => {
-                  if (!event.currentTarget.contains(event.relatedTarget) && !event.currentTarget.matches(":hover")) onPreview(-1);
-                }}
+                onMouseEnter={() => onPreview(index)}
+                onFocus={() => onPreview(index)}
                 onClick={() => onPreview(index)}
               >
                 <span className="work-row-line" aria-hidden="true" />

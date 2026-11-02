@@ -61,15 +61,15 @@ export const defaultContent: PortfolioContent = {
       en: "BrainEno is a frontend engineer and UI designer, a former programmer, and now a freelance vibe coder. He turns the latest AI capabilities into shipped products: designing and building high-quality, highly customisable personal sites and application services end to end — visual language, motion, frontend architecture and the data layer included. His work spans brand sites, content products and cross-platform tools, alongside the open-source repositories he maintains in public.",
     },
     gallery: [
-      { src: "/images/work1.jpg", alt: { zh: "作品照1", en: "Work photo 1" } },
+      { src: "/images/red2.webp", alt: { zh: "作品照1", en: "Work photo 1" } },
       { src: "/images/work3.jpg", alt: { zh: "作品照2", en: "Work photo 2" } },
       { src: "/images/work4.jpg", alt: { zh: "作品照3", en: "Work photo 3" } },
-      { src: "/images/work2.jpg", alt: { zh: "作品照4", en: "Work photo 4" } },
+      { src: "/images/red1.webp", alt: { zh: "作品照4", en: "Work photo 4" } },
       { src: "/images/work5.jpg", alt: { zh: "作品照5", en: "Work photo 5" } },
     ],
     accentImages: [
-      { src: "/images/red1.webp", alt: { zh: "作品截图1", en: "Screenshot 1" } },
-      { src: "/images/red2.webp", alt: { zh: "作品截图2", en: "Screenshot 2" } },
+      { src: "/images/screenshot1.jpg", alt: { zh: "作品截图1", en: "Screenshot 1" } },
+      { src: "/images/screenshot2.jpg", alt: { zh: "作品截图2", en: "Screenshot 2" } },
     ],
     secondaryText: {
       zh: "他相信，在 AI 赋能的时代，只有当技术不再成为想象力的瓶颈之后，品味才会变得格外重要。AI 能够实现各种代码层面的功能，却无法替代人类的判断与想象力，也无法替人做出取舍——而取舍，正是作品的性格所在。",
@@ -81,12 +81,15 @@ export const defaultContent: PortfolioContent = {
     period: "2026",
     tv: {
       src: "/images/tv.webp",
-      width: 2560,
-      height: 1707,
-      // The transparent opening in tv-alpha.webp (1536×1024) is roughly
-      // x=661–859, y=591–749. This rectangle deliberately extends beyond it:
-      // the alpha artwork, not a guessed CSS curve, supplies the screen edge.
-      screen: { top: 57.13, left: 42.64, width: 13.80, height: 16.60 },
+      alphaSrc: "/images/tv-alpha.webp",
+      width: 1536,
+      height: 1024,
+      // Exact opening of the alpha cutout in `tv-alpha.webp`
+      // (x 655–821 / 1536, y 670–791 / 1024). When idle or past the works list,
+      // `tv.webp` renders untouched with zero overlay; only while a work is
+      // active does `.tv-screen` sit *underneath* `tv-alpha.webp` (bleeding
+      // slightly under the opaque recessed bezel so no seam can ever appear).
+      screen: { top: 65.4, left: 42.62, width: 10.92, height: 11.98 },
     },
     items: [
       // Five repositories with the highest 2026 commit counts on github.com/BrainEno
@@ -103,7 +106,8 @@ export const defaultContent: PortfolioContent = {
           alt: { zh: "lyric-forge-ktv 仓库", en: "lyric-forge-ktv repository" },
         },
         // Video example: uncomment and replace with your own video to show a clip on the TV.
-        // The TV plays it muted and looping while selected; the poster (or `image`) is the fallback.
+        // The TV displays the poster (or `image` as fallback) until the user clicks to play.
+        // `preload="metadata"` — never auto-plays, never burns bandwidth on a clip nobody watches.
         // video: {
         //   src: "/videos/lyric-forge-ktv.mp4",
         //   poster: "/images/works/lyric-forge-ktv-poster.jpg",

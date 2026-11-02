@@ -30,7 +30,7 @@ const H = 1707;
 // Picture rectangle from works.tv.screen. A generated placeholder can replace
 // the idle photo, but live previews also need a matching alpha-cut cabinet;
 // the supplied tv-alpha.webp is specific to the supplied photographic tv.webp.
-const glass = { x: 0.4264 * W, y: 0.5713 * H, w: 0.138 * W, h: 0.166 * H };
+const glass = { x: 0.4262 * W, y: 0.654 * H, w: 0.1092 * W, h: 0.1198 * H };
 
 const grain = (w, h, count, color) =>
   Array.from({ length: count }, (_, i) => {
