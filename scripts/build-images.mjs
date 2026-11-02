@@ -54,8 +54,9 @@ const SKIP = new Set([]);
  * cutout so the Photoshop screen edge stays razor-sharp.
  */
 const OVERRIDES = {
-  "tv.webp": { widths: [1280, 1536], quality: 84 },
-  "tv-alpha.webp": { widths: [1280, 1536], quality: 84, alphaQuality: 100 },
+  "tv2.webp": { widths: [1280, 1536], quality: 84 },
+  "tv2-alpha.webp": { widths: [1280, 1536], quality: 84, alphaQuality: 100 },
+  "telephone-booth.webp": { widths: [480, 800, 1200], quality: 82, alphaQuality: 95 },
 };
 
 const force = process.argv.includes("--force");

@@ -396,7 +396,11 @@ function contact(scope: HTMLElement, desktop: boolean, reduce: boolean) {
   if (reduce) {
     gsap.set(".contact-booth", { autoAlpha: 1, clearProps: "transform" });
     gsap.set(".contact-booth-shadow", { autoAlpha: 1 });
-    gsap.set(".contact-line-text", { clearProps: "transform" });
+    gsap.set(".contact-headlines, .contact-kicker, .contact-kicker-rule, .contact-line-text, .contact-marquee", {
+      autoAlpha: 1,
+      clearProps: "transform",
+    });
+    gsap.set(".contact-item, .contact-colophon > *", { autoAlpha: 1, clearProps: "transform" });
   } else {
     const vw = () => window.innerWidth;
     const vh = () => window.innerHeight;
@@ -417,11 +421,6 @@ function contact(scope: HTMLElement, desktop: boolean, reduce: boolean) {
           invalidateOnRefresh: true,
         },
       })
-      // The flight is a quarter-arc thrown out of the bottom-right corner: it
-      // climbs almost straight up first, then sweeps left along the top of the
-      // sheet, which is what makes the path bow towards the upper left instead
-      // of cutting the diagonal. Vertical progress leads horizontal progress for
-      // the whole of the flight, so the chord is never visible.
       .fromTo(
         ".contact-booth",
         {
@@ -460,36 +459,70 @@ function contact(scope: HTMLElement, desktop: boolean, reduce: boolean) {
         0.56
       );
 
-    // Copy: one solid block that slides up out of the television as the white
-    // is still blooming — no per-line wipe, no mask slicing. The block simply
-    // rises with the scroll and fades in, so the first thing you read is a
-    // finished line of type.
+    // Editorial headline reveal: as the sheet rises out of the television
+    // whiteout, the kicker rule draws across and each `.contact-line-text`
+    // peels up from its mask in a crisp staggered wave while the carrier
+    // glides into place.
     gsap
       .timeline({
         scrollTrigger: {
           trigger: "#contact",
-          start: "top 106%",
-          end: "top 38%",
+          start: "top 98%",
+          end: "top 26%",
           scrub: 0.55,
           invalidateOnRefresh: true,
         },
       })
       .fromTo(
         ".contact-headlines",
-        { y: () => vh() * 0.34, autoAlpha: 0.12 },
-        { y: 0, autoAlpha: 1, duration: 1, ease: "power1.out" },
+        { y: () => vh() * 0.14 },
+        { y: 0, duration: 1, ease: "power2.out" },
         0
+      )
+      .fromTo(
+        ".contact-kicker",
+        { autoAlpha: 0, y: 14 },
+        { autoAlpha: 1, y: 0, duration: 0.38, ease: "power2.out" },
+        0.04
+      )
+      .fromTo(
+        ".contact-kicker-rule",
+        { scaleX: 0 },
+        { scaleX: 1, duration: 0.44, ease: "expo.out" },
+        0.08
+      )
+      .fromTo(
+        ".contact-line-text",
+        { yPercent: 112, rotation: 1.4 },
+        {
+          yPercent: 0,
+          rotation: 0,
+          duration: 0.68,
+          stagger: 0.11,
+          ease: "power3.out",
+        },
+        0.1
+      )
+      .fromTo(
+        ".contact-marquee",
+        { autoAlpha: 0, y: 20 },
+        { autoAlpha: 1, y: 0, duration: 0.42, ease: "power2.out" },
+        0.48
       );
-  }
 
-  gsap.from(".contact-footer > *", {
-    y: 24,
-    autoAlpha: 0,
-    duration: 1,
-    ease: "power3.out",
-    stagger: 0.06,
-    scrollTrigger: { trigger: ".contact-footer", start: "top 95%", toggleActions: "play none none reverse" },
-  });
+    gsap.from(".contact-item, .contact-colophon > *", {
+      y: 20,
+      autoAlpha: 0,
+      duration: 0.9,
+      ease: "power3.out",
+      stagger: 0.07,
+      scrollTrigger: {
+        trigger: ".contact-marquee",
+        start: "top 92%",
+        toggleActions: "play none none reverse",
+      },
+    });
+  }
 
   const tracks = scope.querySelectorAll(".marquee-track");
   if (!tracks.length || reduce) return;

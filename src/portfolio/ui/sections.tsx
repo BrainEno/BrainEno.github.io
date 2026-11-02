@@ -223,7 +223,7 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
           }}
         >
           {content.items.map((work, index) => {
-            const title = zh ? `《${t(work.title, lang)}》` : t(work.title, lang);
+            const title = t(work.title, lang);
             return (
               <li
                 key={work.id}
@@ -281,6 +281,7 @@ function ContactBooth({ fallback, plateText }: { fallback: string; plateText: st
 }
 
 export const Contact = memo(function Contact({ lang, content }: SectionProps<"contact">) {
+  const zh = lang === "zh";
   const mailto = `mailto:${content.email}`;
   // `phone` doubles as a short contact handle: dial it when it holds digits,
   // otherwise link out to the profile configured in the credit block.
@@ -344,11 +345,11 @@ export const Contact = memo(function Contact({ lang, content }: SectionProps<"co
       // collision that does not exist once it lands.
       const stacked = getComputedStyle(booth).position !== "absolute";
       const boxLeft = block.offsetLeft;
-      // Side by side: stop where the drawn silhouette starts, ~11% inside the
-      // stage box (the stage is wider than the booth itself). Stacked: the copy
-      // owns the full column, so the only limit is its own container.
-      const limit = stacked ? boxLeft + block.clientWidth : booth.offsetLeft + booth.offsetWidth * 0.11;
-      const available = limit - boxLeft - 18;
+      // Side by side: stop where the drawn silhouette starts, ~10% inside the
+      // 9:16 stage box (both the 3D booth and calibrated fallback sit centred).
+      // Stacked: the copy owns the full column, so the only limit is its own box.
+      const limit = stacked ? boxLeft + block.clientWidth : booth.offsetLeft + booth.offsetWidth * 0.1;
+      const available = limit - boxLeft - 20;
       if (available <= 0) return;
       // The CSS clamp is the preferred size; only overrun is corrected.
       const preferred = parseFloat(getComputedStyle(block.querySelector(".contact-line") ?? block).fontSize);
@@ -374,6 +375,13 @@ export const Contact = memo(function Contact({ lang, content }: SectionProps<"co
       <div className="contact-inner">
         <div className="contact-stage">
           <div className="contact-headlines" ref={headlinesRef}>
+            <div className="contact-kicker">
+              <span className="contact-kicker-index">03</span>
+              <span className="contact-kicker-rule" aria-hidden="true" />
+              <span className={cx("contact-kicker-label", zh && "is-zh")}>
+                {zh ? "独立设计与工程合作" : "Design & Engineering Inquiries"}
+              </span>
+            </div>
             {content.headlines.map((line, index) => (
               <h2 key={index} className={`contact-line contact-line-${index + 1}`}>
                 {/* GSAP animates .contact-line-text; the inner word carries the
@@ -392,11 +400,8 @@ export const Contact = memo(function Contact({ lang, content }: SectionProps<"co
 
         {/* The strip is decorative repetition, so it is hidden from the
             accessibility tree and the link borrows its name from the email it
-            actually dials. (An `aria-label` pointing at the email while the
-            visible text says "CALL ME FOR THE MARQUEE MOON" trips
-            `label-content-name-mismatch`: a visible label and a spoken label
-            that disagree are worse than either.) */}
-        <a href={mailto} className="contact-marquee" data-cursor="link">
+            actually dials. */}
+        <a href={mailto} className={cx("contact-marquee", zh && "is-zh")} data-cursor="link">
           <span className="sr-only">{content.email}</span>
           {[0, 1].map((track) => (
             <span key={track} className="marquee-track" aria-hidden="true">
@@ -408,24 +413,40 @@ export const Contact = memo(function Contact({ lang, content }: SectionProps<"co
         </a>
 
         <div className="contact-footer">
-          <a href={mailto} className="contact-link" data-cursor="link">{content.email}</a>
-          <a
-            href={handleHref || "#contact"}
-            className="contact-link contact-phone"
-            data-cursor="link"
-            {...(handleExternal ? { target: "_blank", rel: "noreferrer" } : {})}
-          >
-            {content.phone}
-          </a>
-          <p className="contact-copyright">{content.copyright}</p>
-          {content.credit.name ? (
-            <p className="contact-credit">
-              {t(content.credit.prefix, lang)}{" "}
-              <a href={content.credit.url} target="_blank" rel="noreferrer" className="contact-link" data-cursor="link">
-                {content.credit.name}
+          <div className="contact-channels">
+            <div className="contact-item">
+              <span className={cx("contact-meta-label", zh && "is-zh")}>{zh ? "电子邮箱" : "Email"}</span>
+              <a href={mailto} className="contact-link" data-cursor="link">
+                <span>{content.email}</span>
               </a>
-            </p>
-          ) : null}
+            </div>
+            <div className="contact-item">
+              <span className={cx("contact-meta-label", zh && "is-zh")}>
+                {dialable ? (zh ? "电话" : "Phone") : "GitHub"}
+              </span>
+              <a
+                href={handleHref || "#contact"}
+                className="contact-link contact-phone"
+                data-cursor="link"
+                {...(handleExternal ? { target: "_blank", rel: "noreferrer" } : {})}
+              >
+                <span>{content.phone}</span>
+                {handleExternal ? <span className="contact-arrow" aria-hidden="true">↗</span> : null}
+              </a>
+            </div>
+          </div>
+
+          <div className="contact-colophon">
+            <p className="contact-copyright">{content.copyright}</p>
+            {content.credit.name ? (
+              <p className={cx("contact-credit", zh && "is-zh")}>
+                {t(content.credit.prefix, lang)}{" "}
+                <a href={content.credit.url} target="_blank" rel="noreferrer" className="contact-link contact-credit-link" data-cursor="link">
+                  <span>{content.credit.name}</span>
+                </a>
+              </p>
+            ) : null}
+          </div>
         </div>
       </div>
     </section>
