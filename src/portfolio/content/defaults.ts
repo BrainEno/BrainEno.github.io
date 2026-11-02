@@ -28,15 +28,15 @@ export const defaultContent: PortfolioContent = {
     siteName: { zh: "BrainEno 工作室", en: "BrainEno Studio" },
     pageTitle: { zh: "BrainEno", en: "BrainEno" },
     description: {
-      zh: "BrainEno — 前端工程师与 UI 设计师，自由职业 vibe coder。",
-      en: "BrainEno — frontend engineer and UI designer, freelance vibe coder.",
+      zh: "BrainEno — 独立开发者与界面设计师，以工程与审美打磨数字产品。",
+      en: "BrainEno — independent developer and interface designer crafting digital products with engineering precision and taste.",
     },
     defaultLanguage: "zh",
   },
   navigation: {
     intro: { zh: "简介", en: "Intro" },
-    works: { zh: "作品集", en: "Works" },
-    contact: { zh: "联系方式", en: "Contact" },
+    works: { zh: "作品", en: "Works" },
+    contact: { zh: "联系", en: "Contact" },
   },
   hero: {
     headlines: [
@@ -57,37 +57,37 @@ export const defaultContent: PortfolioContent = {
     },
     portraitCredit: { zh: "BrainEno", en: "BrainEno" },
     primaryText: {
-      zh: "BrainEno 是一位前端工程师与 UI 设计师，前程序员，现为自由职业 vibe coder。他擅长把最新的 AI 能力转化为可交付的产品：以工程化的方式设计并实现高品质、高度可定制化的个人网站与应用程序服务，从视觉语言、交互动效到前端架构与数据层都由一人完成。作品涵盖品牌站点、内容产品与跨端工具，并持续在开源社区维护自己的代码库。",
-      en: "BrainEno is a frontend engineer and UI designer, a former programmer, and now a freelance vibe coder. He turns the latest AI capabilities into shipped products: designing and building high-quality, highly customisable personal sites and application services end to end — visual language, motion, frontend architecture and the data layer included. His work spans brand sites, content products and cross-platform tools, alongside the open-source repositories he maintains in public.",
+      zh: "BrainEno，独立开发者与界面设计师。曾深耕软件工程一线，如今以自由职业 Vibe Coder 的身份独立构建数字产品。他擅长将前沿 AI 能力转化为真正可交付的作品——从视觉语言、动态交互，到前端架构与底层数据，均由一人贯通完成。创作横跨品牌体验站、内容型产品与跨端效率工具，并在开源社区持续维护与公开自己的代码。",
+      en: "BrainEno is an independent developer and interface designer. Grounded in software engineering and now working solo as a freelance vibe coder, he turns frontier AI capabilities into shipped digital products — carrying each piece end to end from visual language and motion choreography to frontend architecture and the data layer. His work spans brand experiences, editorial products, and cross-platform tools, alongside open-source repositories maintained in public.",
     },
     gallery: [
-      { src: "/images/red2.webp", alt: { zh: "作品照1", en: "Work photo 1" } },
-      { src: "/images/work3.jpg", alt: { zh: "作品照2", en: "Work photo 2" } },
-      { src: "/images/work4.jpg", alt: { zh: "作品照3", en: "Work photo 3" } },
-      { src: "/images/red1.webp", alt: { zh: "作品照4", en: "Work photo 4" } },
-      { src: "/images/work5.jpg", alt: { zh: "作品照5", en: "Work photo 5" } },
+      { src: "/images/red2.webp", alt: { zh: "视觉摄影 01", en: "Editorial frame 01" } },
+      { src: "/images/work3.jpg", alt: { zh: "视觉摄影 02", en: "Editorial frame 02" } },
+      { src: "/images/work4.jpg", alt: { zh: "视觉摄影 03", en: "Editorial frame 03" } },
+      { src: "/images/red1.webp", alt: { zh: "视觉摄影 04", en: "Editorial frame 04" } },
+      { src: "/images/work5.jpg", alt: { zh: "视觉摄影 05", en: "Editorial frame 05" } },
     ],
     accentImages: [
-      { src: "/images/screenshot1.jpg", alt: { zh: "作品截图1", en: "Screenshot 1" } },
-      { src: "/images/screenshot2.jpg", alt: { zh: "作品截图2", en: "Screenshot 2" } },
+      { src: "/images/screenshot1.jpg", alt: { zh: "精选画面 01", en: "Featured still 01" } },
+      { src: "/images/screenshot2.jpg", alt: { zh: "精选画面 02", en: "Featured still 02" } },
     ],
     secondaryText: {
-      zh: "他相信，在 AI 赋能的时代，只有当技术不再成为想象力的瓶颈之后，品味才会变得格外重要。AI 能够实现各种代码层面的功能，却无法替代人类的判断与想象力，也无法替人做出取舍——而取舍，正是作品的性格所在。",
-      en: "He believes that in an AI-enabled era, taste only starts to matter once technology stops being the bottleneck for imagination. AI can implement functions at the code level, but it cannot replace human judgement or imagination, and it cannot make the choices — the trade-offs that give a piece its character.",
+      zh: "当编码的门槛被 AI 消解，决定作品上限的便不再是实现手段，而是审美与判断。机器能够迅速穷尽功能的解法，却无法替人感知分寸，更无法代人做出取舍——克制什么、放大什么，恰恰构成了作品真正的性格。",
+      en: "Once AI dissolves the friction of implementation, the ceiling of a work is no longer set by code, but by taste and judgement. Machines can exhaust every technical path, yet they cannot sense proportion or make the decisive trade-offs — what to hold back and what to amplify is ultimately what gives a piece its character.",
     },
   },
   works: {
     heading: { zh: "开源作品", en: "Open Source" },
     period: "2026",
     tv: {
-      src: "/images/tv.webp",
-      alphaSrc: "/images/tv-alpha.webp",
+      src: "/images/tv2.webp",
+      alphaSrc: "/images/tv2-alpha.webp",
       width: 1536,
       height: 1024,
-      // Exact opening of the alpha cutout in `tv-alpha.webp`
+      // Exact opening of the alpha cutout in `tv2-alpha.webp`
       // (x 655–821 / 1536, y 670–791 / 1024). When idle or past the works list,
-      // `tv.webp` renders untouched with zero overlay; only while a work is
-      // active does `.tv-screen` sit *underneath* `tv-alpha.webp` (bleeding
+      // `tv2.webp` renders untouched with zero overlay; only while a work is
+      // active does `.tv-screen` sit *underneath* `tv2-alpha.webp` (bleeding
       // slightly under the opaque recessed bezel so no seam can ever appear).
       screen: { top: 65.4, left: 42.62, width: 10.92, height: 11.98 },
     },
@@ -103,7 +103,7 @@ export const defaultContent: PortfolioContent = {
         credit: { zh: "Flutter · Dart · 本地优先", en: "Flutter · Dart · Local-first" },
         image: {
           src: "/images/works/lyric-forge-ktv.jpg",
-          alt: { zh: "lyric-forge-ktv 仓库", en: "lyric-forge-ktv repository" },
+          alt: { zh: "lyric-forge-ktv 仓库预览", en: "lyric-forge-ktv repository" },
         },
         // Video example: uncomment and replace with your own video to show a clip on the TV.
         // The TV displays the poster (or `image` as fallback) until the user clicks to play.
@@ -114,13 +114,13 @@ export const defaultContent: PortfolioContent = {
         // },
         url: "https://github.com/BrainEno/lyric-forge-ktv",
         description: {
-          zh: "本地优先的 KTV 制作与播放应用：歌词时间轴编排、伴奏对齐与离线曲库，全部在一台设备上完成，无需服务端即可开唱。",
-          en: "A local-first KTV production and playback app: lyric timeline editing, backing-track alignment and an offline library, all on one device with no server required.",
+          zh: "本地优先的 KTV 编排与伴唱工具：集逐字时间轴打轴、伴奏音轨对齐与离线曲库管理于一体，单机即可流畅开唱，零服务端依赖。",
+          en: "A local-first KTV authoring and playback studio: syllable-level lyric timing, backing-track sync, and an offline songbook running entirely on a single device with zero server dependency.",
         },
         detailImages: [
           {
             src: "/images/works/lyric-forge-ktv.jpg",
-            alt: { zh: "lyric-forge-ktv 界面", en: "lyric-forge-ktv interface" },
+            alt: { zh: "lyric-forge-ktv 界面预览", en: "lyric-forge-ktv interface" },
           },
         ],
       },
@@ -128,20 +128,20 @@ export const defaultContent: PortfolioContent = {
         id: "no-wave",
         title: { zh: "no-wave", en: "no-wave" },
         year: "2026.10.24",
-        credit: { zh: "TypeScript · pnpm · Node", en: "TypeScript · pnpm · Node" },
+        credit: { zh: "TypeScript · pnpm · 全栈架构", en: "TypeScript · pnpm · Full-Stack" },
         image: {
           src: "/images/no-wave1.webp",
-          alt: { zh: "no-wave 仓库", en: "no-wave repository" },
+          alt: { zh: "no-wave 视觉预览", en: "no-wave repository" },
         },
         url: "https://github.com/BrainEno/no-wave",
         description: {
-          zh: "pnpm workspace 组织的全栈 TypeScript 产品：前后端共享类型与领域模型，带类型检查、测试与增量构建流水线。",
-          en: "A full-stack TypeScript product organised as a pnpm workspace: shared types and domain models across web and API, with typecheck, tests and an incremental build pipeline.",
+          zh: "基于 pnpm Workspace 构建的全栈 TypeScript 应用：前后端共享领域模型与端到端类型契约，内建严格的静态检查、自动化测试与增量构建流水线。",
+          en: "A full-stack TypeScript application structured as a pnpm monorepo: shared domain models and end-to-end type contracts across client and API, backed by strict verification and incremental builds.",
         },
         detailImages: [
           {
             src: "/images/no-wave1.webp",
-            alt: { zh: "no-wave 项目结构", en: "no-wave project structure" },
+            alt: { zh: "no-wave 项目画面", en: "no-wave project visual" },
           },
         ],
       },
@@ -149,20 +149,20 @@ export const defaultContent: PortfolioContent = {
         id: "remix-partfolio",
         title: { zh: "remix-partfolio", en: "remix-partfolio" },
         year: "2022.11.11",
-        credit: { zh: "React Router · GSAP · Netlify", en: "React Router · GSAP · Netlify" },
+        credit: { zh: "React Router · GSAP · 滚动叙事", en: "React Router · GSAP · Scroll Craft" },
         image: {
           src: "/images/works/remix-partfolio.jpg",
-          alt: { zh: "remix-partfolio 仓库", en: "remix-partfolio repository" },
+          alt: { zh: "remix-partfolio 仓库预览", en: "remix-partfolio repository" },
         },
         url: "https://github.com/BrainEno/remix-partfolio",
         description: {
-          zh: "本站的原始模板：GSAP ScrollSmoother 驱动的滚动叙事、电视机作品索引与静态化部署，内容与动画彻底解耦。",
-          en: "The template this site grew from: GSAP ScrollSmoother scroll storytelling, the television works index and static-first deployment, with content fully decoupled from motion.",
+          zh: "本站的前身与动效原型：以 GSAP ScrollSmoother 编排长卷式滚动叙事与复古电视机作品索引，探索内容数据与复杂视差动效的彻底解耦。",
+          en: "The motion prototype behind this site: scroll-driven storytelling orchestrated with GSAP ScrollSmoother, a vintage CRT index, and static-first delivery with content cleanly decoupled from choreography.",
         },
         detailImages: [
           {
             src: "/images/works/remix-partfolio.jpg",
-            alt: { zh: "remix-partfolio 首页", en: "remix-partfolio landing page" },
+            alt: { zh: "remix-partfolio 首页预览", en: "remix-partfolio landing page" },
           },
         ],
       },
@@ -170,15 +170,15 @@ export const defaultContent: PortfolioContent = {
         id: "scribeforge",
         title: { zh: "ScribeForge", en: "ScribeForge" },
         year: "2026.10.02",
-        credit: { zh: "Python · Flutter · LLM", en: "Python · Flutter · LLM" },
+        credit: { zh: "Python · Flutter · AI 写作", en: "Python · Flutter · AI Editorial" },
         image: {
           src: "/images/works/scribeforge.jpg",
-          alt: { zh: "ScribeForge 仓库", en: "ScribeForge repository" },
+          alt: { zh: "ScribeForge 仓库预览", en: "ScribeForge repository" },
         },
         url: "https://github.com/BrainEno/ScribeForge",
         description: {
-          zh: "面向长文写作的 AI 工作台：Python 服务负责检索与生成编排，Flutter 客户端负责离线草稿与实时排版预览。",
-          en: "An AI workbench for long-form writing: a Python service orchestrates retrieval and generation while the Flutter client handles offline drafts and live typesetting preview.",
+          zh: "面向深度长文创作的 AI 写作台：Python 后端统筹知识检索与上下文生成编排，Flutter 桌面端提供沉浸式离线草稿与实时排版预览。",
+          en: "An AI workbench built for long-form writing: a Python backend orchestrates retrieval and context-aware generation while a native Flutter client delivers offline drafting and live typographic preview.",
         },
         detailImages: [
           {
@@ -191,15 +191,15 @@ export const defaultContent: PortfolioContent = {
         id: "win7-book-management",
         title: { zh: "win7-book-management", en: "win7-book-management" },
         year: "2026.09.29",
-        credit: { zh: "C# · .NET · WinForms", en: "C# · .NET · WinForms" },
+        credit: { zh: "C# · .NET · 桌面软件", en: "C# · .NET · Desktop Suite" },
         image: {
           src: "/images/works/win7-book-management.jpg",
-          alt: { zh: "win7-book-management 仓库", en: "win7-book-management repository" },
+          alt: { zh: "win7-book-management 仓库预览", en: "win7-book-management repository" },
         },
         url: "https://github.com/BrainEno/win7-book-management",
         description: {
-          zh: "为老旧 Windows 7 机器维护的图书管理桌面程序：零依赖安装包、离线数据库与批量导入导出。",
-          en: "A desktop book-management tool kept alive for ageing Windows 7 machines: a zero-dependency installer, an offline database and bulk import/export.",
+          zh: "专为老旧 Windows 7 环境打造的轻量级图书管理软件：单包免依赖部署，内置本地数据库检索、借阅台账与批量导入导出，在低配硬件上依然迅捷稳定。",
+          en: "A lightweight desktop library manager engineered for legacy Windows 7 hardware: dependency-free installation, instant local cataloguing, and bulk import/export that stays snappy on ageing machines.",
         },
         detailImages: [
           {
@@ -214,14 +214,14 @@ export const defaultContent: PortfolioContent = {
     phone: "@BrainEno",
     email: "nodeman24@outlook.com",
     headlines: ["CALL ME", "FOR THE", "MARQUEE MOON"],
-    marquee: { zh: "联系我 —", en: "Contact me —" },
+    marquee: { zh: "随时联系 —", en: "Get in touch —" },
     image: {
       src: "/images/telephone-booth.webp",
       alt: { zh: "电话亭", en: "Telephone booth" },
     },
     copyright: "© 2026 BrainEno. All rights reserved.",
     credit: {
-      prefix: { zh: "网站设计与开发", en: "Webdesign + WebDev by" },
+      prefix: { zh: "设计与工程实现", en: "Design & Engineering by" },
       name: "BrainEno",
       url: "https://github.com/BrainEno",
     },

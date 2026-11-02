@@ -6,28 +6,6 @@
     1200
   ],
   "images": {
-    "/images/accent-1.jpg": {
-      "width": 900,
-      "height": 1200,
-      "quality": 78,
-      "variants": [
-        {
-          "type": "image/webp",
-          "srcSet": "/images/opt/accent-1-480.28110c9d.webp 480w, /images/opt/accent-1-800.28110c9d.webp 800w"
-        }
-      ]
-    },
-    "/images/accent-2.jpg": {
-      "width": 900,
-      "height": 1200,
-      "quality": 78,
-      "variants": [
-        {
-          "type": "image/webp",
-          "srcSet": "/images/opt/accent-2-480.f4bdf37d.webp 480w, /images/opt/accent-2-800.f4bdf37d.webp 800w"
-        }
-      ]
-    },
     "/images/headline.png": {
       "width": 1086,
       "height": 1448,
@@ -106,68 +84,35 @@
       ]
     },
     "/images/telephone-booth.webp": {
-      "width": 2732,
-      "height": 4096,
-      "quality": 78,
+      "width": 1530,
+      "height": 2720,
+      "quality": 82,
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/telephone-booth-480.99268c0b.webp 480w, /images/opt/telephone-booth-800.99268c0b.webp 800w, /images/opt/telephone-booth-1200.99268c0b.webp 1200w, /images/opt/telephone-booth-2732.99268c0b.webp 2732w"
+          "srcSet": "/images/opt/telephone-booth-480.e09ae040.webp 480w, /images/opt/telephone-booth-800.e09ae040.webp 800w, /images/opt/telephone-booth-1200.e09ae040.webp 1200w, /images/opt/telephone-booth-1530.e09ae040.webp 1530w"
         }
       ]
     },
-    "/images/tree3.jpg": {
-      "width": 1200,
-      "height": 900,
-      "quality": 78,
-      "variants": [
-        {
-          "type": "image/webp",
-          "srcSet": "/images/opt/tree3-480.81125d29.webp 480w, /images/opt/tree3-800.81125d29.webp 800w, /images/opt/tree3-1200.81125d29.webp 1200w"
-        }
-      ]
-    },
-    "/images/tree4.jpg": {
-      "width": 1200,
-      "height": 900,
-      "quality": 78,
-      "variants": [
-        {
-          "type": "image/webp",
-          "srcSet": "/images/opt/tree4-480.be7565a3.webp 480w, /images/opt/tree4-800.be7565a3.webp 800w, /images/opt/tree4-1200.be7565a3.webp 1200w"
-        }
-      ]
-    },
-    "/images/tree5.jpg": {
-      "width": 1200,
-      "height": 900,
-      "quality": 78,
-      "variants": [
-        {
-          "type": "image/webp",
-          "srcSet": "/images/opt/tree5-480.b113a829.webp 480w, /images/opt/tree5-800.b113a829.webp 800w, /images/opt/tree5-1200.b113a829.webp 1200w"
-        }
-      ]
-    },
-    "/images/tv-alpha.webp": {
+    "/images/tv2-alpha.webp": {
       "width": 1536,
       "height": 1024,
       "quality": 84,
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/tv-alpha-1280.cf59d68a.webp 1280w, /images/opt/tv-alpha-1536.cf59d68a.webp 1536w"
+          "srcSet": "/images/opt/tv2-alpha-1280.cf59d68a.webp 1280w, /images/opt/tv2-alpha-1536.cf59d68a.webp 1536w"
         }
       ]
     },
-    "/images/tv.webp": {
+    "/images/tv2.webp": {
       "width": 1536,
       "height": 1024,
       "quality": 84,
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/tv-1280.f7c4fb11.webp 1280w, /images/opt/tv-1536.f7c4fb11.webp 1536w"
+          "srcSet": "/images/opt/tv2-1280.f7c4fb11.webp 1280w, /images/opt/tv2-1536.f7c4fb11.webp 1536w"
         }
       ]
     },

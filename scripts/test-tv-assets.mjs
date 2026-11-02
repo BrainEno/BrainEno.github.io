@@ -5,9 +5,13 @@ import { readFile } from "node:fs/promises";
 import sharp from "sharp";
 
 const root = new URL("../", import.meta.url);
-const alphaFile = new URL("public/images/tv-alpha.webp", root);
-const originalFile = new URL("public/images/tv.webp", root);
 const source = await readFile(new URL("src/portfolio/content/defaults.ts", root), "utf8");
+const tvBlock = source.match(/tv:\s*\{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
+const origSrc = tvBlock.match(/src:\s*"([^"]+)"/)?.[1];
+const alphaSrc = tvBlock.match(/alphaSrc:\s*"([^"]+)"/)?.[1];
+assert.ok(origSrc && alphaSrc, "works.tv src/alphaSrc not found in defaults.ts");
+const originalFile = new URL(`public/${origSrc.replace(/^\//, "")}`, root);
+const alphaFile = new URL(`public/${alphaSrc.replace(/^\//, "")}`, root);
 const match = source.match(/screen:\s*\{\s*top:\s*([\d.]+),\s*left:\s*([\d.]+),\s*width:\s*([\d.]+),\s*height:\s*([\d.]+)\s*\}/);
 assert.ok(match, "default screen rectangle not found");
 const [, top, left, width, height] = match.map(Number);
