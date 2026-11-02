@@ -255,10 +255,11 @@ function journeyMobile(scope: HTMLElement) {
 
 type TvPhase = "rows" | "phone" | "exit";
 
-function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: boolean) {
+function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: boolean, reduce: boolean) {
   const section = scope.querySelector<HTMLElement>("#works");
   if (!section) return;
   const hoverCapable = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+  const vh = () => window.innerHeight;
   let phase: TvPhase = "rows";
   const setPhase = (next: TvPhase) => {
     phase = next;
@@ -276,12 +277,59 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
     anticipatePin: 1,
   });
 
+  /* Beat one: the dark chapter opens into midnight blue and the complete 3:2
+     street photograph. No scale is applied here, so the sky stays in frame. */
+  if (reduce) {
+    gsap.set(".tv-atmosphere, .tv-anchor", { autoAlpha: 1 });
+  } else {
+    gsap
+      .timeline({
+        scrollTrigger: {
+          trigger: section,
+          start: "top bottom",
+          end: "top top",
+          scrub: 0.65,
+        },
+      })
+      .fromTo(
+        ".tv-atmosphere",
+        { autoAlpha: 0 },
+        { autoAlpha: 1, duration: 0.72, ease: "power1.inOut" },
+        0
+      )
+      .fromTo(
+        ".tv-anchor",
+        { autoAlpha: 0 },
+        { autoAlpha: 1, duration: 0.58, ease: "power1.out" },
+        0.28
+      );
+  }
+
   gsap.from(".works-heading-text", {
     yPercent: 110,
     duration: 1.3,
     ease: "expo.out",
     scrollTrigger: { trigger: ".works-heading", start: "top 85%", toggleActions: "play none none reverse" },
   });
+
+  /* Beat two: only when the project index arrives do we push into the CRT.
+     The transform origin remains the screen centre from the content config. */
+  if (!reduce) {
+    gsap.to(".tv-box", {
+      scale: desktop ? 2.65 : 2.5,
+      y: () => -vh() * (desktop ? 0.14 : 0.08),
+      rotation: desktop ? -0.6 : 0,
+      duration: 1,
+      ease: "power1.inOut",
+      scrollTrigger: {
+        trigger: ".works-list",
+        start: "top 92%",
+        end: "top 18%",
+        scrub: 0.65,
+        invalidateOnRefresh: true,
+      },
+    });
+  }
 
   gsap.utils.toArray<HTMLElement>(".work-row").forEach((row, index) => {
     const reveal = { trigger: row, start: "top 90%", toggleActions: "play none none reverse" };
@@ -300,10 +348,8 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
       delay: 0.12,
       scrollTrigger: reveal,
     });
-    // On fine-pointer devices the TV stays on the untouched `tv.webp` until the
-    // cursor dot actually hovers a `.work-row`; touch devices have no cursor,
-    // so rows preview as they cross the reading band and return to `tv.webp`
-    // once the last row finishes scrolling.
+    // On fine-pointer devices the TV stays on the untouched photograph until
+    // the cursor hovers a row. Touch rows preview across the reading band.
     if (!hoverCapable) {
       ScrollTrigger.create({
         trigger: row,
@@ -351,7 +397,16 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
   });
 
   phoneTl
-    .to(".tv-box", { scale: 1.14, rotation: -1.5, duration: 0.34, ease: "sine.inOut" }, 0)
+    .to(
+      ".tv-box",
+      {
+        scale: reduce ? 1 : desktop ? 2.82 : 2.65,
+        rotation: reduce ? 0 : -1.5,
+        duration: 0.34,
+        ease: "sine.inOut",
+      },
+      0
+    )
     .fromTo(
       ".tv-number",
       { autoAlpha: 0, yPercent: 18, scale: 0.92, filter: "blur(6px)" },
@@ -372,15 +427,32 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
     },
   });
 
-  // Exit over the untouched `tv.webp` photograph:
-  //   1. `@BrainEno` zooms up inside the original TV screen and dissolves out,
-  //   2. the TV pushes in while cross-fading cleanly by opacity into `.tv-whiteout`
-  //      and the rising Contact sheet — zero screen-overlay sticker to misalign.
+  // Continue from the channel-zoom scale instead of snapping back to 1x.
+  // The white sheet and Contact share the same scroll interval for a clean,
+  // reversible hand-off rather than a second, disconnected animation.
   exitTl
     .to(".tv-number", { scale: desktop ? 4.8 : 3.2, duration: 0.28, ease: "power2.in" }, 0)
     .to(".tv-number", { autoAlpha: 0, filter: "blur(14px)", duration: 0.2, ease: "power1.in" }, 0.08)
-    .to(".tv-box", { scale: 1.22, rotation: -2.4, duration: 0.12, ease: "sine.inOut" }, 0.04)
-    .to(".tv-box", { scale: 5.2, rotation: -5.5, duration: 0.32, ease: "power2.in" }, 0.14)
+    .to(
+      ".tv-box",
+      {
+        scale: reduce ? 1 : desktop ? 3 : 2.8,
+        rotation: reduce ? 0 : -2.4,
+        duration: 0.12,
+        ease: "sine.inOut",
+      },
+      0.04
+    )
+    .to(
+      ".tv-box",
+      {
+        scale: reduce ? 1 : desktop ? 6.2 : 5.2,
+        rotation: reduce ? 0 : -5.5,
+        duration: 0.32,
+        ease: "power2.in",
+      },
+      0.14
+    )
     .to(".tv-box", { autoAlpha: 0, duration: 0.22, ease: "power1.inOut" }, 0.24)
     .fromTo(".tv-whiteout", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.24, ease: "power1.inOut" }, 0.22)
     .fromTo(
@@ -392,7 +464,7 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
     .to(".tv-whiteout", { autoAlpha: 1, duration: 0.54 }, 0.46);
 }
 
-function contact(scope: HTMLElement, desktop: boolean, reduce: boolean) {
+function contact(desktop: boolean, reduce: boolean) {
   if (reduce) {
     gsap.set(".contact-booth", { autoAlpha: 1, clearProps: "transform" });
     gsap.set(".contact-booth-shadow", { autoAlpha: 1 });
@@ -401,141 +473,108 @@ function contact(scope: HTMLElement, desktop: boolean, reduce: boolean) {
       clearProps: "transform",
     });
     gsap.set(".contact-item, .contact-colophon > *", { autoAlpha: 1, clearProps: "transform" });
-  } else {
-    const vw = () => window.innerWidth;
-    const vh = () => window.innerHeight;
-
-    // Booth: a single arc from the right edge. It enters below the horizon,
-    // climbs past the resting height while it keeps sliding left, then falls
-    // into the column and drifts on — one full turn over the whole flight.
-    // The vertical overshoot is what makes the path read as a throw instead of
-    // a diagonal slide.
-    gsap
-      .timeline({
-        defaults: { ease: "none" },
-        scrollTrigger: {
-          trigger: "#contact",
-          start: "top 100%",
-          end: "top -4%",
-          scrub: 0.7,
-          invalidateOnRefresh: true,
-        },
-      })
-      .fromTo(
-        ".contact-booth",
-        {
-          autoAlpha: 0,
-          x: () => vw() * 0.92,
-          y: () => vh() * 0.46,
-          rotation: 7,
-          scale: desktop ? 0.88 : 0.9,
-          transformOrigin: "50% 60%",
-        },
-        {
-          autoAlpha: 1,
-          x: () => vw() * 0.62,
-          y: () => vh() * 0.08,
-          rotation: 4.5,
-          scale: desktop ? 0.93 : 0.94,
-          duration: 0.32,
-          ease: "power1.out",
-        },
-        0
-      )
-      .to(
-        ".contact-booth",
-        { x: 0, duration: 0.5, ease: "power1.inOut" },
-        0.32
-      )
-      .to(
-        ".contact-booth",
-        { y: 0, rotation: 0, scale: 1, duration: 0.5, ease: "power2.out" },
-        0.32
-      )
-      .fromTo(
-        ".contact-booth-shadow",
-        { autoAlpha: 0, scale: 0.35 },
-        { autoAlpha: 1, scale: 1, duration: 0.34, ease: "power2.out" },
-        0.56
-      );
-
-    // Editorial headline reveal: as the sheet rises out of the television
-    // whiteout, the kicker rule draws across and each `.contact-line-text`
-    // peels up from its mask in a crisp staggered wave while the carrier
-    // glides into place.
-    gsap
-      .timeline({
-        scrollTrigger: {
-          trigger: "#contact",
-          start: "top 98%",
-          end: "top 26%",
-          scrub: 0.55,
-          invalidateOnRefresh: true,
-        },
-      })
-      .fromTo(
-        ".contact-headlines",
-        { y: () => vh() * 0.14 },
-        { y: 0, duration: 1, ease: "power2.out" },
-        0
-      )
-      .fromTo(
-        ".contact-kicker",
-        { autoAlpha: 0, y: 14 },
-        { autoAlpha: 1, y: 0, duration: 0.38, ease: "power2.out" },
-        0.04
-      )
-      .fromTo(
-        ".contact-kicker-rule",
-        { scaleX: 0 },
-        { scaleX: 1, duration: 0.44, ease: "expo.out" },
-        0.08
-      )
-      .fromTo(
-        ".contact-line-text",
-        { yPercent: 112, rotation: 1.4 },
-        {
-          yPercent: 0,
-          rotation: 0,
-          duration: 0.68,
-          stagger: 0.11,
-          ease: "power3.out",
-        },
-        0.1
-      )
-      .fromTo(
-        ".contact-marquee",
-        { autoAlpha: 0, y: 20 },
-        { autoAlpha: 1, y: 0, duration: 0.42, ease: "power2.out" },
-        0.48
-      );
-
-    gsap.from(".contact-item, .contact-colophon > *", {
-      y: 20,
-      autoAlpha: 0,
-      duration: 0.9,
-      ease: "power3.out",
-      stagger: 0.07,
-      scrollTrigger: {
-        trigger: ".contact-marquee",
-        start: "top 92%",
-        toggleActions: "play none none reverse",
-      },
-    });
+    return;
   }
 
-  const tracks = scope.querySelectorAll(".marquee-track");
-  if (!tracks.length || reduce) return;
-  const loop = gsap.to(tracks, { xPercent: -100, duration: desktop ? 38 : 24, ease: "none", repeat: -1 });
-  ScrollTrigger.create({
-    trigger: "#contact",
-    start: "top bottom",
-    end: "bottom top",
-    onToggle: (self) => (self.isActive ? loop.play() : loop.pause()),
-    onUpdate: (self) => {
-      const boost = 1 + Math.min(Math.abs(self.getVelocity()) / 350, 5);
-      gsap.to(loop, { timeScale: boost, duration: 0.2, overwrite: true });
-      gsap.to(loop, { timeScale: 1, duration: 1.1, delay: 0.2, ease: "power2.out" });
+  const vh = () => window.innerHeight;
+
+  // The booth stays in its own grid column and makes one restrained landing.
+  // Drag rotation remains owned by the model; scroll only moves the carrier.
+  gsap
+    .timeline({
+      defaults: { ease: "none" },
+      scrollTrigger: {
+        trigger: "#contact",
+        start: "top 100%",
+        end: "top 12%",
+        scrub: 0.65,
+        invalidateOnRefresh: true,
+      },
+    })
+    .fromTo(
+      ".contact-booth",
+      {
+        autoAlpha: 0,
+        y: () => vh() * (desktop ? 0.08 : 0.05),
+        rotation: 1.2,
+        scale: 0.96,
+        transformOrigin: "50% 70%",
+      },
+      {
+        autoAlpha: 1,
+        y: 0,
+        rotation: 0,
+        scale: 1,
+        duration: 0.72,
+        ease: "power2.out",
+      },
+      0
+    )
+    .fromTo(
+      ".contact-booth-shadow",
+      { autoAlpha: 0, scale: 0.72 },
+      { autoAlpha: 1, scale: 1, duration: 0.4, ease: "power2.out" },
+      0.28
+    );
+
+  // Solid type rises through a mask once. There is no width measurement,
+  // outline/glitch hover state or continuous animation competing for attention.
+  gsap
+    .timeline({
+      scrollTrigger: {
+        trigger: "#contact",
+        start: "top 98%",
+        end: "top 30%",
+        scrub: 0.55,
+        invalidateOnRefresh: true,
+      },
+    })
+    .fromTo(
+      ".contact-headlines",
+      { y: () => vh() * 0.08 },
+      { y: 0, duration: 1, ease: "power2.out" },
+      0
+    )
+    .fromTo(
+      ".contact-kicker",
+      { autoAlpha: 0, y: 12 },
+      { autoAlpha: 1, y: 0, duration: 0.34, ease: "power2.out" },
+      0.04
+    )
+    .fromTo(
+      ".contact-kicker-rule",
+      { scaleX: 0 },
+      { scaleX: 1, duration: 0.4, ease: "expo.out" },
+      0.08
+    )
+    .fromTo(
+      ".contact-line-text",
+      { yPercent: 106 },
+      {
+        yPercent: 0,
+        duration: 0.62,
+        stagger: 0.08,
+        ease: "power3.out",
+      },
+      0.1
+    )
+    .fromTo(
+      ".contact-marquee",
+      { autoAlpha: 0, y: 16 },
+      { autoAlpha: 1, y: 0, duration: 0.38, ease: "power2.out" },
+      0.46
+    );
+
+  gsap.from(".contact-item, .contact-colophon > *", {
+    y: 16,
+    autoAlpha: 0,
+    duration: 0.8,
+    ease: "power3.out",
+    stagger: 0.06,
+    scrollTrigger: {
+      trigger: ".contact-marquee",
+      start: "top 92%",
+      toggleActions: "play none none reverse",
     },
   });
 }
@@ -565,8 +604,8 @@ export function setupChoreography(opts: ChoreographyOptions) {
     heroScroll(desktop);
     if (desktop) journeyDesktop(scope);
     else journeyMobile(scope);
-    television(scope, opts, desktop);
-    contact(scope, desktop, reduce);
+    television(scope, opts, desktop, reduce);
+    contact(desktop, reduce);
     sectionTracking(opts);
   });
 

@@ -684,7 +684,7 @@ body {
 .works {
   position: relative;
   z-index: 1;
-  background: var(--stage);
+  background: #061b44;
 }
 
 .tv-stage {
@@ -693,16 +693,37 @@ body {
   height: 100vh;
   height: 100svh;
   overflow: hidden;
-  background: var(--stage);
+  background: #000;
 }
 
+/* The previous dark chapter resolves into the same midnight blue carried by
+   the photograph. GSAP reveals both layers together on entry, so the TV never
+   appears as an isolated effect on an unrelated stage. */
+.tv-atmosphere {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      ellipse at 50% 72%,
+      rgba(20, 74, 150, 0.34),
+      transparent 68%
+    ),
+    linear-gradient(180deg, #000 0%, #020b22 46%, #061b44 100%);
+}
+
+/* Fit by height before the channel zoom: the original 3:2 frame remains
+   intact, including its blue sky, instead of being cropped around the CRT.
+   The mobile rule below uses viewport width to keep the same composition. */
 .tv-anchor {
   position: absolute;
-  top: 58%;
+  top: 50%;
   left: 50%;
-  width: max(185vw, 295vh);
+  z-index: 1;
+  width: min(112vw, 150svh);
   aspect-ratio: var(--tv-ratio);
-  transform: translate(calc(var(--screen-cx) * -1), calc(var(--screen-cy) * -1));
+  transform: translate(-50%, -50%);
 }
 
 .tv-box {
@@ -710,6 +731,14 @@ body {
   inset: 0;
   isolation: isolate;
   transform-origin: var(--screen-cx) var(--screen-cy);
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent),
+    linear-gradient(180deg, transparent, #000 4%, #000 95%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent),
+    linear-gradient(180deg, transparent, #000 4%, #000 95%, transparent);
+  mask-composite: intersect;
   will-change: transform;
 }
 
@@ -1153,9 +1182,8 @@ body {
 }
 
 .tv-exit-spacer {
-  /* The zoom + white is compressed into the first third of this distance so
-     the copy can start rising out of the bottom edge while the tube is still
-     burning out — there is no parked white frame to wait through. */
+  /* Shared scrub distance for the channel id, whiteout and rising Contact
+     sheet. The final section begins inside this interval, not after it. */
   height: 130vh;
 }
 
@@ -1163,22 +1191,10 @@ body {
 .contact {
   position: relative;
   z-index: 2;
-  /* The sheet is pulled far up under the television exit so its copy can
-     enter the frame while the tube is still burning out. Its white background
-     starts transparent and is faded in by the exit timeline (GSAP), so it
-     never reads as a white card sliding over a dark scene — by the time it is
-     opaque, the screen behind it is already white. */
   margin-top: -56vh;
-  /* Only the *horizontal* axis is clipped. The booth starts its entrance on
-     the (now white) television screen above the section's top edge, so it has
-     to be able to travel outside the box vertically — but its off-screen
-     start pose sits 92vw to the right, and so does the marquee's second track,
-     which used to widen the document by a whole viewport and let every device
-     scroll sideways. `clip` (not `hidden`) keeps the vertical axis visible and
-     creates no scroll container, so the pinned scroll timeline is unaffected. */
   overflow-x: clip;
   background: var(--paper);
-  color: #000;
+  color: #11100f;
 }
 
 .contact-inner {
@@ -1187,39 +1203,27 @@ body {
   flex-direction: column;
   min-height: 100vh;
   min-height: 100svh;
-  /* Symmetric outer gutter: the headline starts exactly as far from the left
-     edge as the booth's silhouette ends from the right one. No top padding:
-     the booth's crown is meant to sit on the sheet's top edge. */
-  padding: 0 5vw 4svh;
+  padding: clamp(84px, 10svh, 112px) var(--gutter) clamp(24px, 3svh, 36px);
 }
 
-/* The stage is everything above the marquee. Anchoring the booth to *this*
-   box rather than to viewport percentages is what makes the floor line correct
-   on any screen: the plinth lands on the stage's bottom edge (the top of the
-   running strip) whether the viewport is 720px tall or 21:9, and whether the
-   marquee's type happens to be larger than usual. */
+/* A stable editorial grid replaces runtime font fitting. The copy and the
+   booth each own a column; neither is allowed to float into the header or
+   push the other into a narrower shape during scroll. */
 .contact-stage {
   position: relative;
-  display: flex;
+  display: grid;
   flex: 1 1 auto;
-  flex-direction: column;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 26vw);
+  align-items: end;
+  gap: clamp(32px, 5vw, 80px);
   min-height: 0;
 }
 
 .contact-headlines {
   position: relative;
-  /* Copy owns the left column so the booth gets a clean right column; the
-     two never overlap on the sheet. Width and type size are paired: with the
-     display tracking, "MARQUEE MOON" measures ~8.26× the font size, so 74vw of
-     room allows up to 7vw type without a line ever wrapping mid-scrub (a
-     rewrap would make the whole block jump while the text is rising).
-     `margin-top: auto` drops the block to sit on the marquee, so the booth and
-     the headline share one baseline instead of leaving the lower half empty. */
   z-index: 2;
-  max-width: 74vw;
-  margin-top: auto;
-  margin-left: 0.4vw;
-  margin-bottom: clamp(24px, 3.6vw, 56px);
+  max-width: 100%;
+  margin: 0 0 clamp(24px, 4svh, 52px);
   will-change: transform;
 }
 
@@ -1227,9 +1231,9 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: clamp(14px, 1.5vw, 24px);
+  margin-bottom: clamp(18px, 2vw, 30px);
   font-size: clamp(11px, 0.8vw, 13px);
-  color: rgba(10, 10, 10, 0.52);
+  color: rgba(17, 16, 15, 0.52);
   text-transform: uppercase;
   letter-spacing: 0.14em;
 }
@@ -1245,7 +1249,7 @@ body {
   display: inline-block;
   width: clamp(28px, 2.8vw, 44px);
   height: 1px;
-  background: rgba(10, 10, 10, 0.28);
+  background: rgba(17, 16, 15, 0.25);
   transform-origin: 0 50%;
 }
 
@@ -1255,159 +1259,54 @@ body {
 
 .contact-line {
   overflow: hidden;
-  /* Display caps are set tight: negative tracking and a compressed leading are
-     what make three stacked lines read as one block instead of three rows. */
-  font-size: var(--contact-fs, clamp(38px, min(8.9vw, calc((88.9vw - 39.3svh) / 8.3)), 176px));
+  color: #11100f;
+  font-size: clamp(48px, 6.2vw, 116px);
   font-weight: 500;
-  line-height: 0.9;
-  letter-spacing: -0.024em;
+  line-height: 0.92;
+  letter-spacing: -0.055em;
   text-transform: uppercase;
-  color: transparent;
-  -webkit-text-stroke: clamp(1.35px, 0.18vw, 2.8px) #0c0c0c;
-  transition: opacity 0.55s ease, -webkit-text-stroke-color 0.45s var(--ease-out);
 }
 
 .contact-line + .contact-line {
-  margin-top: -0.02em;
+  margin-top: 0.04em;
 }
 
+/* The serif already exists in the work rows. Reusing it here creates a
+   hierarchy without adding outline type, glitch slices or a new visual voice. */
 .contact-line-3 {
-  color: #0c0c0c;
-  font-weight: 600;
-  -webkit-text-stroke: 0 transparent;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.045em;
 }
 
 .contact-line-text {
   display: block;
-  padding: 0.02em 0.02em 0.045em 0;
+  padding: 0.03em 0.03em 0.07em 0;
   transform-origin: 0% 100%;
   will-change: transform;
 }
 
-/* Scan-slice hover for CALL ME / FOR THE / MARQUEE MOON -----------------
-   The index uses image strips and displaced typography; this interaction
-   translates that vocabulary into the white contact stage. A thin accent
-   band scans across the hovered line and only the middle slice of a duplicate
-   word shifts sideways. The original outline remains visible, so this never
-   becomes a generic full-colour hover. */
-.contact-line-word {
-  position: relative;
-  z-index: 0;
-  display: block;
-  isolation: isolate;
-  transition: transform 0.75s var(--ease-out), letter-spacing 0.75s var(--ease-out);
-  will-change: transform;
-}
-
-.contact-line-word::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  left: -5vw;
-  right: 18vw;
-  top: 44%;
-  height: 0.12em;
-  background: var(--accent);
-  transform: scaleX(0);
-  transform-origin: 0 50%;
-  transition: transform 0.78s var(--ease-out);
-  pointer-events: none;
-}
-
-.contact-line-word::after {
-  content: attr(data-text);
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  color: #0c0c0c;
-  -webkit-text-stroke: 0;
-  clip-path: inset(39% 0 38% 0);
-  opacity: 0;
-  transform: translateX(-0.08em);
-  transition: transform 0.78s var(--ease-out), opacity 0.35s ease-out;
-  pointer-events: none;
-}
-
-.contact-line-3 .contact-line-word::after {
-  color: var(--accent);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .contact-headlines:hover .contact-line:not(:hover) {
-    opacity: 0.2;
-  }
-
-  .contact-line:hover {
-    -webkit-text-stroke-color: #0c0c0c;
-  }
-
-  .contact-line:hover .contact-line-word {
-    transform: translateX(0.025em) skewX(-3deg);
-    letter-spacing: -0.012em;
-  }
-
-  .contact-line:hover .contact-line-word::before {
-    transform: scaleX(1);
-  }
-
-  .contact-line:hover .contact-line-word::after {
-    opacity: 1;
-    transform: translateX(0.07em);
-  }
-
-  #contact:has(.contact-line:hover) .contact-booth-shadow {
-    opacity: 0.55;
-  }
-}
-
-/* The booth is a live WebGL stage now: the scroll timeline scales, spins and
-   drifts this wrapper, while the renderer handles the slow self-rotation and
-   the drag gesture on the canvas. */
+/* The booth supports the contact copy instead of competing with it. Its
+   canvas stays inside the right column and below the global navigation. */
 .contact-booth {
-  position: absolute;
-  /* Above the headline hit-area so the canvas can receive drag gestures, and
-     above the marquee too: the plinth stands on the floor rule, so the strip
-     has to pass behind it instead of cropping it. */
-  z-index: 4;
-  /* Stretched between the sheet's top edge and a floor line *above* the
-     marquee, so the plinth rests on the rule and the strip passes underneath it
-     instead of through it — the base never touches the running text. Height
-     (and with the 9:16 silhouette aspect the width too) is whatever that span
-     gives. The column is nudged right of the text gutter: the sketch wants the
-     copy to move towards the booth, and the extra hair of air is what lets the
-     type grow without running onto the model. It also carries no transform of
-     its own — GSAP owns `transform` for the entrance. */
-  top: 0;
-  bottom: clamp(8px, 1.2svh, 18px);
-  /* The stage is already inset by the sheet's 5vw gutter, so 4.4vw from its
-     right edge would read as 9.4vw from the viewport: compensate to keep the
-     column 4.4vw from the paper edge, as drawn. */
-  right: -0.6vw;
-  height: auto;
-  aspect-ratio: 9 / 16;
-  will-change: transform;
-}
-
-/* Idle float: the booth breathes instead of standing perfectly still. */
-.contact-booth-float {
   position: relative;
   z-index: 2;
-  width: 100%;
-  height: 100%;
-  transform-origin: 50% 92%;
-  animation: booth-float 9s ease-in-out infinite alternate;
+  justify-self: end;
+  height: clamp(320px, 54svh, 560px);
+  max-width: 100%;
+  aspect-ratio: 9 / 16;
+  margin: 0 1.5vw clamp(20px, 3svh, 40px) 0;
   will-change: transform;
 }
 
+.contact-booth-float,
 .contact-booth-canvas {
   position: relative;
   width: 100%;
   height: 100%;
 }
 
-/* Calibrated 9:16 alpha cutout underneath the canvas: framed and colour-graded
-   to match the 3D K6 booth's silhouette and weathered crimson palette so the
-   pre-WebGL / no-WebGL fallback blends seamlessly onto the white sheet. */
 .contact-booth-still {
   position: absolute;
   inset: 0;
@@ -1416,10 +1315,10 @@ body {
   height: 100%;
   object-fit: contain;
   object-position: 50% 50%;
-  filter: drop-shadow(0 10px 20px rgba(24, 10, 10, 0.1));
+  filter: drop-shadow(0 12px 20px rgba(24, 10, 10, 0.09));
   pointer-events: none;
   user-select: none;
-  transition: opacity 0.6s var(--ease-out);
+  transition: opacity 0.5s var(--ease-out);
 }
 
 .contact-booth-canvas[data-ready="true"] .contact-booth-still {
@@ -1441,72 +1340,73 @@ body {
   cursor: grabbing;
 }
 
-/* Contact shadow that widens as the booth lifts. */
 .contact-booth-shadow {
   position: absolute;
-  z-index: 1;
+  z-index: -1;
   left: 16%;
-  bottom: -1.6%;
+  bottom: -1%;
   width: 68%;
-  height: 6%;
+  height: 5%;
   border-radius: 50%;
-  background: radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0) 72%);
-  opacity: 0.4;
-  filter: blur(9px);
-  transition: opacity 0.6s var(--ease-out);
+  background: radial-gradient(ellipse at 50% 50%, rgba(17, 16, 15, 0.28), rgba(17, 16, 15, 0) 72%);
+  opacity: 0.45;
+  filter: blur(8px);
   will-change: transform;
 }
 
-@keyframes booth-float {
-  from { transform: translateY(0) rotate(0deg); }
-  to { transform: translateY(-1.1vh) rotate(0.7deg); }
-}
-
+/* Static contact band: one readable action, no perpetual marquee or scroll
+   velocity side-effects. Hover only moves the arrow and paints the rule. */
 .contact-marquee {
   position: relative;
   z-index: 3;
-  display: flex;
-  /* The headline block owns `margin-top: auto`, so the marquee must not take
-     the free space a second time — otherwise the two auto margins split it and
-     the type ends up stranded in the middle of the sheet. */
-  margin: 0 -5vw clamp(20px, 2vw, 34px);
-  padding: clamp(10px, 1.05vw, 18px) 0;
-  overflow: hidden;
-  font-size: clamp(26px, 4.4vw, 86px);
-  line-height: 1.04;
-  letter-spacing: -0.015em;
-  white-space: nowrap;
-  color: #0c0c0c;
-  border-top: 1px solid rgba(0, 0, 0, 0.14);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.14);
-  transition: border-color 0.4s ease;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: clamp(16px, 2.4vw, 40px);
+  margin: 0 0 clamp(20px, 2.4svh, 30px);
+  padding: clamp(14px, 1.5vw, 24px) 0;
+  color: #11100f;
+  border-top: 1px solid rgba(17, 16, 15, 0.16);
+  border-bottom: 1px solid rgba(17, 16, 15, 0.16);
+  transition: border-color 0.35s ease;
 }
 
-.contact-marquee.is-zh {
-  font-family: var(--font-cjk);
-  letter-spacing: 0.06em;
-  line-height: 1.12;
-}
-
-.marquee-track {
-  display: inline-flex;
-  flex: 0 0 auto;
-  will-change: transform;
-}
-
-.marquee-word {
-  margin-right: 1.8vw;
+.contact-marquee-label {
+  font-size: clamp(26px, 3.2vw, 58px);
   font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.04em;
   text-transform: uppercase;
-  transition: color 0.35s var(--ease-out), transform 0.45s var(--ease-out);
+}
+
+.contact-marquee.is-zh .contact-marquee-label {
+  font-family: var(--font-cjk);
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+}
+
+.contact-marquee-email {
+  justify-self: end;
+  font-size: clamp(14px, 1.15vw, 18px);
+  color: rgba(17, 16, 15, 0.58);
+  letter-spacing: -0.01em;
+}
+
+.contact-marquee-arrow {
+  display: inline-block;
+  font-size: clamp(24px, 2vw, 36px);
+  line-height: 1;
+  transition: transform 0.45s var(--ease-out), color 0.35s ease;
 }
 
 @media (hover: hover) {
   .contact-marquee:hover {
-    border-color: rgba(229, 81, 57, 0.35);
+    border-color: rgba(229, 81, 57, 0.46);
   }
-  .contact-marquee:hover .marquee-word {
+
+  .contact-marquee:hover .contact-marquee-arrow {
     color: var(--accent);
+    transform: translate(3px, -3px);
   }
 }
 
@@ -1517,7 +1417,6 @@ body {
   align-items: flex-end;
   justify-content: space-between;
   gap: 1.5rem 4vw;
-  padding-top: 0.2vw;
   font-size: 13px;
 }
 
@@ -1540,7 +1439,7 @@ body {
   font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(10, 10, 10, 0.44);
+  color: rgba(17, 16, 15, 0.44);
 }
 
 .contact-meta-label.is-zh {
@@ -1552,11 +1451,11 @@ body {
   display: inline-flex;
   align-items: baseline;
   gap: 0.28em;
+  padding-bottom: 2px;
+  color: #11100f;
   font-size: clamp(16px, 1.35vw, 21px);
   font-weight: 500;
   letter-spacing: -0.01em;
-  color: #0c0c0c;
-  padding-bottom: 2px;
   transition: color 0.35s var(--ease-out);
 }
 
@@ -1571,7 +1470,7 @@ body {
 }
 
 .contact-link::before {
-  background: rgba(12, 12, 12, 0.28);
+  background: rgba(17, 16, 15, 0.25);
   transform: scaleX(1);
   transform-origin: 100% 50%;
   transition: transform 0.55s var(--ease-out);
@@ -1586,8 +1485,8 @@ body {
 
 .contact-arrow {
   display: inline-block;
+  color: rgba(17, 16, 15, 0.52);
   font-size: 0.82em;
-  color: rgba(12, 12, 12, 0.52);
   transition: transform 0.45s var(--ease-out), color 0.35s var(--ease-out);
 }
 
@@ -1595,12 +1494,15 @@ body {
   .contact-link:hover {
     color: var(--accent);
   }
+
   .contact-link:hover::before {
     transform: scaleX(0);
   }
+
   .contact-link:hover::after {
     transform: scaleX(1);
   }
+
   .contact-link:hover .contact-arrow {
     color: var(--accent);
     transform: translate(2px, -2px);
@@ -1613,7 +1515,7 @@ body {
   align-items: baseline;
   justify-content: flex-end;
   gap: 0.45rem 2vw;
-  color: rgba(12, 12, 12, 0.5);
+  color: rgba(17, 16, 15, 0.5);
   text-align: right;
 }
 
@@ -1622,81 +1524,104 @@ body {
 }
 
 .contact-credit-link {
+  color: rgba(17, 16, 15, 0.78);
   font-size: inherit;
   font-weight: 500;
-  color: rgba(12, 12, 12, 0.78);
 }
 
-/* Mobile ------------------------------------------------------------- */
-/* Contact: one column below 1024px -----------------------------------
-   A three-line display headline and a 9:16 booth cannot share one row on a
-   portrait tablet: the booth eats half the width and the type has to shrink
-   until it stops being a headline. Below 1024px the sheet therefore stacks —
-   copy across the full width, booth underneath, aligned to the right — which is
-   also what a phone gets. Everything else on this page keeps its own layout. */
 @media (max-width: 1023px), (max-aspect-ratio: 11/10) {
   .contact {
     margin-top: -40vh;
   }
 
-  .contact-inner {
-    padding: 0 var(--gutter) 28px;
-  }
-
   .contact-stage {
-    /* The copy is bottom-aligned inside the stage, so the sheet keeps its
-       head-room without a padding value that would also push the booth down. */
-    padding-top: 11vh;
+    grid-template-columns: minmax(0, 1fr) minmax(170px, 26vw);
+    gap: 28px;
   }
 
   .contact-line {
-    /* Same contract as the two-column sheet: this is the no-JS / first-paint
-       ceiling, and `Contact`'s fit overrides it through `--contact-fs`. It has
-       to stay a `var()` — a bare `font-size` here would shadow the override. */
-    font-size: var(--contact-fs, min(13.4vw, 132px));
-    -webkit-text-stroke-width: 1.25px;
-  }
-
-  .contact-line-3 {
-    -webkit-text-stroke-width: 0;
-  }
-
-  .contact-headlines {
-    max-width: none;
-    margin-top: 0;
-    margin-left: 0;
-    margin-bottom: 3vh;
+    font-size: clamp(40px, 6.8vw, 68px);
   }
 
   .contact-booth {
-    position: relative;
-    inset: auto;
+    height: clamp(300px, 48svh, 460px);
+    margin-right: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .contact-inner {
+    min-height: 100svh;
+    padding: 72px var(--gutter) 24px;
+  }
+
+  .contact-stage {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 28px;
+  }
+
+  .contact-headlines {
+    margin: 0;
+  }
+
+  .contact-kicker {
+    margin-bottom: 18px;
+  }
+
+  .contact-line {
+    font-size: clamp(34px, 10.2vw, 64px);
+    line-height: 0.96;
+  }
+
+  .contact-line-3 {
+    font-size: clamp(31px, 9.2vw, 58px);
+  }
+
+  .contact-booth {
     align-self: flex-end;
-    height: clamp(280px, 54svh, 560px);
-    aspect-ratio: 9 / 16;
-    margin: 0 -2vw 3vh 0;
+    height: clamp(230px, 34svh, 320px);
+    margin: 0 6vw 0 0;
   }
 
   .contact-marquee {
-    margin: 0 calc(var(--gutter) * -1) 22px;
-    font-size: clamp(20px, 5.4vw, 52px);
-    padding: 10px 0;
+    grid-template-columns: 1fr auto;
+    gap: 12px 20px;
+    margin-top: 32px;
+    padding: 16px 0;
+  }
+
+  .contact-marquee-label {
+    font-size: clamp(24px, 7.4vw, 34px);
+  }
+
+  .contact-marquee-email {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: start;
+    font-size: 14px;
+  }
+
+  .contact-marquee-arrow {
+    grid-column: 2;
+    grid-row: 1;
   }
 
   .contact-footer {
     flex-direction: column;
     align-items: flex-start;
     gap: 18px;
-    font-size: 13px;
   }
 
   .contact-colophon {
     justify-content: flex-start;
     text-align: left;
-    gap: 6px 20px;
   }
 }
 
+/* Mobile ------------------------------------------------------------- */
 @media (max-width: 767px) {
   :root {
     --gutter: 20px;
@@ -1925,7 +1850,8 @@ body {
   }
 
   .tv-anchor {
-    top: 46%;
+    top: 50%;
+    width: min(210vw, 150svh);
   }
 
   .works-list {
@@ -1986,9 +1912,8 @@ body {
   .nav-roll::after,
   .work-row-name,
   .work-row-name-alt,
-  .contact-line-word,
-  .contact-line-word::before,
-  .contact-line-word::after,
+  .contact-line-text,
+  .contact-marquee-arrow,
   .contact-link::before,
   .contact-link::after,
   .contact-arrow {

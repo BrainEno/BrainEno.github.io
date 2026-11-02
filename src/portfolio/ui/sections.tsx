@@ -9,7 +9,7 @@
  */
 "use client";
 
-import { memo, useLayoutEffect, useRef, type CSSProperties } from "react";
+import { memo, type CSSProperties } from "react";
 import TvShowreel from "./TvShowreel";
 import { Img } from "./Img";
 import { asset } from "../seo/asset";
@@ -162,6 +162,7 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
   return (
     <section id="works" className="works" aria-label={t(content.heading, lang)}>
       <div className="tv-stage">
+        <div className="tv-atmosphere" aria-hidden="true" />
         <div className="tv-anchor" style={tvStyle}>
           <div className="tv-box">
             {/* Base television photograph (`tv.webp`): rendered untouched whenever
@@ -258,8 +259,6 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
   );
 }
 
-const MARQUEE_REPEAT = Array.from({ length: 8 }, (_, i) => i);
-
 /**
  * The uploaded telephone model, optimised to a 2 MB GLB by
  * `scripts/optimize-booth-model.py` (the original 38 MB .gltf stays in the
@@ -289,92 +288,11 @@ export const Contact = memo(function Contact({ lang, content }: SectionProps<"co
   const handleHref = dialable ? `tel:${content.phone.replace(/[^\d+]/g, "")}` : content.credit.url;
   const handleExternal = !dialable;
   const marquee = t(content.marquee, lang);
-  const headlinesRef = useRef<HTMLDivElement>(null);
-  const headlineText = content.headlines.join("\n");
-
-  /**
-   * Types the call sign to the largest size that still clears the booth.
-   *
-   * CSS can only bound the block by a hard-coded em width, and that constant is
-   * a property of the typeface: "MARQUEE MOON" measures ~8.3em in the metrics
-   * here, but a fallback or a future face can be wider — and then the third
-   * line runs into the model at exactly the sizes where the block looks best.
-   * So the ratio is measured off the rendered line instead of assumed: widest
-   * line against the room actually available — the gap to the booth's
-   * silhouette when the sheet is two columns, the column itself when it is
-   * stacked. It only ever scales *down* (the CSS value stays the preferred
-   * ceiling), and re-runs on resize and once the webfont has landed.
-   */
-  useLayoutEffect(() => {
-    const block = headlinesRef.current;
-    if (!block) return;
-    const stage = block.parentElement;
-    const booth = stage?.querySelector<HTMLElement>(".contact-booth");
-    if (!stage || !booth) return;
-
-    // Measure with an inert probe instead of the live headings. Two reasons:
-    // the probe is always `nowrap` (a wrapped line is exactly as wide as its
-    // column, which would make any overrun look like a perfect fit), and its
-    // width changes when the webfont swaps in — a ResizeObserver on it is a
-    // reliable "the metrics changed, re-fit" signal. `document.fonts.ready`
-    // alone is not: it can resolve before the font that these elements need has
-    // even been requested.
-    const probe = document.createElement("div");
-    probe.setAttribute("aria-hidden", "true");
-    probe.style.cssText = "position:absolute;top:0;left:0;visibility:hidden;pointer-events:none;white-space:nowrap;font-size:100px;";
-    const style = getComputedStyle(block.querySelector(".contact-line") ?? block);
-    probe.style.fontFamily = style.fontFamily;
-    probe.style.fontWeight = style.fontWeight;
-    probe.style.fontStyle = style.fontStyle;
-    probe.style.letterSpacing = style.letterSpacing;
-    probe.style.textTransform = style.textTransform;
-    stage.appendChild(probe);
-
-    const fit = () => {
-      block.style.removeProperty("--contact-fs");
-      if (!block.isConnected) return;
-      // Widest line, in units of the font size (px per 1px of type).
-      let ratio = 0;
-      for (const line of headlineText.split("\n")) {
-        probe.textContent = line || "";
-        ratio = Math.max(ratio, probe.getBoundingClientRect().width / 100);
-      }
-      if (ratio <= 0) return;
-      // Layout boxes, not client rects: the entrance timeline moves and scales
-      // the booth, and measuring mid-flight would shrink the type for a
-      // collision that does not exist once it lands.
-      const stacked = getComputedStyle(booth).position !== "absolute";
-      const boxLeft = block.offsetLeft;
-      // Side by side: stop where the drawn silhouette starts, ~10% inside the
-      // 9:16 stage box (both the 3D booth and calibrated fallback sit centred).
-      // Stacked: the copy owns the full column, so the only limit is its own box.
-      const limit = stacked ? boxLeft + block.clientWidth : booth.offsetLeft + booth.offsetWidth * 0.1;
-      const available = limit - boxLeft - 20;
-      if (available <= 0) return;
-      // The CSS clamp is the preferred size; only overrun is corrected.
-      const preferred = parseFloat(getComputedStyle(block.querySelector(".contact-line") ?? block).fontSize);
-      if (preferred * ratio <= available) return;
-      block.style.setProperty("--contact-fs", `${Math.max(20, available / ratio).toFixed(2)}px`);
-    };
-
-    fit();
-    const observer = new ResizeObserver(fit);
-    observer.observe(probe);
-    window.addEventListener("resize", fit);
-    document.fonts?.ready.then(fit).catch(() => {});
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", fit);
-      probe.remove();
-    };
-    // The copy itself is the dependency: a language switch re-fits.
-  }, [headlineText]);
-
   return (
     <section id="contact" className="contact">
       <div className="contact-inner">
         <div className="contact-stage">
-          <div className="contact-headlines" ref={headlinesRef}>
+          <div className="contact-headlines">
             <div className="contact-kicker">
               <span className="contact-kicker-index">03</span>
               <span className="contact-kicker-rule" aria-hidden="true" />
@@ -384,13 +302,7 @@ export const Contact = memo(function Contact({ lang, content }: SectionProps<"co
             </div>
             {content.headlines.map((line, index) => (
               <h2 key={index} className={`contact-line contact-line-${index + 1}`}>
-                {/* GSAP animates .contact-line-text; the inner word carries the
-                    hover styles so transforms never fight the scroll timeline. */}
-                <span className="contact-line-text">
-                  <span className="contact-line-word" data-text={line}>
-                    {line}
-                  </span>
-                </span>
+                <span className="contact-line-text">{line}</span>
               </h2>
             ))}
           </div>
@@ -398,18 +310,10 @@ export const Contact = memo(function Contact({ lang, content }: SectionProps<"co
           <ContactBooth fallback={content.image.src} plateText={content.email} />
         </div>
 
-        {/* The strip is decorative repetition, so it is hidden from the
-            accessibility tree and the link borrows its name from the email it
-            actually dials. */}
         <a href={mailto} className={cx("contact-marquee", zh && "is-zh")} data-cursor="link">
-          <span className="sr-only">{content.email}</span>
-          {[0, 1].map((track) => (
-            <span key={track} className="marquee-track" aria-hidden="true">
-              {MARQUEE_REPEAT.map((i) => (
-                <span key={i} className="marquee-word">{marquee}</span>
-              ))}
-            </span>
-          ))}
+          <span className="contact-marquee-label">{marquee}</span>
+          <span className="contact-marquee-email">{content.email}</span>
+          <span className="contact-marquee-arrow" aria-hidden="true">↗</span>
         </a>
 
         <div className="contact-footer">
