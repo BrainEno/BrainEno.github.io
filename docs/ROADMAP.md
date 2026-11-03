@@ -1,6 +1,6 @@
 # 开发路线（ROADMAP）
 
-本文档是这份模板的开发日志 + 待办。优先级：P0（上线前必须）→ P1（体验与健壮性）
+本文档是 **BrainEno 个人主页（<https://BrainEno.github.io>）** 的开发日志 + 待办。优先级：P0（上线前必须）→ P1（体验与健壮性）
 → P2（长期演进）。反馈新问题时请附：现象截图、复现路径（URL / 滚动位置 / 语言 /
 桌面或移动端）、控台报错原文。
 
@@ -95,7 +95,7 @@ Pages 只是一个发文件的服务器。**代价不在框架，而在于子路
 | 电话亭模型 | 3D 不出、退化成兜底图又 404 | `BOOTH_MODEL_SRC = asset(...)` |
 | 电话亭兜底抠图 | 同上 | `asset(fallback)` |
 | `manifest.webmanifest` | 安装后打开 `github.io` 根、图标 404 | `id` / `start_url` / `scope` / icons 走 `BASE_PATH` |
-| `robots.txt` | `Disallow: /offline` 少了前缀（等于没屏蔽） | `Disallow: /portfolio-template/offline` |
+| `robots.txt` | `Disallow: /offline` 少了前缀（等于没屏蔽） | `Disallow: /<repo>/offline` |
 | Service Worker | 子路径下**直接不注册**，PWA/离线全失效 | scope 与脚本都带前缀；`sw.js` 从 `registration.scope` 反推 `BASE` |
 | `sitemap.xml` | 作品页少了尾斜杠，与 canonical 不一致（多一次 301） | 与 `trailingSlash` 对齐 |
 
@@ -199,14 +199,10 @@ mock。**不要再把这些条目当待办**；若将来真需要在线编辑，
 
 ## P0 — 上线前
 
-- [ ] **换成自己的内容与图片**：`published.json`（或 `defaults.ts`）里的名字、两段简介、
-      五个 works、邮箱；`public/images/` 里全是模板占位图（`FIGURE / HERO SCENE`、
-      `PORTRAIT / BIOGRAPHY`…），必须替换。替换后跑一次 `npm run images`。
+- [x] **换成正式站点身份与实拍作品素材**：`defaults.ts` 已更新为 BrainEno 个人主页双语内容、五个开源项目与真实图片素材，并生成响应式 WebP 清单。
 - [ ] **启用 Pages**：仓库 Settings → Pages → Source 选 “GitHub Actions”（一次性）。
       启用前 `deploy` job 会在 `configure-pages` 一步失败，workflow 显示红但是代码没问题。
-- [ ] **设 `NEXT_PUBLIC_SITE_URL` / `NEXT_PUBLIC_BASE_PATH`**：canonical、`sitemap.xml`、
-      `robots.txt`、OG 图绝对地址由前者派生；项目站在子路径下还需要后者。
-      两个值在 workflow 里已按仓库名自动填好，改用自定义域名时才需要手工改。
+- [x] **自动适配 `BrainEno.github.io` 根路径与项目站子路径**：workflow 自动识别 `<owner>.github.io` 用户主页（`NEXT_PUBLIC_BASE_PATH=""`、`NEXT_PUBLIC_SITE_URL=https://BrainEno.github.io`）与项目站子路径，同时支持仓库变量 `SITE_URL` 覆盖自定义域名。
 - [ ] **真机回归**：iOS Safari / Android Chrome 各走一遍（pin、ScrollSmoother、
       中文断行、电话亭 WebGL 与拖拽、电视换台），留截图存档。
 - [ ] **Lighthouse 预算定档**：移动模拟、本地 Brotli 预览，第八轮前后：

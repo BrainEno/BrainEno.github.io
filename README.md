@@ -1,8 +1,10 @@
-# Portfolio Template · 纯静态作品集
+# BrainEno · 个人主页与作品集
+
+线上主页：<https://BrainEno.github.io>
 
 单页滚动叙事：旋转标题、肖像长卷、电视机作品索引、白场转场接 3D 电话亭收尾。
 
-**整站是一个纯静态导出**：`npm run build:static` 产出一个 `out/` 文件夹，**默认部署到 GitHub Pages**（仓库自带 workflow），
+**整站是一个纯静态导出**：`npm run build:static` 产出一个 `out/` 文件夹，**默认部署到 GitHub Pages 用户主页 `BrainEno.github.io`**（仓库自带 workflow，同时自动兼容子路径项目站），
 丢到对象存储 / nginx 也一样能跑。
 没有服务器、没有数据库、没有 API 路由——因此也没有需要维护的连接串、迁移和运行时。
 
@@ -35,29 +37,29 @@
 ## 30 秒跑起来
 
 ```bash
-git clone https://github.com/BrainEno/portfolio-template.git && cd portfolio-template
+git clone https://github.com/BrainEno/BrainEno.github.io.git && cd BrainEno.github.io
 npm install
 npm run dev                     # http://localhost:3000
 ```
 
 站点只有两个页面类型：首页（四幕滚动叙事）和每个作品的 `/works/<id>`；`/offline` 是 PWA 离线兜底。
-没有后台、没有 `/admin`——内容在仓库里的 JSON 中（见下）。
+没有后台、没有 `/admin`——内容在仓库里的静态文件中（见下）。
 
 要看成品的真实形态（静态导出的那份文件）：
 
 ```bash
-npm run build:static            # → out/   （NEXT_PUBLIC_SITE_URL=https://… 建议先设）
-npm run preview                 # → http://localhost:3300
+NEXT_PUBLIC_SITE_URL=https://BrainEno.github.io npm run build:static   # → out/
+npm run preview                                                        # → http://localhost:3300
 ```
 
 ## 内容怎么改
 
-内容是一个 JSON 结构，构建时读一次。改内容就是改这个文件，然后重新构建：
+内容是一个静态结构，构建时读一次。改内容就是改文件，然后重新构建：
 
 | 文件 | 用途 |
 |---|---|
-| `src/portfolio/content/published.json` | **你的内容**（如果有这个文件，构建优先读它） |
-| `src/portfolio/content/defaults.ts` | 模板自带的示例内容，字段类型完整、中英双语；没有 `published.json` 时用它 |
+| `src/portfolio/content/published.json` | **可选覆盖快照**（如果有这个文件，构建优先读它） |
+| `src/portfolio/content/defaults.ts` | **站点默认双语内容**，字段类型完整、中英双语；没有 `published.json` 时直接用它 |
 
 最快的开始方式：把 `defaults.ts` 复制成 `published.json`（内容外面包一层 `{ "content": … }`），
 然后只改你关心的那几个字段。字段和页面的对应关系见
@@ -88,8 +90,14 @@ CI 重新导出，站点更新。没有后台、没有数据库、没有需要�
 | 对象存储 / OSS / S3 | 上传 `out/` 里的文件，`index.html` 作默认文档 | [docs/STATIC_EXPORT.md](docs/STATIC_EXPORT.md#对象存储--oss--cos--s3) |
 | nginx / 自己的服务器 | `root /path/to/out; try_files $uri $uri/ =404;` | [docs/STATIC_EXPORT.md](docs/STATIC_EXPORT.md#nginx--任意静态服务器) |
 
-部署前必须设的是**站点地址**（写进 canonical、`sitemap.xml`、`robots.txt`），
-项目站还要加子路径（workflow 里已经按仓库名自动设好）：
+部署前必须设的是**站点地址**（写进 canonical、`sitemap.xml`、`robots.txt` 与 OG 分享图）。
+作为 GitHub 用户主页（`BrainEno.github.io`）部署在根路径：
+
+```bash
+NEXT_PUBLIC_SITE_URL=https://BrainEno.github.io npm run build:static
+```
+
+若挂载在 GitHub Pages 项目站子路径（`https://<user>.github.io/<repo>/`），再加上 `NEXT_PUBLIC_BASE_PATH=/<repo>`（workflow 会自动识别仓库名是否为 `<owner>.github.io` 并切换根路径或子路径）：
 
 ```bash
 NEXT_PUBLIC_SITE_URL=https://<user>.github.io/<repo> \
@@ -98,8 +106,8 @@ npm run build:static
 ```
 
 > 子路径是这类站点最容易踩的坑：Next 的 `basePath` 只管路由和 `_next/`，
-> 内容里手写的 `/images/…` 不会自动加前缀。本项目用 `seo/asset.ts#asset()` 统一处理，
-> 并且 `npm run smoke` 会在“挂载到子路径”模式下逐页验证——漏一处 CI 就红。
+> 内容里手写的 `/images/…` 与 `og:image` 不会自动加前缀。本项目用 `seo/asset.ts#asset()` 与 `seo/site.ts#absoluteUrl()` 统一处理，
+> 并且 `npm run smoke` 会在“挂载到子路径”模式下逐页验证页面资源与分享图——漏一处 CI 就红。
 
 ## 常用命令
 
@@ -120,7 +128,7 @@ npm run build:static
 ```
 src/app/                 路由层（薄）：/ · /works/[id] · /offline · robots/sitemap/manifest
 src/portfolio/
-  content/               types · defaults(模板内容) · published.json(你的内容) · normalize · source(唯一入口)
+  content/               types · defaults(默认站点内容) · published.json(可选快照) · normalize · source(唯一入口)
   scroll/choreography.ts 全部 GSAP 时间线
   ui/                    Portfolio 壳 · 四幕 sections · Img(响应式) · PhoneBoothModel · TvShowreel · PwaRegister
   three/booth.ts         WebGL 电话亭（环境光、自转、拖拽、取景）

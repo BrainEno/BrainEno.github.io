@@ -194,7 +194,7 @@ async function renderCard(targetPath, w, h, title, subtitle, [c1, c2, c3]) {
 // The TV is the one piece of artwork a project is expected to *replace* with a
 // photo of its own, so regenerating it in place would silently destroy that
 // work. The vector scene is written to `tv-placeholder.webp`; `tv.webp` is
-// only seeded when it is still missing (a fresh clone of the template).
+// only seeded when it is still missing (a fresh checkout).
 const tvTarget = path.join(out, "tv.webp");
 await sharp(Buffer.from(tvSvg)).webp({ quality: 88 }).toFile(path.join(out, "tv-placeholder.webp"));
 if (existsSync(tvTarget)) {

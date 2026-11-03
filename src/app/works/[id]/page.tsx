@@ -31,16 +31,30 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const lang = content.identity.defaultLanguage;
   const title = pickText(work.title, lang);
   const description = pickText(work.description, lang);
+  const imageSrc = work.image.src || content.hero.image.src;
+  const image = imageSrc ? absoluteUrl(imageSrc) : undefined;
+  const imageAlt = pickText((work.image.src ? work.image : content.hero.image).alt, lang) || title;
   return {
     title,
     description,
-    alternates: { canonical: `/works/${work.id}` },
-    openGraph: { type: "article", title, description, url: `/works/${work.id}`, images: work.image.src ? [absoluteUrl(work.image.src)] : undefined },
-    twitter: { card: "summary_large_image", title, description },
+    alternates: { canonical: `/works/${work.id}/` },
+    openGraph: {
+      type: "article",
+      title,
+      description,
+      url: `/works/${work.id}/`,
+      images: image ? [{ url: image, alt: imageAlt }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: image ? [image] : undefined,
+    },
   };
 }
 
-/** Server-rendered project page: crawlable detail copy + detail images from the database. */
+/** Static-prerendered project page: crawlable detail copy + detail images. */
 export default async function WorkPage({ params }: Params) {
   const { id } = await params;
   const { content, work } = await findWork(id);
@@ -52,14 +66,17 @@ export default async function WorkPage({ params }: Params) {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: content.identity.name, item: origin },
-      { "@type": "ListItem", position: 2, name: pickText(work.title, lang), item: `${origin}/works/${work.id}` },
+      { "@type": "ListItem", position: 1, name: content.identity.name, item: `${origin}/` },
+      { "@type": "ListItem", position: 2, name: pickText(work.title, lang), item: `${origin}/works/${work.id}/` },
     ],
   };
 
   return (
     <main className="wd">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(ld).replace(/</g, "\\u003c") }}
+      />
       <Link className="wd-back" href="/#works">← {content.identity.name}</Link>
       <header className="wd-head">
         <p className="wd-meta">{work.year} / {pickText(work.credit, lang)}</p>

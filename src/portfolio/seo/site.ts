@@ -8,6 +8,7 @@
  * 详见：LICENSE, TERMS.md
  */
 import type { Language, PortfolioContent } from "../content/types";
+import { asset } from "./asset";
 
 /**
  * Canonical origin of the site, baked in at build time.
@@ -38,12 +39,22 @@ export function pickText(value: { zh: string; en: string } | undefined, lang: La
   return (value?.[lang] || value?.[lang === "zh" ? "en" : "zh"] || "").trim();
 }
 
-/** Absolute URL for a stored image reference (relative paths, /api/media/<id>, remote links). */
+/**
+ * Public absolute URL for a content-owned or site-relative asset (`og:image`,
+ * `twitter:image`, JSON-LD `image`).
+ *
+ * Root-absolute content paths (`/images/...`) are passed through `asset()`
+ * first so sub-path deployments (`/<repo>/`) keep their mount prefix instead
+ * of resolving against the bare domain root.
+ */
 export function absoluteUrl(src: string) {
+  const base = siteUrl();
+  if (!base.pathname.endsWith("/")) base.pathname += "/";
+  if (!src) return base.toString();
   try {
-    return new URL(src, siteUrl()).toString();
+    return new URL(asset(src), base).toString();
   } catch {
-    return siteUrl().toString();
+    return base.toString();
   }
 }
 
@@ -66,7 +77,7 @@ export function jsonLd(content: PortfolioContent) {
       {
         "@type": "WebSite",
         "@id": `${origin}/#website`,
-        url: origin,
+        url: `${origin}/`,
         name: pickText(content.identity.siteName, lang) || content.identity.name,
         description,
         inLanguage: htmlLang(lang),
@@ -76,21 +87,24 @@ export function jsonLd(content: PortfolioContent) {
         "@id": `${origin}/#person`,
         name: content.identity.name,
         description,
-        url: origin,
+        url: `${origin}/`,
         image: absoluteUrl(content.hero.image.src),
         email: content.contact.email ? `mailto:${content.contact.email}` : undefined,
         sameAs,
       },
-      ...content.works.items.map((work) => ({
-        "@type": "CreativeWork",
-        "@id": `${origin}/works/${work.id}`,
-        name: pickText(work.title, lang),
-        description: pickText(work.description, lang),
-        image: work.image.src ? absoluteUrl(work.image.src) : undefined,
-        url: `${origin}/works/${work.id}`,
-        dateCreated: work.year,
-        creator: { "@id": `${origin}/#person` },
-      })),
+      ...content.works.items.map((work) => {
+        const workImage = work.image.src || content.hero.image.src;
+        return {
+          "@type": "CreativeWork",
+          "@id": `${origin}/works/${work.id}/`,
+          name: pickText(work.title, lang),
+          description: pickText(work.description, lang),
+          image: workImage ? absoluteUrl(workImage) : undefined,
+          url: `${origin}/works/${work.id}/`,
+          dateCreated: work.year,
+          creator: { "@id": `${origin}/#person` },
+        };
+      }),
     ],
   };
 }
