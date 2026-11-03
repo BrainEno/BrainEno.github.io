@@ -15,6 +15,12 @@
   --muted-strong: #bbbbbb;
   --gutter: 3.125vw;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Night palette sampled from tv2.webp. `--sky` is the photo's top row: the
+     journey fades to it and the works stage starts on it, so the two sections
+     share one sky. `--night` is where the photo's edges dissolve. */
+  --sky: #001c5c;
+  --night: #02060d;
+  --rule-night: rgba(214, 226, 255, 0.22);
 }
 
 html {
@@ -684,33 +690,53 @@ body {
 .works {
   position: relative;
   z-index: 1;
-  background: var(--stage);
+  background: var(--night);
 }
 
+/* The stage is the night the photograph sits in: the photo's own sky at the
+   top edge (the colour the journey ends on, so both read as one sky), falling
+   to near-black where the feathered sides and the street dissolve. */
 .tv-stage {
   position: relative;
   width: 100vw;
   height: 100vh;
   height: 100svh;
   overflow: hidden;
-  background: var(--stage);
+  background: linear-gradient(180deg, var(--sky) 0%, #001a54 10%, #02123a 19%, #040a17 31%, var(--night) 56%);
 }
 
+/* Native framing: the whole photograph at its own ratio, exactly one stage
+   tall and centred — sky, houses, street and set all in shot (the previous
+   max(185vw, 295vh) crop kept only the asphalt around the television). The
+   screen therefore always sits at --screen-cy of the viewport height; narrow
+   screens crop the sides, wide ones feather them into the stage. */
 .tv-anchor {
   position: absolute;
-  top: 58%;
-  left: 50%;
-  width: max(185vw, 295vh);
-  aspect-ratio: var(--tv-ratio);
-  transform: translate(calc(var(--screen-cx) * -1), calc(var(--screen-cy) * -1));
+  top: 0;
+  left: calc(50% - var(--tv-aspect, 1.5) * 50vh);
+  left: calc(50% - var(--tv-aspect, 1.5) * 50svh);
+  width: calc(var(--tv-aspect, 1.5) * 100vh);
+  width: calc(var(--tv-aspect, 1.5) * 100svh);
+  height: 100%;
 }
 
+/* No permanent `will-change`: the phone beat now leans in ~2.4x and a
+   pre-promoted layer is rasterised at 1x, which would land `@BrainEno`
+   blurred. The mask feathers the photo's sides and lower edge into the stage
+   (it scales with the box, so the exit zoom carries the feather away). */
 .tv-box {
   position: absolute;
   inset: 0;
   isolation: isolate;
   transform-origin: var(--screen-cx) var(--screen-cy);
-  will-change: transform;
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent 0%, #000 7%, #000 93%, transparent 100%),
+    linear-gradient(180deg, #000 88%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(90deg, transparent 0%, #000 7%, #000 93%, transparent 100%),
+    linear-gradient(180deg, #000 88%, transparent 100%);
+  mask-composite: intersect;
 }
 
 .tv-frame {
@@ -1016,10 +1042,129 @@ body {
   pointer-events: none;
 }
 
+/* Seam guard: the top of the stage is painted from the exact colour the
+   journey ends on down into the photograph's own sky, so the hand-over line
+   between the two sections cannot show, whatever the grading of the photo. */
+.tv-seam {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  height: 24%;
+  pointer-events: none;
+  background: var(--sky);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.55) 42%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.55) 42%, transparent 100%);
+}
+
+/* Channel change into the scene: static, scanlines and a rolling sync bar
+   ride the incoming frame while the works stage rises out of the journey's
+   blue. Feathered at the top so the shared sky edge never shows a seam. */
+.tv-tune {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  -webkit-mask-image: linear-gradient(180deg, transparent 16%, #000 46%);
+  mask-image: linear-gradient(180deg, transparent 16%, #000 46%);
+}
+
+.tv-tune-noise {
+  position: absolute;
+  inset: -48px;
+  background:
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0 1px, transparent 1px 3px),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: auto, 220px 220px;
+  mix-blend-mode: screen;
+  opacity: 0.62;
+  animation: tv-tune-static 0.32s steps(4) infinite;
+}
+
+.tv-tune-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 16%;
+  background: linear-gradient(180deg, rgba(186, 210, 255, 0) 0%, rgba(186, 210, 255, 0.2) 42%, rgba(255, 255, 255, 0.42) 50%, rgba(186, 210, 255, 0.2) 58%, rgba(186, 210, 255, 0) 100%);
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+
+@keyframes tv-tune-static {
+  0% { transform: translate3d(0, 0, 0); }
+  25% { transform: translate3d(-14px, 9px, 0); }
+  50% { transform: translate3d(11px, -7px, 0); }
+  75% { transform: translate3d(-6px, -12px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+/* Reading light for the index: darkens the two text columns and the street
+   while the list crosses the photograph, leaving the set itself untouched. */
+.tv-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  background:
+    linear-gradient(90deg, rgba(1, 5, 14, 0.74) 0%, rgba(1, 5, 14, 0.36) 26%, rgba(1, 5, 14, 0) 40%, rgba(1, 5, 14, 0) 60%, rgba(1, 5, 14, 0.32) 74%, rgba(1, 5, 14, 0.7) 100%),
+    linear-gradient(0deg, rgba(1, 5, 14, 0.5) 0%, rgba(1, 5, 14, 0) 30%);
+}
+
+/* On-screen display: the channel number a real set flashes in the corner of
+   the tube after a change. Keyed on the active work so each hover restarts
+   it; purely presentational — TvShowreel's channel change is untouched. */
+.tv-osd-layer {
+  position: absolute;
+  top: var(--screen-top);
+  left: var(--screen-left);
+  width: var(--screen-width);
+  height: var(--screen-height);
+  z-index: 3;
+  overflow: hidden;
+  border-radius: 10% / 11%;
+  container-type: inline-size;
+  pointer-events: none;
+}
+
+.tv-osd {
+  position: absolute;
+  top: 11%;
+  right: 12%;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 11cqi;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  color: #9dffb0;
+  text-shadow: 0 0 0.2em rgba(130, 255, 160, 0.85), 0 0 0.7em rgba(70, 255, 130, 0.4);
+  opacity: 0;
+  animation: tv-osd 2.9s step-end both;
+}
+
+@keyframes tv-osd {
+  0% { opacity: 0; }
+  11% { opacity: 1; }
+  90% { opacity: 0.94; }
+  100% { opacity: 0; }
+}
+
+.works[data-tv-phase="phone"] .tv-osd-layer,
+.works[data-tv-phase="exit"] .tv-osd-layer {
+  visibility: hidden;
+}
+
 .works-list {
   position: relative;
   z-index: 4;
-  padding: 0 var(--gutter) 12vh;
+  padding: 0 var(--gutter) 16vh;
   min-height: 90vh;
 }
 
@@ -1046,21 +1191,26 @@ body {
 }
 
 .works-period {
-  color: var(--muted-strong);
-  margin-left: 0.4em;
+  margin-left: 0.3em;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  color: rgba(214, 226, 255, 0.62);
 }
 
 .work-rows {
   list-style: none;
 }
 
+/* Index | title | the television's column | meta. Titles end before the set
+   and the meta starts after it, so a hovered row never covers the channel
+   change it triggers; the hairlines break around the set for the same reason. */
 .work-row {
   position: relative;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 2vw;
-  padding: 1.1vw 0 0.9vw;
+  display: grid;
+  grid-template-columns: 3.4vw minmax(0, 34vw) 1fr auto;
+  align-items: end;
+  padding: 1.25vw 0 1vw;
   cursor: pointer;
   outline-offset: -2px;
 }
@@ -1071,7 +1221,7 @@ body {
   left: 0;
   right: 0;
   height: 1px;
-  background: rgba(255, 255, 255, 0.28);
+  background: linear-gradient(90deg, var(--rule-night) 0 38%, transparent 38% 62%, var(--rule-night) 62% 100%);
 }
 
 .work-row:last-child::after {
@@ -1081,7 +1231,22 @@ body {
   right: 0;
   bottom: 0;
   height: 1px;
-  background: rgba(255, 255, 255, 0.28);
+  background: linear-gradient(90deg, var(--rule-night) 0 38%, transparent 38% 62%, var(--rule-night) 62% 100%);
+}
+
+.work-row-index {
+  align-self: end;
+  padding-bottom: 0.62vw;
+  font-size: clamp(10px, 0.72vw, 12px);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.1em;
+  color: rgba(214, 226, 255, 0.46);
+  transition: color 0.4s;
+}
+
+.work-row.is-active .work-row-index {
+  color: var(--accent);
 }
 
 .work-row-mask {
@@ -1097,9 +1262,10 @@ body {
 .work-row-name,
 .work-row-name-alt {
   display: block;
-  font-size: 3.7vw;
+  font-size: clamp(24px, 2.55vw, 48px);
   line-height: 1;
   padding-bottom: 0.06em;
+  letter-spacing: -0.02em;
   text-transform: uppercase;
   white-space: nowrap;
   transition: transform 0.7s var(--ease-out);
@@ -1109,9 +1275,11 @@ body {
   position: absolute;
   inset: 0;
   font-family: var(--font-serif);
-  font-weight: 600;
-  font-size: 3.9vw;
-  letter-spacing: 0.02em;
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(25px, 2.7vw, 51px);
+  letter-spacing: -0.01em;
+  text-transform: none;
   transform: translateY(105%);
 }
 
@@ -1129,11 +1297,12 @@ body {
 }
 
 .work-row-meta {
+  grid-column: 4;
   display: flex;
-  flex: 0 0 auto;
+  justify-content: flex-end;
   gap: 0.7em;
-  font-size: clamp(12px, 0.95vw, 16px);
-  color: var(--muted-strong);
+  font-size: clamp(12px, 0.86vw, 15px);
+  color: rgba(214, 226, 255, 0.6);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding-bottom: 0.5vw;
@@ -1163,22 +1332,14 @@ body {
 .contact {
   position: relative;
   z-index: 2;
-  /* The sheet is pulled far up under the television exit so its copy can
-     enter the frame while the tube is still burning out. Its white background
-     starts transparent and is faded in by the exit timeline (GSAP), so it
-     never reads as a white card sliding over a dark scene — by the time it is
-     opaque, the screen behind it is already white. */
+  /* Pulled up under the television exit so the sheet is already rising while
+     the tube burns out; its white is faded in by the exit timeline (GSAP). */
   margin-top: -56vh;
-  /* Only the *horizontal* axis is clipped. The booth starts its entrance on
-     the (now white) television screen above the section's top edge, so it has
-     to be able to travel outside the box vertically — but its off-screen
-     start pose sits 92vw to the right, and so does the marquee's second track,
-     which used to widen the document by a whole viewport and let every device
-     scroll sideways. `clip` (not `hidden`) keeps the vertical axis visible and
-     creates no scroll container, so the pinned scroll timeline is unaffected. */
+  /* Horizontal clip only: the bands and the booth's entrance travel outside
+     the box without widening the document or creating a scroll container. */
   overflow-x: clip;
   background: var(--paper);
-  color: #000;
+  color: #0c0c0c;
 }
 
 .contact-inner {
@@ -1187,204 +1348,123 @@ body {
   flex-direction: column;
   min-height: 100vh;
   min-height: 100svh;
-  /* Symmetric outer gutter: the headline starts exactly as far from the left
-     edge as the booth's silhouette ends from the right one. No top padding:
-     the booth's crown is meant to sit on the sheet's top edge. */
-  padding: 0 5vw 4svh;
+  padding: max(78px, 10svh) var(--gutter) clamp(16px, 2.4svh, 30px);
 }
 
-/* The stage is everything above the marquee. Anchoring the booth to *this*
-   box rather than to viewport percentages is what makes the floor line correct
-   on any screen: the plinth lands on the stage's bottom edge (the top of the
-   running strip) whether the viewport is 720px tall or 21:9, and whether the
-   marquee's type happens to be larger than usual. */
-.contact-stage {
-  position: relative;
+/* Running head: index, section and kicker on one hairline, like a folio. */
+.contact-topbar {
   display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  min-height: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 24px;
+  padding-bottom: clamp(12px, 1.1vw, 18px);
+  border-bottom: 1px solid rgba(12, 12, 12, 0.14);
+  font-size: clamp(11px, 0.76vw, 13px);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(12, 12, 12, 0.56);
 }
 
-.contact-headlines {
+.contact-topbar-index {
+  margin-right: 1.1em;
+  color: var(--accent);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.contact-topbar .is-zh {
+  letter-spacing: 0.22em;
+}
+
+/* Stage: the booth stands centre-sheet and the call sign runs behind it as
+   two counter-scrolling bands — a marquee, for "Marquee Moon". Booth and type
+   are both sized from --booth-h, so their proportion holds on every screen
+   (the old layout measured the type in JS against a full-height booth). */
+.contact-stage {
+  --booth-h: min(56svh, 88vw);
   position: relative;
-  /* Copy owns the left column so the booth gets a clean right column; the
-     two never overlap on the sheet. Width and type size are paired: with the
-     display tracking, "MARQUEE MOON" measures ~8.26× the font size, so 74vw of
-     room allows up to 7vw type without a line ever wrapping mid-scrub (a
-     rewrap would make the whole block jump while the text is rising).
-     `margin-top: auto` drops the block to sit on the marquee, so the booth and
-     the headline share one baseline instead of leaving the lower half empty. */
-  z-index: 2;
-  max-width: 74vw;
-  margin-top: auto;
-  margin-left: 0.4vw;
-  margin-bottom: clamp(24px, 3.6vw, 56px);
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: calc(var(--booth-h) + 8svh);
+}
+
+.contact-reel {
+  position: relative;
+  z-index: 1;
+  display: block;
+  margin: 0 calc(var(--gutter) * -1);
+  color: #0c0c0c;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.contact-reel-row {
+  display: flex;
+  width: max-content;
   will-change: transform;
 }
 
-.contact-kicker {
+.contact-reel-row-2 {
+  margin-top: calc(var(--booth-h) * -0.012);
+}
+
+.contact-reel-track {
+  display: flex;
+  flex: 0 0 auto;
+  will-change: transform;
+}
+
+.contact-reel-word {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: clamp(14px, 1.5vw, 24px);
-  font-size: clamp(11px, 0.8vw, 13px);
-  color: rgba(10, 10, 10, 0.52);
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-}
-
-.contact-kicker-index {
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  color: var(--accent);
-  letter-spacing: 0.08em;
-}
-
-.contact-kicker-rule {
-  display: inline-block;
-  width: clamp(28px, 2.8vw, 44px);
-  height: 1px;
-  background: rgba(10, 10, 10, 0.28);
-  transform-origin: 0 50%;
-}
-
-.contact-kicker-label.is-zh {
-  letter-spacing: 0.18em;
-}
-
-.contact-line {
-  overflow: hidden;
-  /* Display caps are set tight: negative tracking and a compressed leading are
-     what make three stacked lines read as one block instead of three rows. */
-  font-size: var(--contact-fs, clamp(38px, min(8.9vw, calc((88.9vw - 39.3svh) / 8.3)), 176px));
-  font-weight: 500;
+  font-size: calc(var(--booth-h) * 0.3);
   line-height: 0.9;
-  letter-spacing: -0.024em;
+  padding: 0.02em 0 0.06em;
+  white-space: nowrap;
+  transition: color 0.45s var(--ease-out);
+}
+
+.contact-reel-row-1 .contact-reel-word {
+  font-weight: 500;
+  letter-spacing: -0.055em;
   text-transform: uppercase;
-  color: transparent;
-  -webkit-text-stroke: clamp(1.35px, 0.18vw, 2.8px) #0c0c0c;
-  transition: opacity 0.55s ease, -webkit-text-stroke-color 0.45s var(--ease-out);
 }
 
-.contact-line + .contact-line {
-  margin-top: -0.02em;
+.contact-reel-row-2 .contact-reel-word {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.04em;
 }
 
-.contact-line-3 {
-  color: #0c0c0c;
-  font-weight: 600;
-  -webkit-text-stroke: 0 transparent;
-}
-
-.contact-line-text {
-  display: block;
-  padding: 0.02em 0.02em 0.045em 0;
-  transform-origin: 0% 100%;
-  will-change: transform;
-}
-
-/* Scan-slice hover for CALL ME / FOR THE / MARQUEE MOON -----------------
-   The index uses image strips and displaced typography; this interaction
-   translates that vocabulary into the white contact stage. A thin accent
-   band scans across the hovered line and only the middle slice of a duplicate
-   word shifts sideways. The original outline remains visible, so this never
-   becomes a generic full-colour hover. */
-.contact-line-word {
-  position: relative;
-  z-index: 0;
-  display: block;
-  isolation: isolate;
-  transition: transform 0.75s var(--ease-out), letter-spacing 0.75s var(--ease-out);
-  will-change: transform;
-}
-
-.contact-line-word::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  left: -5vw;
-  right: 18vw;
-  top: 44%;
+.contact-reel-dot {
+  flex: 0 0 auto;
+  width: 0.12em;
   height: 0.12em;
+  margin: 0 0.42em;
+  border-radius: 50%;
   background: var(--accent);
-  transform: scaleX(0);
-  transform-origin: 0 50%;
-  transition: transform 0.78s var(--ease-out);
-  pointer-events: none;
-}
-
-.contact-line-word::after {
-  content: attr(data-text);
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  color: #0c0c0c;
-  -webkit-text-stroke: 0;
-  clip-path: inset(39% 0 38% 0);
-  opacity: 0;
-  transform: translateX(-0.08em);
-  transition: transform 0.78s var(--ease-out), opacity 0.35s ease-out;
-  pointer-events: none;
-}
-
-.contact-line-3 .contact-line-word::after {
-  color: var(--accent);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .contact-headlines:hover .contact-line:not(:hover) {
-    opacity: 0.2;
-  }
-
-  .contact-line:hover {
-    -webkit-text-stroke-color: #0c0c0c;
-  }
-
-  .contact-line:hover .contact-line-word {
-    transform: translateX(0.025em) skewX(-3deg);
-    letter-spacing: -0.012em;
-  }
-
-  .contact-line:hover .contact-line-word::before {
-    transform: scaleX(1);
-  }
-
-  .contact-line:hover .contact-line-word::after {
-    opacity: 1;
-    transform: translateX(0.07em);
-  }
-
-  #contact:has(.contact-line:hover) .contact-booth-shadow {
-    opacity: 0.55;
+  .contact-reel:hover .contact-reel-row-2 .contact-reel-word {
+    color: var(--accent);
   }
 }
 
-/* The booth is a live WebGL stage now: the scroll timeline scales, spins and
-   drifts this wrapper, while the renderer handles the slow self-rotation and
-   the drag gesture on the canvas. */
+/* Centred on the bands. GSAP owns `transform` for the entrance, so the
+   centring is done with offsets; 0.5625 is the booth's 9:16 silhouette. */
 .contact-booth {
   position: absolute;
-  /* Above the headline hit-area so the canvas can receive drag gestures, and
-     above the marquee too: the plinth stands on the floor rule, so the strip
-     has to pass behind it instead of cropping it. */
-  z-index: 4;
-  /* Stretched between the sheet's top edge and a floor line *above* the
-     marquee, so the plinth rests on the rule and the strip passes underneath it
-     instead of through it — the base never touches the running text. Height
-     (and with the 9:16 silhouette aspect the width too) is whatever that span
-     gives. The column is nudged right of the text gutter: the sketch wants the
-     copy to move towards the booth, and the extra hair of air is what lets the
-     type grow without running onto the model. It also carries no transform of
-     its own — GSAP owns `transform` for the entrance. */
-  top: 0;
-  bottom: clamp(8px, 1.2svh, 18px);
-  /* The stage is already inset by the sheet's 5vw gutter, so 4.4vw from its
-     right edge would read as 9.4vw from the viewport: compensate to keep the
-     column 4.4vw from the paper edge, as drawn. */
-  right: -0.6vw;
-  height: auto;
-  aspect-ratio: 9 / 16;
+  z-index: 3;
+  top: calc(50% - var(--booth-h) * 0.5);
+  left: calc(50% - var(--booth-h) * 0.28125);
+  width: calc(var(--booth-h) * 0.5625);
+  height: var(--booth-h);
   will-change: transform;
 }
 
@@ -1462,70 +1542,101 @@ body {
   to { transform: translateY(-1.1vh) rotate(0.7deg); }
 }
 
-.contact-marquee {
+/* Call to action: the address itself, set large — the one thing to copy. */
+.contact-cta {
   position: relative;
-  z-index: 3;
-  display: flex;
-  /* The headline block owns `margin-top: auto`, so the marquee must not take
-     the free space a second time — otherwise the two auto margins split it and
-     the type ends up stranded in the middle of the sheet. */
-  margin: 0 -5vw clamp(20px, 2vw, 34px);
-  padding: clamp(10px, 1.05vw, 18px) 0;
-  overflow: hidden;
-  font-size: clamp(26px, 4.4vw, 86px);
-  line-height: 1.04;
-  letter-spacing: -0.015em;
-  white-space: nowrap;
-  color: #0c0c0c;
-  border-top: 1px solid rgba(0, 0, 0, 0.14);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.14);
-  transition: border-color 0.4s ease;
-}
-
-.contact-marquee.is-zh {
-  font-family: var(--font-cjk);
-  letter-spacing: 0.06em;
-  line-height: 1.12;
-}
-
-.marquee-track {
-  display: inline-flex;
-  flex: 0 0 auto;
-  will-change: transform;
-}
-
-.marquee-word {
-  margin-right: 1.8vw;
-  font-weight: 500;
-  text-transform: uppercase;
-  transition: color 0.35s var(--ease-out), transform 0.45s var(--ease-out);
-}
-
-@media (hover: hover) {
-  .contact-marquee:hover {
-    border-color: rgba(229, 81, 57, 0.35);
-  }
-  .contact-marquee:hover .marquee-word {
-    color: var(--accent);
-  }
-}
-
-.contact-footer {
-  position: relative;
-  z-index: 3;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1.5rem 4vw;
-  padding-top: 0.2vw;
-  font-size: 13px;
-}
-
-.contact-channels {
+  z-index: 4;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 1.1rem clamp(28px, 3.6vw, 60px);
+  justify-content: space-between;
+  gap: 20px 4vw;
+  padding: clamp(16px, 1.8vw, 28px) 0 clamp(18px, 2.2vw, 34px);
+  border-top: 1px solid rgba(12, 12, 12, 0.14);
+}
+
+.contact-cta-label {
+  display: block;
+  margin-bottom: clamp(10px, 0.9vw, 16px);
+  font-size: clamp(11px, 0.76vw, 13px);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(12, 12, 12, 0.5);
+}
+
+.contact-cta-label.is-zh {
+  letter-spacing: 0.22em;
+}
+
+.contact-mail {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  font-size: clamp(30px, 4.3vw, 88px);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.045em;
+  color: #0c0c0c;
+}
+
+.contact-mail-mask {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.1em;
+  margin-bottom: -0.1em;
+}
+
+.contact-mail-text {
+  display: block;
+}
+
+.contact-mail::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 1.1em;
+  bottom: -0.08em;
+  height: max(1px, 0.03em);
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: 100% 50%;
+  transition: transform 0.7s var(--ease-out);
+}
+
+.contact-mail-arrow {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 1.9em;
+  height: 1.9em;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.42em;
+  letter-spacing: 0;
+  transition: background-color 0.4s ease;
+}
+
+/* GSAP scales the disc in; the hover turn lives on the glyph so the two
+   never fight over one `transform`. */
+.contact-mail-arrow > span {
+  display: block;
+  transition: transform 0.6s var(--ease-out);
+}
+
+@media (hover: hover) {
+  .contact-mail:hover::after {
+    transform: scaleX(1);
+    transform-origin: 0% 50%;
+  }
+  .contact-mail:hover .contact-mail-arrow {
+    background: #0c0c0c;
+  }
+  .contact-mail:hover .contact-mail-arrow > span {
+    transform: rotate(45deg);
+  }
 }
 
 .contact-item {
@@ -1607,16 +1718,6 @@ body {
   }
 }
 
-.contact-colophon {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: flex-end;
-  gap: 0.45rem 2vw;
-  color: rgba(12, 12, 12, 0.5);
-  text-align: right;
-}
-
 .contact-credit.is-zh {
   letter-spacing: 0.04em;
 }
@@ -1627,73 +1728,39 @@ body {
   color: rgba(12, 12, 12, 0.78);
 }
 
+.contact-footer {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 24px;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: rgba(12, 12, 12, 0.5);
+}
+
 /* Mobile ------------------------------------------------------------- */
-/* Contact: one column below 1024px -----------------------------------
-   A three-line display headline and a 9:16 booth cannot share one row on a
-   portrait tablet: the booth eats half the width and the type has to shrink
-   until it stops being a headline. Below 1024px the sheet therefore stacks —
-   copy across the full width, booth underneath, aligned to the right — which is
-   also what a phone gets. Everything else on this page keeps its own layout. */
+/* Contact below 1024px / portrait: same composition, rebalanced — the booth
+   takes more of the height, the bands stay about a third of it, and the
+   address drops under its label. */
 @media (max-width: 1023px), (max-aspect-ratio: 11/10) {
   .contact {
     margin-top: -40vh;
   }
 
-  .contact-inner {
-    padding: 0 var(--gutter) 28px;
-  }
-
   .contact-stage {
-    /* The copy is bottom-aligned inside the stage, so the sheet keeps its
-       head-room without a padding value that would also push the booth down. */
-    padding-top: 11vh;
+    --booth-h: min(50svh, 96vw);
   }
 
-  .contact-line {
-    /* Same contract as the two-column sheet: this is the no-JS / first-paint
-       ceiling, and `Contact`'s fit overrides it through `--contact-fs`. It has
-       to stay a `var()` — a bare `font-size` here would shadow the override. */
-    font-size: var(--contact-fs, min(13.4vw, 132px));
-    -webkit-text-stroke-width: 1.25px;
+  .contact-reel-word {
+    font-size: calc(var(--booth-h) * 0.27);
   }
 
-  .contact-line-3 {
-    -webkit-text-stroke-width: 0;
-  }
-
-  .contact-headlines {
-    max-width: none;
-    margin-top: 0;
-    margin-left: 0;
-    margin-bottom: 3vh;
-  }
-
-  .contact-booth {
-    position: relative;
-    inset: auto;
-    align-self: flex-end;
-    height: clamp(280px, 54svh, 560px);
-    aspect-ratio: 9 / 16;
-    margin: 0 -2vw 3vh 0;
-  }
-
-  .contact-marquee {
-    margin: 0 calc(var(--gutter) * -1) 22px;
-    font-size: clamp(20px, 5.4vw, 52px);
-    padding: 10px 0;
-  }
-
-  .contact-footer {
+  .contact-cta {
     flex-direction: column;
     align-items: flex-start;
-    gap: 18px;
-    font-size: 13px;
-  }
-
-  .contact-colophon {
-    justify-content: flex-start;
-    text-align: left;
-    gap: 6px 20px;
   }
 }
 
@@ -1924,19 +1991,23 @@ body {
     height: 32vw;
   }
 
-  .tv-anchor {
-    top: 46%;
-  }
-
   .works-list {
     padding-bottom: 8vh;
   }
 
   .work-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
+    grid-template-columns: 9vw minmax(0, 1fr);
+    row-gap: 6px;
     padding: 14px 0 12px;
+  }
+
+  .work-row-line,
+  .work-row:last-child::after {
+    background: var(--rule-night);
+  }
+
+  .work-row-index {
+    padding-bottom: 0.5em;
   }
 
   .work-row-name,
@@ -1946,6 +2017,8 @@ body {
   }
 
   .work-row-meta {
+    grid-column: 2;
+    justify-content: flex-start;
     font-size: 11px;
     flex-wrap: wrap;
   }
@@ -1953,21 +2026,26 @@ body {
   .tv-phone-spacer { height: 90vh; }
   .tv-exit-spacer { height: 96vh; }
 
-  .contact-channels {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 14px;
+  .contact-inner {
+    padding-top: 88px;
+  }
+
+  .contact-topbar {
+    font-size: 10px;
+  }
+
+  .contact-reel-word {
+    font-size: calc(var(--booth-h) * 0.24);
+  }
+
+  .contact-mail {
+    font-size: clamp(22px, 6.6vw, 40px);
   }
 
   .contact-footer {
-    gap: 16px;
-    font-size: 12px;
-  }
-
-  .contact-colophon {
     flex-direction: column;
-    align-items: flex-start;
     gap: 4px;
+    font-size: 11px;
   }
 }
 
@@ -1975,8 +2053,12 @@ body {
   /* The channel change is skipped entirely in JS; the snow layers never show. */
   .tv-static,
   .tv-roll,
-  .tv-sync-line {
+  .tv-sync-line,
+  .tv-tune {
     display: none;
+  }
+  .tv-osd {
+    animation-duration: 2.9s;
   }
   .contact-booth-float {
     animation: none;
@@ -1986,9 +2068,9 @@ body {
   .nav-roll::after,
   .work-row-name,
   .work-row-name-alt,
-  .contact-line-word,
-  .contact-line-word::before,
-  .contact-line-word::after,
+  .contact-reel-word,
+  .contact-mail::after,
+  .contact-mail-arrow > span,
   .contact-link::before,
   .contact-link::after,
   .contact-arrow {

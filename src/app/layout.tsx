@@ -11,6 +11,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "@fontsource-variable/inter/wght.css";
 import "@fontsource/inria-serif/latin-400.css";
+import "@fontsource/inria-serif/latin-400-italic.css";
 import "@fontsource/inria-serif/latin-700.css";
 import { getSiteContent } from "@/portfolio/content/source";
 import { htmlLang, pageTitle, pickText, siteUrl, absoluteUrl } from "@/portfolio/seo/site";
