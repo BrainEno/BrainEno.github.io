@@ -8,6 +8,7 @@
  * 详见：LICENSE, TERMS.md
  */
 import type { Language, PortfolioContent } from "../content/types";
+import { asset } from "./asset";
 
 /**
  * Canonical origin of the site, baked in at build time.
@@ -38,10 +39,17 @@ export function pickText(value: { zh: string; en: string } | undefined, lang: La
   return (value?.[lang] || value?.[lang === "zh" ? "en" : "zh"] || "").trim();
 }
 
-/** Absolute URL for a stored image reference (relative paths, /api/media/<id>, remote links). */
+/**
+ * Absolute URL for a stored image reference (relative paths, /api/media/<id>, remote links).
+ *
+ * Root-absolute paths are run through `asset()` first so the deploy basePath
+ * (GitHub Pages project site: `https://<user>.github.io/<repo>/`) is preserved.
+ * Without this, `new URL("/images/x.png", siteUrl())` would drop the basePath
+ * and point og:image / twitter:image / JSON-LD images at the host root, which 404s.
+ */
 export function absoluteUrl(src: string) {
   try {
-    return new URL(src, siteUrl()).toString();
+    return new URL(asset(src), siteUrl()).toString();
   } catch {
     return siteUrl().toString();
   }
