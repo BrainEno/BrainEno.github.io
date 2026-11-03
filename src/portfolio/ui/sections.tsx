@@ -9,7 +9,7 @@
  */
 "use client";
 
-import { memo, useLayoutEffect, useRef, type CSSProperties } from "react";
+import { memo, type CSSProperties } from "react";
 import TvShowreel from "./TvShowreel";
 import { Img } from "./Img";
 import { asset } from "../seo/asset";
@@ -151,6 +151,7 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
   const { screen, width, height, src, alphaSrc } = content.tv;
   const tvStyle = {
     "--tv-ratio": `${width} / ${height}`,
+    "--tv-aspect": `${width / height}`,
     "--screen-top": `${screen.top}%`,
     "--screen-left": `${screen.left}%`,
     "--screen-width": `${screen.width}%`,
@@ -171,7 +172,7 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
               className="tv-frame"
               src={src}
               alt=""
-              sizes="(max-aspect-ratio: 4/3) 295vh, 185vw"
+              sizes="150vh"
               hidden
               loading="lazy"
               draggable={false}
@@ -198,7 +199,21 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
             <div className="tv-number-layer" aria-hidden="true">
               <div className="tv-number">{phone}</div>
             </div>
+            {/* Channel number flashed in the tube's corner after each change. */}
+            <div className="tv-osd-layer" aria-hidden="true">
+              {active ? (
+                <span key={active.id} className="tv-osd">
+                  CH {String(activeIndex + 1).padStart(2, "0")}
+                </span>
+              ) : null}
+            </div>
           </div>
+        </div>
+        <div className="tv-seam" aria-hidden="true" />
+        <div className="tv-scrim" aria-hidden="true" />
+        <div className="tv-tune" aria-hidden="true">
+          <span className="tv-tune-noise" />
+          <span className="tv-tune-bar" />
         </div>
         <div className="tv-whiteout" aria-hidden="true" />
       </div>
@@ -236,6 +251,7 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
                 onClick={() => onPreview(index)}
               >
                 <span className="work-row-line" aria-hidden="true" />
+                <span className="work-row-index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
                 <span className="work-row-mask">
                   <span className="work-row-title">
                     <span className="work-row-name">{title}</span>
@@ -258,7 +274,13 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
   );
 }
 
-const MARQUEE_REPEAT = Array.from({ length: 8 }, (_, i) => i);
+const MARQUEE_REPEAT = Array.from({ length: 4 }, (_, i) => i);
+
+/** "MARQUEE MOON" -> "Marquee Moon" for the serif band; mixed-case or CJK copy is left as written. */
+function softCase(text: string) {
+  if (/[a-z]/.test(text) || !/[A-Z]/.test(text)) return text;
+  return text.toLowerCase().replace(/(^|\s)(\S)/g, (_, space: string, char: string) => space + char.toUpperCase());
+}
 
 /**
  * The uploaded telephone model, optimised to a 2 MB GLB by
@@ -289,164 +311,86 @@ export const Contact = memo(function Contact({ lang, content }: SectionProps<"co
   const handleHref = dialable ? `tel:${content.phone.replace(/[^\d+]/g, "")}` : content.credit.url;
   const handleExternal = !dialable;
   const marquee = t(content.marquee, lang);
-  const headlinesRef = useRef<HTMLDivElement>(null);
-  const headlineText = content.headlines.join("\n");
-
-  /**
-   * Types the call sign to the largest size that still clears the booth.
-   *
-   * CSS can only bound the block by a hard-coded em width, and that constant is
-   * a property of the typeface: "MARQUEE MOON" measures ~8.3em in the metrics
-   * here, but a fallback or a future face can be wider — and then the third
-   * line runs into the model at exactly the sizes where the block looks best.
-   * So the ratio is measured off the rendered line instead of assumed: widest
-   * line against the room actually available — the gap to the booth's
-   * silhouette when the sheet is two columns, the column itself when it is
-   * stacked. It only ever scales *down* (the CSS value stays the preferred
-   * ceiling), and re-runs on resize and once the webfont has landed.
-   */
-  useLayoutEffect(() => {
-    const block = headlinesRef.current;
-    if (!block) return;
-    const stage = block.parentElement;
-    const booth = stage?.querySelector<HTMLElement>(".contact-booth");
-    if (!stage || !booth) return;
-
-    // Measure with an inert probe instead of the live headings. Two reasons:
-    // the probe is always `nowrap` (a wrapped line is exactly as wide as its
-    // column, which would make any overrun look like a perfect fit), and its
-    // width changes when the webfont swaps in — a ResizeObserver on it is a
-    // reliable "the metrics changed, re-fit" signal. `document.fonts.ready`
-    // alone is not: it can resolve before the font that these elements need has
-    // even been requested.
-    const probe = document.createElement("div");
-    probe.setAttribute("aria-hidden", "true");
-    probe.style.cssText = "position:absolute;top:0;left:0;visibility:hidden;pointer-events:none;white-space:nowrap;font-size:100px;";
-    const style = getComputedStyle(block.querySelector(".contact-line") ?? block);
-    probe.style.fontFamily = style.fontFamily;
-    probe.style.fontWeight = style.fontWeight;
-    probe.style.fontStyle = style.fontStyle;
-    probe.style.letterSpacing = style.letterSpacing;
-    probe.style.textTransform = style.textTransform;
-    stage.appendChild(probe);
-
-    const fit = () => {
-      block.style.removeProperty("--contact-fs");
-      if (!block.isConnected) return;
-      // Widest line, in units of the font size (px per 1px of type).
-      let ratio = 0;
-      for (const line of headlineText.split("\n")) {
-        probe.textContent = line || "";
-        ratio = Math.max(ratio, probe.getBoundingClientRect().width / 100);
-      }
-      if (ratio <= 0) return;
-      // Layout boxes, not client rects: the entrance timeline moves and scales
-      // the booth, and measuring mid-flight would shrink the type for a
-      // collision that does not exist once it lands.
-      const stacked = getComputedStyle(booth).position !== "absolute";
-      const boxLeft = block.offsetLeft;
-      // Side by side: stop where the drawn silhouette starts, ~10% inside the
-      // 9:16 stage box (both the 3D booth and calibrated fallback sit centred).
-      // Stacked: the copy owns the full column, so the only limit is its own box.
-      const limit = stacked ? boxLeft + block.clientWidth : booth.offsetLeft + booth.offsetWidth * 0.1;
-      const available = limit - boxLeft - 20;
-      if (available <= 0) return;
-      // The CSS clamp is the preferred size; only overrun is corrected.
-      const preferred = parseFloat(getComputedStyle(block.querySelector(".contact-line") ?? block).fontSize);
-      if (preferred * ratio <= available) return;
-      block.style.setProperty("--contact-fs", `${Math.max(20, available / ratio).toFixed(2)}px`);
-    };
-
-    fit();
-    const observer = new ResizeObserver(fit);
-    observer.observe(probe);
-    window.addEventListener("resize", fit);
-    document.fonts?.ready.then(fit).catch(() => {});
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", fit);
-      probe.remove();
-    };
-    // The copy itself is the dependency: a language switch re-fits.
-  }, [headlineText]);
+  // The call sign runs as two counter-scrolling bands behind the booth: every
+  // line but the last in the grotesk, the last ("MARQUEE MOON") in the serif.
+  // Booth and type share one size variable, so no JS measuring is needed.
+  const lines = content.headlines.filter(Boolean);
+  const bands = lines.length > 1 ? [lines.slice(0, -1).join(" "), softCase(lines[lines.length - 1])] : lines;
 
   return (
     <section id="contact" className="contact">
       <div className="contact-inner">
-        <div className="contact-stage">
-          <div className="contact-headlines" ref={headlinesRef}>
-            <div className="contact-kicker">
-              <span className="contact-kicker-index">03</span>
-              <span className="contact-kicker-rule" aria-hidden="true" />
-              <span className={cx("contact-kicker-label", zh && "is-zh")}>
-                {zh ? "独立设计与工程合作" : "Design & Engineering Inquiries"}
-              </span>
-            </div>
-            {content.headlines.map((line, index) => (
-              <h2 key={index} className={`contact-line contact-line-${index + 1}`}>
-                {/* GSAP animates .contact-line-text; the inner word carries the
-                    hover styles so transforms never fight the scroll timeline. */}
-                <span className="contact-line-text">
-                  <span className="contact-line-word" data-text={line}>
-                    {line}
-                  </span>
-                </span>
-              </h2>
-            ))}
-          </div>
+        <div className="contact-topbar">
+          <span>
+            <span className="contact-topbar-index">03</span>
+            <span className={cx(zh && "is-zh")}>{zh ? "联系" : "Contact"}</span>
+          </span>
+          <span className={cx("contact-kicker-label", zh && "is-zh")}>
+            {zh ? "独立设计与工程合作" : "Design & Engineering Inquiries"}
+          </span>
+        </div>
 
+        <div className="contact-stage">
+          <h2 className="sr-only">{lines.join(" ")}</h2>
+          {/* Decorative repetition: hidden from the accessibility tree, the link
+              borrows its name from the address it opens. */}
+          <a href={mailto} className="contact-reel" data-cursor="link" aria-label={content.email}>
+            {bands.map((band, row) => (
+              <span key={row} className={`contact-reel-row contact-reel-row-${row + 1}`} aria-hidden="true">
+                {[0, 1].map((track) => (
+                  <span key={track} className="contact-reel-track">
+                    {MARQUEE_REPEAT.map((i) => (
+                      <span key={i} className="contact-reel-word">
+                        {band}
+                        <i className="contact-reel-dot" />
+                      </span>
+                    ))}
+                  </span>
+                ))}
+              </span>
+            ))}
+          </a>
           <ContactBooth fallback={content.image.src} plateText={content.email} />
         </div>
 
-        {/* The strip is decorative repetition, so it is hidden from the
-            accessibility tree and the link borrows its name from the email it
-            actually dials. */}
-        <a href={mailto} className={cx("contact-marquee", zh && "is-zh")} data-cursor="link">
-          <span className="sr-only">{content.email}</span>
-          {[0, 1].map((track) => (
-            <span key={track} className="marquee-track" aria-hidden="true">
-              {MARQUEE_REPEAT.map((i) => (
-                <span key={i} className="marquee-word">{marquee}</span>
-              ))}
+        <div className="contact-cta">
+          <div>
+            <span className={cx("contact-cta-label", zh && "is-zh")}>{marquee}</span>
+            <a href={mailto} className="contact-mail" data-cursor="link">
+              <span className="contact-mail-mask">
+                <span className="contact-mail-text">{content.email}</span>
+              </span>
+              <span className="contact-mail-arrow" aria-hidden="true">
+                <span>↗</span>
+              </span>
+            </a>
+          </div>
+          <div className="contact-item">
+            <span className={cx("contact-meta-label", zh && "is-zh")}>
+              {dialable ? (zh ? "电话" : "Phone") : "GitHub"}
             </span>
-          ))}
-        </a>
+            <a
+              href={handleHref || "#contact"}
+              className="contact-link contact-phone"
+              data-cursor="link"
+              {...(handleExternal ? { target: "_blank", rel: "noreferrer" } : {})}
+            >
+              <span>{content.phone}</span>
+              {handleExternal ? <span className="contact-arrow" aria-hidden="true">↗</span> : null}
+            </a>
+          </div>
+        </div>
 
         <div className="contact-footer">
-          <div className="contact-channels">
-            <div className="contact-item">
-              <span className={cx("contact-meta-label", zh && "is-zh")}>{zh ? "电子邮箱" : "Email"}</span>
-              <a href={mailto} className="contact-link" data-cursor="link">
-                <span>{content.email}</span>
+          <p className="contact-copyright">{content.copyright}</p>
+          {content.credit.name ? (
+            <p className={cx("contact-credit", zh && "is-zh")}>
+              {t(content.credit.prefix, lang)}{" "}
+              <a href={content.credit.url} target="_blank" rel="noreferrer" className="contact-link contact-credit-link" data-cursor="link">
+                <span>{content.credit.name}</span>
               </a>
-            </div>
-            <div className="contact-item">
-              <span className={cx("contact-meta-label", zh && "is-zh")}>
-                {dialable ? (zh ? "电话" : "Phone") : "GitHub"}
-              </span>
-              <a
-                href={handleHref || "#contact"}
-                className="contact-link contact-phone"
-                data-cursor="link"
-                {...(handleExternal ? { target: "_blank", rel: "noreferrer" } : {})}
-              >
-                <span>{content.phone}</span>
-                {handleExternal ? <span className="contact-arrow" aria-hidden="true">↗</span> : null}
-              </a>
-            </div>
-          </div>
-
-          <div className="contact-colophon">
-            <p className="contact-copyright">{content.copyright}</p>
-            {content.credit.name ? (
-              <p className={cx("contact-credit", zh && "is-zh")}>
-                {t(content.credit.prefix, lang)}{" "}
-                <a href={content.credit.url} target="_blank" rel="noreferrer" className="contact-link contact-credit-link" data-cursor="link">
-                  <span>{content.credit.name}</span>
-                </a>
-              </p>
-            ) : null}
-          </div>
+            </p>
+          ) : null}
         </div>
       </div>
     </section>

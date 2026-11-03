@@ -63,6 +63,21 @@ function dwell(element: Element | null, min: number, max: number) {
   return gsap.utils.clamp(min, max, chars / perViewport);
 }
 
+/** Colour tokens live in CSS: `--stage` comes from the theme, `--sky` is
+ * sampled from the television photograph (see portfolio.css). */
+function cssColor(scope: HTMLElement, name: string, fallback: string) {
+  return getComputedStyle(scope).getPropertyValue(name).trim() || fallback;
+}
+
+/** Vertical travel that brings the TV screen's centre to the middle of the stage. */
+function screenLift(section: HTMLElement) {
+  const stage = section.querySelector<HTMLElement>(".tv-stage");
+  const anchor = section.querySelector<HTMLElement>(".tv-anchor");
+  if (!stage || !anchor) return 0;
+  const cy = parseFloat(getComputedStyle(anchor).getPropertyValue("--screen-cy")) / 100;
+  return stage.clientHeight * 0.5 - anchor.offsetTop - anchor.offsetHeight * (Number.isFinite(cy) ? cy : 0.71);
+}
+
 export function createHeroEntrance() {
   const tl = gsap.timeline({ paused: true, defaults: { ease: "expo.out", duration: 1.5 } });
   tl.from(".hero-word-text", { yPercent: 118, stagger: 0.12 }, 0)
@@ -209,10 +224,34 @@ function journeyDesktop(scope: HTMLElement) {
     .fromTo(".coda-pic-2", { y: () => vh() * 0.95, rotation: -5 }, { y: () => vh() * 0.03, rotation: 0, duration: coda * 0.85, ease: "power2.out" }, at.coda + 0.15)
     .to(".coda-pic-1", { y: () => -vh() * 0.2, duration: outro }, at.outro)
     .to(".coda-pic-2", { y: () => -vh() * 0.08, duration: outro }, at.outro)
-    .to(".coda-text", { y: () => -vh() * 0.04, duration: outro }, at.outro);
+    .to(".coda-text", { y: () => -vh() * 0.04, duration: outro }, at.outro)
+    // Black -> the photograph's night sky, from the gallery push to the coda.
+    // Every journey layer paints var(--stage), so tweening the variable on the
+    // section recolours all of them, and the timeline ends on exactly the
+    // colour the works stage starts with: the hand-over has no seam.
+    .fromTo(
+      stage,
+      { "--stage": cssColor(scope, "--stage", "#000000") },
+      { "--stage": cssColor(scope, "--sky", "#001c5c"), duration: total - at.push, ease: "sine.inOut" },
+      at.push
+    );
 }
 
 function journeyMobile(scope: HTMLElement) {
+  // Same colour hand-over as desktop, spread over the section's own scroll.
+  const journey = scope.querySelector<HTMLElement>(".journey");
+  if (journey) {
+    gsap.fromTo(
+      journey,
+      { "--stage": cssColor(scope, "--stage", "#000000") },
+      {
+        "--stage": cssColor(scope, "--sky", "#001c5c"),
+        ease: "sine.inOut",
+        scrollTrigger: { trigger: journey, start: "top 40%", end: "bottom bottom", scrub: true },
+      }
+    );
+  }
+
   gsap.from(".story-photo-mask", {
     clipPath: "inset(100% 0% 0% 0%)",
     duration: 1.4,
@@ -276,6 +315,31 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
     anticipatePin: 1,
   });
 
+  // Channel change into the scene. The journey has faded to the photograph's
+  // own sky, so the picture arrives through it like a set tuning in: static
+  // and a sync bar roll over the incoming frame (feathered at its top edge so
+  // the sky seam stays invisible) while the shot settles from a slight push.
+  gsap
+    .timeline({
+      defaults: { ease: "none" },
+      scrollTrigger: { trigger: ".tv-stage", start: "top bottom", end: "top top", scrub: 0.4 },
+    })
+    .fromTo(".tv-tune", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.28 }, 0.1)
+    .fromTo(".tv-tune-bar", { yPercent: -120 }, { yPercent: 640, duration: 0.78, ease: "power1.inOut" }, 0.1)
+    .to(".tv-tune", { autoAlpha: 0, duration: 0.28, ease: "power2.in" }, 0.68)
+    .fromTo(".tv-anchor", { scale: 1.06, transformOrigin: "50% 0%" }, { scale: 1, duration: 1, ease: "power2.out" }, 0);
+
+  // The index's reading light follows the list onto the photograph.
+  gsap.fromTo(
+    ".tv-scrim",
+    { autoAlpha: 0 },
+    {
+      autoAlpha: 1,
+      ease: "none",
+      scrollTrigger: { trigger: ".works-list", start: "top bottom", end: "top 45%", scrub: true },
+    }
+  );
+
   gsap.from(".works-heading-text", {
     yPercent: 110,
     duration: 1.3,
@@ -327,6 +391,7 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
     onLeaveBack: () => opts.onWork(-1),
   });
 
+  const lean = desktop ? 2.4 : 2;
   const phoneTl = gsap.timeline({
     defaults: { ease: "none" },
     scrollTrigger: {
@@ -334,6 +399,7 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
       start: "top 70%",
       end: "bottom 30%",
       scrub: true,
+      invalidateOnRefresh: true,
       onEnter: () => {
         setPhase("phone");
         opts.onWork(-1);
@@ -350,8 +416,13 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
     },
   });
 
+  // The set is framed whole now, so this beat travels further than the old
+  // 1.14 lean: the anchor lifts the screen to the optical centre while the box
+  // leans in, landing on about the screen size the 185vw crop showed.
   phoneTl
-    .to(".tv-box", { scale: 1.14, rotation: -1.5, duration: 0.34, ease: "sine.inOut" }, 0)
+    .to(".tv-anchor", { y: () => screenLift(section), duration: 0.34, ease: "sine.inOut" }, 0)
+    .to(".tv-box", { scale: lean, rotation: -1.5, duration: 0.34, ease: "sine.inOut" }, 0)
+    .fromTo(".tv-scrim, .tv-seam", { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.2, immediateRender: false }, 0)
     .fromTo(
       ".tv-number",
       { autoAlpha: 0, yPercent: 18, scale: 0.92, filter: "blur(6px)" },
@@ -379,8 +450,8 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
   exitTl
     .to(".tv-number", { scale: desktop ? 4.8 : 3.2, duration: 0.28, ease: "power2.in" }, 0)
     .to(".tv-number", { autoAlpha: 0, filter: "blur(14px)", duration: 0.2, ease: "power1.in" }, 0.08)
-    .to(".tv-box", { scale: 1.22, rotation: -2.4, duration: 0.12, ease: "sine.inOut" }, 0.04)
-    .to(".tv-box", { scale: 5.2, rotation: -5.5, duration: 0.32, ease: "power2.in" }, 0.14)
+    .to(".tv-box", { scale: lean * 1.07, rotation: -2.4, duration: 0.12, ease: "sine.inOut" }, 0.04)
+    .to(".tv-box", { scale: lean * 4.56, rotation: -5.5, duration: 0.32, ease: "power2.in" }, 0.14)
     .to(".tv-box", { autoAlpha: 0, duration: 0.22, ease: "power1.inOut" }, 0.24)
     .fromTo(".tv-whiteout", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.24, ease: "power1.inOut" }, 0.22)
     .fromTo(
@@ -393,149 +464,75 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
 }
 
 function contact(scope: HTMLElement, desktop: boolean, reduce: boolean) {
+  const rows = gsap.utils.toArray<HTMLElement>(".contact-reel-row", scope);
   if (reduce) {
-    gsap.set(".contact-booth", { autoAlpha: 1, clearProps: "transform" });
-    gsap.set(".contact-booth-shadow", { autoAlpha: 1 });
-    gsap.set(".contact-headlines, .contact-kicker, .contact-kicker-rule, .contact-line-text, .contact-marquee", {
-      autoAlpha: 1,
-      clearProps: "transform",
-    });
-    gsap.set(".contact-item, .contact-colophon > *", { autoAlpha: 1, clearProps: "transform" });
-  } else {
-    const vw = () => window.innerWidth;
-    const vh = () => window.innerHeight;
-
-    // Booth: a single arc from the right edge. It enters below the horizon,
-    // climbs past the resting height while it keeps sliding left, then falls
-    // into the column and drifts on — one full turn over the whole flight.
-    // The vertical overshoot is what makes the path read as a throw instead of
-    // a diagonal slide.
-    gsap
-      .timeline({
-        defaults: { ease: "none" },
-        scrollTrigger: {
-          trigger: "#contact",
-          start: "top 100%",
-          end: "top -4%",
-          scrub: 0.7,
-          invalidateOnRefresh: true,
-        },
-      })
-      .fromTo(
-        ".contact-booth",
-        {
-          autoAlpha: 0,
-          x: () => vw() * 0.92,
-          y: () => vh() * 0.46,
-          rotation: 7,
-          scale: desktop ? 0.88 : 0.9,
-          transformOrigin: "50% 60%",
-        },
-        {
-          autoAlpha: 1,
-          x: () => vw() * 0.62,
-          y: () => vh() * 0.08,
-          rotation: 4.5,
-          scale: desktop ? 0.93 : 0.94,
-          duration: 0.32,
-          ease: "power1.out",
-        },
-        0
-      )
-      .to(
-        ".contact-booth",
-        { x: 0, duration: 0.5, ease: "power1.inOut" },
-        0.32
-      )
-      .to(
-        ".contact-booth",
-        { y: 0, rotation: 0, scale: 1, duration: 0.5, ease: "power2.out" },
-        0.32
-      )
-      .fromTo(
-        ".contact-booth-shadow",
-        { autoAlpha: 0, scale: 0.35 },
-        { autoAlpha: 1, scale: 1, duration: 0.34, ease: "power2.out" },
-        0.56
-      );
-
-    // Editorial headline reveal: as the sheet rises out of the television
-    // whiteout, the kicker rule draws across and each `.contact-line-text`
-    // peels up from its mask in a crisp staggered wave while the carrier
-    // glides into place.
-    gsap
-      .timeline({
-        scrollTrigger: {
-          trigger: "#contact",
-          start: "top 98%",
-          end: "top 26%",
-          scrub: 0.55,
-          invalidateOnRefresh: true,
-        },
-      })
-      .fromTo(
-        ".contact-headlines",
-        { y: () => vh() * 0.14 },
-        { y: 0, duration: 1, ease: "power2.out" },
-        0
-      )
-      .fromTo(
-        ".contact-kicker",
-        { autoAlpha: 0, y: 14 },
-        { autoAlpha: 1, y: 0, duration: 0.38, ease: "power2.out" },
-        0.04
-      )
-      .fromTo(
-        ".contact-kicker-rule",
-        { scaleX: 0 },
-        { scaleX: 1, duration: 0.44, ease: "expo.out" },
-        0.08
-      )
-      .fromTo(
-        ".contact-line-text",
-        { yPercent: 112, rotation: 1.4 },
-        {
-          yPercent: 0,
-          rotation: 0,
-          duration: 0.68,
-          stagger: 0.11,
-          ease: "power3.out",
-        },
-        0.1
-      )
-      .fromTo(
-        ".contact-marquee",
-        { autoAlpha: 0, y: 20 },
-        { autoAlpha: 1, y: 0, duration: 0.42, ease: "power2.out" },
-        0.48
-      );
-
-    gsap.from(".contact-item, .contact-colophon > *", {
-      y: 20,
-      autoAlpha: 0,
-      duration: 0.9,
-      ease: "power3.out",
-      stagger: 0.07,
-      scrollTrigger: {
-        trigger: ".contact-marquee",
-        start: "top 92%",
-        toggleActions: "play none none reverse",
-      },
-    });
+    gsap.set(
+      ".contact-booth, .contact-booth-shadow, .contact-reel-row, .contact-topbar > *, .contact-cta-label, .contact-mail-text, .contact-mail-arrow, .contact-cta .contact-item, .contact-footer > *",
+      { autoAlpha: 1, clearProps: "transform" }
+    );
+    return;
   }
+  const vw = () => window.innerWidth;
+  const vh = () => window.innerHeight;
 
-  const tracks = scope.querySelectorAll(".marquee-track");
-  if (!tracks.length || reduce) return;
-  const loop = gsap.to(tracks, { xPercent: -100, duration: desktop ? 38 : 24, ease: "none", repeat: -1 });
+  // Arrival, scrubbed with the sheet rising out of the white burn: the two
+  // bands slide in from opposite edges while the booth rises onto its mark and
+  // settles — one composed move instead of the old sideways throw.
+  const arrive = gsap.timeline({
+    defaults: { ease: "none" },
+    scrollTrigger: { trigger: "#contact", start: "top 100%", end: "top 0%", scrub: 0.8, invalidateOnRefresh: true },
+  });
+  rows.forEach((row, index) => {
+    arrive.fromTo(row, { x: () => vw() * (index % 2 ? -0.32 : 0.32) }, { x: 0, duration: 1, ease: "power3.out" }, 0);
+  });
+  arrive
+    .fromTo(
+      ".contact-booth",
+      { autoAlpha: 0, y: () => vh() * 0.26, scale: 0.84, rotation: desktop ? -3 : 0, transformOrigin: "50% 100%" },
+      { autoAlpha: 1, y: 0, scale: 1, rotation: 0, duration: 0.9, ease: "power3.out" },
+      0.1
+    )
+    .fromTo(".contact-booth-shadow", { autoAlpha: 0, scale: 0.4 }, { autoAlpha: 1, scale: 1, duration: 0.5, ease: "power2.out" }, 0.5);
+
+  // Type reveals are time-based rather than scrubbed: crisp, deliberate, and
+  // never left half-risen when the visitor stops scrolling midway.
+  gsap
+    .timeline({
+      defaults: { ease: "expo.out", duration: 1.2 },
+      scrollTrigger: { trigger: ".contact-stage", start: "top 75%", toggleActions: "play none none reverse" },
+    })
+    .fromTo(".contact-topbar > *", { autoAlpha: 0, yPercent: 60 }, { autoAlpha: 1, yPercent: 0, stagger: 0.08 }, 0);
+
+  gsap
+    .timeline({
+      defaults: { ease: "expo.out", duration: 1.3 },
+      scrollTrigger: { trigger: ".contact-cta", start: "top 95%", toggleActions: "play none none reverse" },
+    })
+    .fromTo(".contact-cta-label", { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0 }, 0)
+    .fromTo(".contact-mail-text", { yPercent: 110 }, { yPercent: 0 }, 0.06)
+    .fromTo(".contact-mail-arrow", { scale: 0, rotation: -90 }, { scale: 1, rotation: 0, duration: 1.1 }, 0.3)
+    .fromTo(".contact-cta .contact-item, .contact-footer > *", { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, stagger: 0.06 }, 0.2);
+
+  // Endless counter-running bands; scroll velocity briefly speeds them up.
+  const loops = rows.map((row, index) => {
+    const tracks = row.querySelectorAll(".contact-reel-track");
+    const duration = (desktop ? 44 : 28) * (index % 2 ? 1.15 : 1);
+    return index % 2
+      ? gsap.fromTo(tracks, { xPercent: -100 }, { xPercent: 0, duration, ease: "none", repeat: -1 })
+      : gsap.to(tracks, { xPercent: -100, duration, ease: "none", repeat: -1 });
+  });
+  if (!loops.length) return;
   ScrollTrigger.create({
     trigger: "#contact",
     start: "top bottom",
     end: "bottom top",
-    onToggle: (self) => (self.isActive ? loop.play() : loop.pause()),
+    onToggle: (self) => loops.forEach((loop) => (self.isActive ? loop.play() : loop.pause())),
     onUpdate: (self) => {
-      const boost = 1 + Math.min(Math.abs(self.getVelocity()) / 350, 5);
-      gsap.to(loop, { timeScale: boost, duration: 0.2, overwrite: true });
-      gsap.to(loop, { timeScale: 1, duration: 1.1, delay: 0.2, ease: "power2.out" });
+      const boost = 1 + Math.min(Math.abs(self.getVelocity()) / 320, 5);
+      loops.forEach((loop) => {
+        gsap.to(loop, { timeScale: boost, duration: 0.2, overwrite: true });
+        gsap.to(loop, { timeScale: 1, duration: 1.2, delay: 0.2, ease: "power2.out" });
+      });
     },
   });
 }
