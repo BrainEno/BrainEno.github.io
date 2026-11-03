@@ -33,21 +33,29 @@ const OUT = path.join(ROOT, process.env.OUT_DIR || "out");
  * fixed port would collide with the previous run's socket.
  */
 const PORT = Number(process.env.SMOKE_PORT ?? 0);
+const buildMeta = (() => {
+  try {
+    return JSON.parse(readFileSync(path.join(OUT, "build-meta.json"), "utf8"));
+  } catch {
+    return {};
+  }
+})();
+
 /**
  * `/repo` for a GitHub Pages project site, empty at a domain root. Read from the
  * build itself unless overridden: a prefixed export tested at the root (or the
  * reverse) fails in a way that looks like the site is broken.
  */
-const BASE_PATH = (
-  process.env.NEXT_PUBLIC_BASE_PATH ??
-  (() => {
-    try {
-      return JSON.parse(readFileSync(path.join(OUT, "build-meta.json"), "utf8")).basePath ?? "";
-    } catch {
-      return "";
-    }
-  })()
-).replace(/\/+$/, "");
+const BASE_PATH = (process.env.NEXT_PUBLIC_BASE_PATH ?? buildMeta.basePath ?? "").replace(/\/+$/, "");
+
+const SITE_ORIGIN = (() => {
+  const raw = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || buildMeta.siteUrl || "http://localhost:3000";
+  try {
+    return new URL(raw.startsWith("http") ? raw : `https://${raw}`).origin;
+  } catch {
+    return "http://localhost:3000";
+  }
+})();
 
 const failures = [];
 const check = (name, ok, detail = "") => {
@@ -187,6 +195,99 @@ try {
     }
   }
   check(`every asset referenced by ${pages.length} pages resolves`, missing === 0, `${urls.size} URLs, ${missing} missing`);
+
+  console.log("[smoke] share & structured-data images");
+  const collectLdImages = (node, out) => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      for (const item of node) collectLdImages(item, out);
+      return;
+    }
+    if ("image" in node && node.image) {
+      const val = node.image;
+      if (typeof val === "string") out.push(val);
+      else if (Array.isArray(val)) {
+        for (const item of val) {
+          if (typeof item === "string") out.push(item);
+          else if (item && typeof item === "object" && typeof item.url === "string") out.push(item.url);
+        }
+      } else if (typeof val === "object" && typeof val.url === "string") {
+        out.push(val.url);
+      }
+    }
+    for (const value of Object.values(node)) collectLdImages(value, out);
+  };
+
+  const shareUrls = new Set();
+  let metaMissingPages = 0;
+  for (const pathname of paths) {
+    const relative = pathname.slice(BASE_PATH.length).replace(/^\//, "");
+    const candidate = path.join(OUT, relative);
+    const file = !existsSync(candidate) || statSync(candidate).isDirectory() ? path.join(candidate, "index.html") : candidate;
+    if (!existsSync(file)) continue;
+    const html = readFileSync(file, "utf8");
+
+    let hasOg = false;
+    let hasTwitter = false;
+    for (const [tag] of html.matchAll(/<meta\b[^>]*>/gi)) {
+      const key = tag.match(/\b(?:property|name)="([^"]+)"/i)?.[1]?.toLowerCase();
+      const content = tag.match(/\bcontent="([^"]+)"/i)?.[1];
+      if (!content) continue;
+      if (key === "og:image") {
+        hasOg = true;
+        shareUrls.add(content);
+      } else if (key === "twitter:image") {
+        hasTwitter = true;
+        shareUrls.add(content);
+      }
+    }
+    if (!hasOg || !hasTwitter) {
+      metaMissingPages += 1;
+      failures.push(`${pathname} missing ${!hasOg ? "og:image" : "twitter:image"}`);
+    }
+
+    for (const [, rawJson] of html.matchAll(/<script\b[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi)) {
+      try {
+        const ldUrls = [];
+        collectLdImages(JSON.parse(rawJson), ldUrls);
+        for (const url of ldUrls) shareUrls.add(url);
+      } catch (err) {
+        failures.push(`${pathname} invalid JSON-LD (${err.message})`);
+      }
+    }
+  }
+  check("every crawlable page emits og:image and twitter:image", metaMissingPages === 0, `${paths.length} pages`);
+
+  let badShare = 0;
+  for (const rawUrl of shareUrls) {
+    let parsed;
+    try {
+      parsed = new URL(rawUrl);
+    } catch {
+      badShare += 1;
+      console.log(`  FAIL invalid share image URL: ${rawUrl}`);
+      failures.push(`invalid share image URL: ${rawUrl}`);
+      continue;
+    }
+    if (parsed.origin !== SITE_ORIGIN) continue;
+    if (BASE_PATH && !parsed.pathname.startsWith(`${BASE_PATH}/`)) {
+      badShare += 1;
+      console.log(`  FAIL ${rawUrl} missing base path ${BASE_PATH}`);
+      failures.push(`${rawUrl} missing base path ${BASE_PATH}`);
+      continue;
+    }
+    const response = await head(parsed.pathname, "HEAD");
+    if (response.status !== 200) {
+      badShare += 1;
+      console.log(`  FAIL ${rawUrl} → ${response.status}`);
+      failures.push(`${rawUrl} → ${response.status}`);
+    }
+  }
+  check(
+    "every same-origin og/twitter/JSON-LD image carries base path and resolves",
+    badShare === 0 && shareUrls.size > 0,
+    `${shareUrls.size} URLs, ${badShare} broken`
+  );
 
   console.log("[smoke] transfer encoding");
   const compressed = await fetch(`${BASE}${route("/")}`, { headers: { "accept-encoding": "br" } });

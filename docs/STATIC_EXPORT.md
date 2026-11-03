@@ -7,9 +7,9 @@
 
 ```bash
 npm ci
-NEXT_PUBLIC_SITE_URL=https://example.com npm run build:static   # ≈25 秒，产物在 out/（≈6 MB）
-npm run preview                                                # http://localhost:3300
-npm run smoke                                                  # 逐页爬一遍 out/，≈2 秒
+NEXT_PUBLIC_SITE_URL=https://BrainEno.github.io npm run build:static   # ≈25 秒，产物在 out/
+npm run preview                                                        # http://localhost:3300
+npm run smoke                                                          # 逐页爬一遍 out/，≈2 秒
 ```
 
 `npm run preview` 是一个普通静态服务器（`scripts/preview.mjs`），行为和线上托管一致：
@@ -41,8 +41,8 @@ out/
 
 | 来源 | 什么时候用 | 怎么做 |
 |---|---|---|
-| `content/published.json` | 有自己的内容 | 直接编辑这个 JSON，提交后重新构建 |
-| `content/defaults.ts` | 全新模板 | 什么都不用做，直接构建（`published.json` 不存在时用它） |
+| `content/published.json` | 单独维护内容快照时 | 直接编辑这个 JSON，提交后重新构建 |
+| `content/defaults.ts` | 默认站点内容 | 什么都不用做，直接构建（`published.json` 不存在时用它） |
 
 没有后台、没有数据库、没有浏览器内的编辑器：**内容在仓库里，发布就是部署**。
 
@@ -62,30 +62,37 @@ out/
 全部在**构建期**写死。构建前设置：
 
 ```bash
-NEXT_PUBLIC_SITE_URL=https://example.com npm run build:static
+NEXT_PUBLIC_SITE_URL=https://BrainEno.github.io npm run build:static
 ```
 
 （`SITE_URL` 也可以；两个都没设时会用 `http://localhost:3000`，`build:static` 会打印提醒。）
 
 ## GitHub Pages（本项目的默认目标）
 
-仓库自带 `.github/workflows/static.yml`：push 到 `main` → `verify`（typecheck / lint /
-两种路径各构建一次并 smoke）→ `build` → `deploy`。**首次部署只需要在仓库
+仓库自带 `.github/workflows/static.yml`：push 到 `main`（或手动 `workflow_dispatch`）→ `verify`（typecheck / lint /
+根路径与子路径各构建一次并 smoke）→ `build` → `deploy`。**首次部署只需要在仓库
 Settings → Pages → Source 选 “GitHub Actions”**，之后不用再动。
 
-⚠️ **不要用 Pages 设置页里的 “Next.js / Static HTML” 模板另加一个 workflow**。它们会往同一个
-`github-pages` 环境发布，两个 workflow 各自构建、互相覆盖：模板版不会带
-`NEXT_PUBLIC_BASE_PATH`，发出来的 HTML 里 `<img src>` 是站点根路径，项目站（`/repo/`）
-下所有图片就 404 了；而且没人知道最后一次是哪个跑赢的。仓库里**只保留一个**发布 workflow。
+⚠️ **不要用 Pages 设置页里的 “Next.js / Static HTML” 预设另加一个 workflow**。它们会往同一个
+`github-pages` 环境发布，两个 workflow 各自构建、互相覆盖；仓库里**只保留一个**发布 workflow。
 
-项目站（`https://<用户名>.github.io/<仓库>/`）在子路径下，workflow 已经设好两个变量：
+**用户主页（`BrainEno.github.io`，默认形态）**：当仓库名为 `<用户名>.github.io` 时，workflow 会自动按根路径构建：
+
+```bash
+NEXT_PUBLIC_SITE_URL=https://BrainEno.github.io
+NEXT_PUBLIC_BASE_PATH=""
+```
+
+若绑定了自定义域名，只需在仓库 **Settings → Secrets and variables → Actions → Variables** 中设置 `SITE_URL=https://你的域名`，workflow 会自动读取并按根路径发布。
+
+**项目站兼容（`https://<用户名>.github.io/<仓库>/`）**：若仓库名不是 `<用户名>.github.io`，workflow 会自动切换为子路径构建：
 
 ```bash
 NEXT_PUBLIC_SITE_URL=https://<用户名>.github.io/<仓库>
 NEXT_PUBLIC_BASE_PATH=/<仓库>
 ```
 
-自己手动构建时同理：
+自己手动构建项目站时同理：
 
 ```bash
 NEXT_PUBLIC_SITE_URL=https://<用户名>.github.io/<仓库> NEXT_PUBLIC_BASE_PATH=/<仓库> npm run build:static
@@ -93,14 +100,11 @@ npm run preview      # 自动开在 http://localhost:3300/<仓库>/
 ```
 
 **子路径是这类站最容易踩的坑**：Next 的 `basePath` 只作用于路由和 `_next/` 资源，
-内容里手写的 `/images/…`、`/gltfs/…` 不会被自动加前缀。所以有几个地方必须走
-`seo/asset.ts#asset()`（图片、电视画面、电话亭模型与兜底图）、`BASE_PATH`
+内容里手写的 `/images/…`、`/gltfs/…` 与 `og:image` 不会被自动加前缀。所以有几个地方必须走
+`seo/asset.ts#asset()`（图片、电视画面、电话亭模型与兜底图）、`seo/site.ts#absoluteUrl()`（Open Graph / Twitter / JSON-LD 分享图）、`BASE_PATH`
 （manifest 的 `id`/`start_url`/`scope`/icons、robots 的 `Disallow`）、
-以及 Service Worker 的 scope。`npm run smoke` 会在“挂载到子路径”的模式下逐页检查，
+以及 Service Worker 的 scope。`npm run smoke` 会在“挂载到子路径”的模式下逐页检查页面资源与分享图，
 漏掉任何一处都会在 CI 里失败，而不是上线后变成一堆裂图。
-
-**用户站 / 自定义域名**（`BrainEno.github.io` 或 `your-domain.com`）在根路径，
-把 `NEXT_PUBLIC_BASE_PATH` 清空即可，其余不用改。
 
 Pages 不能自定义响应头：`_next/static/*` 会被它缓存 10 分钟，`sw.js` 也是。
 所以发布新版本后最多 10 分钟才全员可见——这是 Pages 的固有行为，不是站点的问题。
@@ -114,7 +118,7 @@ Pages 不能自定义响应头：`_next/static/*` 会被它缓存 10 分钟，`s
 ### 对象存储 / OSS / COS / S3
 
 ```bash
-NEXT_PUBLIC_SITE_URL=https://cdn.example.com npm run build:static
+NEXT_PUBLIC_SITE_URL=https://BrainEno.github.io npm run build:static
 aws s3 sync out/ s3://你的桶 --delete        # 或 ossutil cp -r out/ --update oss://你的桶/
 ```
 
@@ -145,7 +149,7 @@ location = /sw.js { add_header Cache-Control "no-cache, max-age=0"; }
 ## 实现要点（给以后改代码的人）
 
 - `next.config.ts` 就是静态导出的配置：`output: "export"`、`trailingSlash: true`、
-  `images.unoptimized: true`、`pageExtensions: ["tsx"]`。没有服务端分支，所以没有任何
+  `images.unoptimized: true`、`pageExtensions: ["tsx", "ts"]`。没有服务端分支，所以没有任何
   需要按环境切换的东西——只有 `NEXT_PUBLIC_BASE_PATH` 与 `NEXT_PUBLIC_SITE_URL` 两个构建期变量。
 - 内容读取统一走 `content/source.ts#getSiteContent()`：`node:fs` 读 `published.json`，
   读不到就用 `defaults.ts`。所以构建产物里不会出现任何数据库驱动。

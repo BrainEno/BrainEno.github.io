@@ -10,22 +10,17 @@
 import type { PortfolioContent } from "./types";
 
 /**
- * Template content.
+ * Site content for BrainEno (https://BrainEno.github.io).
  *
- * Two jobs:
- *  1. the production content when `content/published.json` is absent;
- *  2. the reference dataset for the template: every field the site renders is
- *     spelled out here, in both languages, so copying this file is the quickest
- *     way to start a new site without touching a single component.
- *
- * Chinese copy is Simplified (简体中文); the English column is kept at the same
- * information density so both languages fill the layout alike.
+ * Used directly by the static build unless `content/published.json` is present
+ * to override it. Every field the site renders is spelled out here in both
+ * languages (`zh` Simplified Chinese and `en` English) at matching density.
  */
 export const defaultContent: PortfolioContent = {
   version: 2,
   identity: {
     name: "BrainEno",
-    siteName: { zh: "BrainEno 工作室", en: "BrainEno Studio" },
+    siteName: { zh: "BrainEno", en: "BrainEno" },
     pageTitle: { zh: "BrainEno", en: "BrainEno" },
     description: {
       zh: "BrainEno — 独立开发者与界面设计师，以工程与审美打磨数字产品。",

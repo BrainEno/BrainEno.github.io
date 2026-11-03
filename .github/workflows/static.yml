@@ -3,13 +3,14 @@ name: Static site → GitHub Pages
 # Two jobs, one rule: nothing gets published that has not been served and
 # crawled locally first.
 #
-#  verify — every push and every PR: typecheck, lint, then the export is built
-#           **twice** and smoke-tested both ways:
-#             · at the domain root (custom domain / Netlify / OSS / nginx)
-#             · mounted at /<repo>/ (a Pages *project* site, where a missing
-#               base-path prefix 404s every image while the JS still loads)
-#           The sub-path run is the one that would have shipped broken.
-#  build/deploy — pushes to main only, publishes the same export to Pages.
+#  verify — every push and every PR: typecheck, lint, dev-server probe, then the
+#           export is built **twice** and smoke-tested both ways:
+#             · at the domain root (BrainEno.github.io user site / custom domain)
+#             · mounted at a sub-path (Pages project site, where a missing
+#               base-path prefix 404s images or OG cards while JS still loads)
+#  build/deploy — pushes to main (or manual workflow_dispatch), automatically
+#           detecting whether the repository is the user site
+#           (`<owner>.github.io` → root `/`) or a project site (`/<repo>/`).
 #
 # Nothing here talks to a database: the build reads `content/defaults.ts` or the
 # committed `content/published.json` snapshot.
@@ -28,13 +29,6 @@ concurrency:
   group: pages-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  # Project sites live at /<repo>/. A user site (BrainEno.github.io) or a custom
-  # domain is served from the root and needs this cleared — everything else in
-  # the build follows from it.
-  NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
-  NEXT_PUBLIC_SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
-
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -44,6 +38,27 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Resolve Pages target (user root vs project sub-path)
+        env:
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          CUSTOM_SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          owner_lc=$(printf '%s' "$REPO_OWNER" | tr '[:upper:]' '[:lower:]')
+          repo_lc=$(printf '%s' "$REPO_NAME" | tr '[:upper:]' '[:lower:]')
+          if [ -n "$CUSTOM_SITE_URL" ]; then
+            base_path=""
+            site_url="${CUSTOM_SITE_URL%/}"
+          elif [ "$repo_lc" = "${owner_lc}.github.io" ]; then
+            base_path=""
+            site_url="https://${REPO_OWNER}.github.io"
+          else
+            base_path="/${REPO_NAME}"
+            site_url="https://${REPO_OWNER}.github.io/${REPO_NAME}"
+          fi
+          echo "NEXT_PUBLIC_BASE_PATH=${base_path}" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SITE_URL=${site_url}" >> "$GITHUB_ENV"
+          echo "Resolved target: site_url=${site_url} base_path='${base_path}'"
       - run: npm ci
       - name: Typecheck
         run: npm run typecheck
@@ -54,9 +69,7 @@ jobs:
       # `next dev --webpack` is the daily command and it exercises a webpack
       # loader path the production builds never touch — a config that builds
       # fine can still 500 in dev (see the `pageExtensions` note in
-      # next.config.ts). Boot it, require a 200, then shut it down. The URL
-      # carries the job's `NEXT_PUBLIC_BASE_PATH`, because that is also how the
-      # site is served (a bare `/` is a 404 under a base path, by design).
+      # next.config.ts). Boot it, require a 200, then shut it down.
       - name: Dev server serves the app (webpack)
         run: |
           npm run dev -- --port 3100 > /tmp/dev.log 2>&1 &
@@ -76,18 +89,25 @@ jobs:
             exit 1
           fi
           echo "dev server ok ($url)"
-      - name: Build (domain root)
+      - name: Build (user site / domain root)
         env:
           NEXT_PUBLIC_BASE_PATH: ""
-          NEXT_PUBLIC_SITE_URL: https://example.com
+          NEXT_PUBLIC_SITE_URL: https://BrainEno.github.io
         run: npm run build:static
-      - name: Smoke-test (domain root)
+      - name: Smoke-test (user site / domain root)
         env:
           NEXT_PUBLIC_BASE_PATH: ""
+          NEXT_PUBLIC_SITE_URL: https://BrainEno.github.io
         run: npm run smoke
       - name: Build (project site sub-path)
+        env:
+          NEXT_PUBLIC_BASE_PATH: /subpath-check
+          NEXT_PUBLIC_SITE_URL: https://BrainEno.github.io/subpath-check
         run: npm run build:static
       - name: Smoke-test (project site sub-path)
+        env:
+          NEXT_PUBLIC_BASE_PATH: /subpath-check
+          NEXT_PUBLIC_SITE_URL: https://BrainEno.github.io/subpath-check
         run: npm run smoke
 
   build:
@@ -100,9 +120,32 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Resolve Pages target (user root vs project sub-path)
+        env:
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          CUSTOM_SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          owner_lc=$(printf '%s' "$REPO_OWNER" | tr '[:upper:]' '[:lower:]')
+          repo_lc=$(printf '%s' "$REPO_NAME" | tr '[:upper:]' '[:lower:]')
+          if [ -n "$CUSTOM_SITE_URL" ]; then
+            base_path=""
+            site_url="${CUSTOM_SITE_URL%/}"
+          elif [ "$repo_lc" = "${owner_lc}.github.io" ]; then
+            base_path=""
+            site_url="https://${REPO_OWNER}.github.io"
+          else
+            base_path="/${REPO_NAME}"
+            site_url="https://${REPO_OWNER}.github.io/${REPO_NAME}"
+          fi
+          echo "NEXT_PUBLIC_BASE_PATH=${base_path}" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SITE_URL=${site_url}" >> "$GITHUB_ENV"
+          echo "Building Pages export for site_url=${site_url} base_path='${base_path}'"
       - run: npm ci
       - name: Build static export
         run: npm run build:static
+      - name: Smoke-test production artifact
+        run: npm run smoke
       # Pages needs a .nojekyll marker, or files/directories starting with an
       # underscore (`_next/`) are dropped from the published output.
       - run: touch out/.nojekyll

@@ -14,7 +14,7 @@
 const VERSION = "v4";
 const STATIC = `pf-static-${VERSION}`;
 const PAGES = `pf-pages-${VERSION}`;
-/** `""` at a domain root, `"/portfolio-template"` under a Pages project site. */
+/** `""` at a domain root (`BrainEno.github.io`), `"/<repo>"` under a Pages project site. */
 const BASE = new URL(self.registration.scope).pathname.replace(/\/$/, "");
 const at = (pathname) => `${BASE}${pathname}`;
 const CORE = [at("/"), at("/offline"), at("/manifest.webmanifest"), at("/icons/icon-192.png")];

@@ -11,8 +11,8 @@
 ## 2. 跑起来
 
 ```bash
-git clone https://github.com/BrainEno/portfolio-template.git
-cd portfolio-template
+git clone https://github.com/BrainEno/BrainEno.github.io.git
+cd BrainEno.github.io
 npm install
 npm run dev
 ```
@@ -85,16 +85,14 @@ npm run smoke      # 逐页断言状态码、404、robots、图片是否都在�
 
 ## 4. 部署
 
-站点部署在 **GitHub Pages**，仓库自带 workflow，不需要在别处导入项目：
+站点部署在 **GitHub Pages**（用户主页 <https://BrainEno.github.io>），仓库自带 workflow，不需要在别处导入项目：
 
 1. 仓库 **Settings → Pages → Source** 选 **GitHub Actions**（只需一次）；
-2. push 到 `main`，workflow 会先 typecheck / lint / 构建两次（根路径 + 子路径）并 smoke，
+2. push 到 `main`（或仓库改名后在 Actions 页手动点一次 **Run workflow**），workflow 会先 typecheck / lint / 构建两次（根路径 + 子路径）并 smoke，
    全绿之后才发布；
-3. 站点地址是 `https://<用户名>.github.io/<仓库>/`，workflow 里已经按仓库名自动设好
-   `NEXT_PUBLIC_BASE_PATH` 与 `NEXT_PUBLIC_SITE_URL`。
+3. 当仓库名为 `BrainEno.github.io` 时，workflow 自动将站点作为**用户主页**发布在根路径 `https://BrainEno.github.io`（`NEXT_PUBLIC_BASE_PATH` 自动为空）；若仓库作为普通项目站运行，则自动挂载到 `https://<用户名>.github.io/<仓库>/`。
 
-想换成自定义域名或用户站（`<用户名>.github.io`）时，把 `NEXT_PUBLIC_BASE_PATH` 清空，
-其余不用改。对象存储 / nginx 等见 [STATIC_EXPORT.md](STATIC_EXPORT.md)。
+若需绑定自定义域名，可在仓库 **Settings → Secrets and variables → Actions → Variables** 中新建变量 `SITE_URL=https://你的域名`，workflow 会自动采用它并保持根路径构建。对象存储 / nginx 等见 [STATIC_EXPORT.md](STATIC_EXPORT.md)。
 
 发布流程就是提交代码：
 

@@ -1,5 +1,6 @@
 {
-  "name": "portfolio-template",
+  "name": "braineno.github.io",
+  "description": "Personal homepage and portfolio of BrainEno (https://BrainEno.github.io)",
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
@@ -50,10 +51,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/BrainEno/portfolio-template"
+    "url": "https://github.com/BrainEno/BrainEno.github.io"
   },
   "bugs": {
-    "url": "https://github.com/BrainEno/portfolio-template/issues"
+    "url": "https://github.com/BrainEno/BrainEno.github.io/issues"
   },
-  "homepage": "https://github.com/BrainEno/portfolio-template#readme"
+  "homepage": "https://BrainEno.github.io"
 }

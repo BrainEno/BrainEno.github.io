@@ -39,7 +39,7 @@
 
 ## 3. SEO
 
-- `layout.tsx`：`metadataBase`、title 模板、description、Open Graph / Twitter 卡片、`lang`（随默认语言 zh-Hans / en）、robots、canonical、`themeColor`。
+- `layout.tsx`：`metadataBase`、title 模板、description、Open Graph / Twitter 卡片（分享图统一经 `seo/site.ts#absoluteUrl()` + `seo/asset.ts#asset()` 补齐子路径前缀）、`lang`（随默认语言 zh-Hans / en）、robots、canonical、`themeColor`。
 - `page.tsx`：JSON-LD（WebSite + Person + 每个作品 CreativeWork）；内容经 SSR 输出，爬虫无需执行 JS 即可读取全部文案。
 - `/works/[id]`：每个作品独立可收录页面（标题、详情介绍、详情图、BreadcrumbList）。
 - `robots.txt`、`sitemap.xml`（含全部作品页）、`manifest.webmanifest`、`icon.svg`、`apple-icon.png`——均由构建期内容生成。

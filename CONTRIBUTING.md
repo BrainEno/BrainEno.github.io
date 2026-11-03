@@ -2,7 +2,7 @@
 
 ## ⚠️ 重要声明
 
-**本项目不是开源项目。** 本仓库公开的目的是为了展示和学习，而不是邀请求代码贡献。
+**本项目不是开源项目。** 本仓库公开的目的是为了展示和学习，而不是邀请代码贡献。
 
 ## 代码保护
 
@@ -42,7 +42,7 @@
 
 由于本项目是个人作品集而非开源库，目前**不接受** Pull Requests。
 
-如果您发现了技术问题或安全漏洞，请通过 [Issues](https://github.com/BrainEno/portfolio-template/issues) 报告，作者会自行修复。
+如果您发现了技术问题或安全漏洞，请通过 [Issues](https://github.com/BrainEno/BrainEno.github.io/issues) 报告，作者会自行修复。
 
 ## Issues
 
