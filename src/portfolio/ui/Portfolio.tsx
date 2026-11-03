@@ -11,7 +11,7 @@
 
 import { gsap } from "gsap";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
-import { memo, useCallback, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type RefObject } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type RefObject } from "react";
 import { t } from "../content/normalize";
 import type { Language, PortfolioContent, SectionId } from "../content/types";
 import {
@@ -22,6 +22,7 @@ import {
   scrollToSection,
   setupChoreography,
 } from "../scroll/choreography";
+import { openTheater, type TheaterHandle } from "../scroll/theater";
 import { cx } from "./cx";
 import { Contact, Hero, Journey, Works } from "./sections";
 
@@ -188,6 +189,9 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
   const lang: Language = langOverride ?? (storedLang === "zh" || storedLang === "en" ? storedLang : content.identity.defaultLanguage);
   const [section, setSection] = useState<SectionId>("intro");
   const [activeWork, setActiveWork] = useState(-1);
+  const [theaterWork, setTheaterWork] = useState(-1);
+  const theaterRef = useRef<TheaterHandle | null>(null);
+  const theaterIndexRef = useRef(-1);
   const [layoutKey, setLayoutKey] = useState(0);
 
   useEffect(() => {
@@ -201,9 +205,83 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
   }, []);
 
   const preview = useCallback((index: number) => {
+    // While a project is screening, the tube belongs to it: hover/scroll
+    // tuning from the (hidden) index is ignored until the theater closes.
+    if (theaterIndexRef.current >= 0) return;
     if (index >= 0) lastWorkRef.current = index;
     setActiveWork((current) => (current === index ? current : index));
   }, []);
+
+  const workCount = content.works.items.length;
+
+  const openWork = useCallback((index: number) => {
+    const section = scopeRef.current?.querySelector<HTMLElement>("#works");
+    if (!section || index < 0 || index >= workCount) return;
+    if (theaterIndexRef.current < 0) {
+      const phase = section.dataset.tvPhase;
+      if (phase && phase !== "rows") return;
+    }
+    theaterIndexRef.current = index;
+    lastWorkRef.current = index;
+    setTheaterWork(index);
+    setActiveWork(index);
+  }, [workCount]);
+
+  // The sheet is rendered by the state change above; the zoom timeline is
+  // built right after that commit so it can find the sheet's text to reveal.
+  useLayoutEffect(() => {
+    if (theaterWork < 0 || theaterRef.current) return;
+    const section = scopeRef.current?.querySelector<HTMLElement>("#works");
+    if (!section) return;
+    const handle = openTheater(section);
+    if (!handle) {
+      theaterIndexRef.current = -1;
+      setTheaterWork(-1);
+      return;
+    }
+    theaterRef.current = handle;
+  }, [theaterWork]);
+
+  const closeWork = useCallback(() => {
+    const handle = theaterRef.current;
+    if (!handle) return;
+    theaterRef.current = null;
+    theaterIndexRef.current = -1;
+    setTheaterWork(-1);
+    void handle.close().then(() => {
+      // Back on the index: the tube returns to the untouched set unless the
+      // pointer is still parked on a row (the cursor re-syncs on its own).
+      setActiveWork(-1);
+      syncPointerRef.current?.();
+    });
+  }, []);
+
+  const stepWork = useCallback(
+    (delta: 1 | -1) => {
+      const current = theaterIndexRef.current;
+      if (current < 0) return;
+      openWork((current + delta + workCount) % workCount);
+    },
+    [openWork, workCount]
+  );
+
+  // Keyboard: Esc leaves the theater, arrows change project; resize re-fits
+  // the glass to the new stage.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (theaterIndexRef.current < 0) return;
+      if (event.key === "Escape") closeWork();
+      else if (event.key === "ArrowRight") stepWork(1);
+      else if (event.key === "ArrowLeft") stepWork(-1);
+    };
+    const onResize = () => theaterRef.current?.refit();
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [closeWork, stepWork]);
 
   const navigate = useCallback((id: SectionId) => {
     setSection(id);
@@ -216,7 +294,7 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
     const onResize = () => {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
-        if (Math.abs(window.innerWidth - width) < 2) return;
+        if (Math.abs(window.innerWidth - width) < 2 || theaterIndexRef.current >= 0) return;
         width = window.innerWidth;
         setLayoutKey((key) => key + 1);
       }, 250);
@@ -343,7 +421,11 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
               content={content.works}
               phone={content.contact.phone}
               activeIndex={activeWork}
+              theaterIndex={theaterWork}
               onPreview={preview}
+              onOpen={openWork}
+              onClose={closeWork}
+              onStep={stepWork}
             />
             <Contact lang={lang} content={content.contact} />
           </main>

@@ -71,25 +71,56 @@ export const Hero = memo(function Hero({ lang, content, name }: SectionProps<"he
   );
 });
 
+/** Split copy into spans the scroll choreography can light up one by one.
+ *  Latin text breaks on words; CJK text (no spaces) breaks after punctuation
+ *  so each clause reads as a unit instead of a per-character flicker. */
+export function Words({ text }: { text: string }) {
+  const cjk = /[\u3400-\u9fff]/.test(text);
+  const parts = cjk ? text.split(/(?<=[，。、；：！？—）」』])/) : text.split(/\s+/);
+  return (
+    <>
+      {parts.filter(Boolean).map((part, index) => (
+        <span key={index} className="copy-word">
+          {part}
+          {cjk ? "" : " "}
+        </span>
+      ))}
+    </>
+  );
+}
+
+/** First sentence of the biography becomes the lead, the rest the body. */
+function splitLead(text: string): [string, string] {
+  const match = text.match(/^(.+?[。！？]|.+?[.!?](?=\s))\s*([\s\S]*)$/);
+  if (!match || !match[2]) return [text, ""];
+  return [match[1].trim(), match[2].trim()];
+}
+
 export const Journey = memo(function Journey({ lang, content }: SectionProps<"intro">) {
   const zh = lang === "zh";
+  const [lead, body] = splitLead(t(content.primaryText, lang));
+  const heading = t(content.heading, lang);
   return (
-    <section className="journey" aria-label={t(content.heading, lang)}>
+    <section className="journey" aria-label={heading}>
       <div className="story-layer">
         <div className="story-visual">
+          <div className="story-kicker" aria-hidden="true">
+            <span className="story-kicker-index">01</span>
+            <span className={cx(zh && "is-zh")}>{heading}</span>
+          </div>
           <div className="story-title">
-            <h2 className={cx("story-title-text", zh && "is-zh")}>{t(content.heading, lang)}</h2>
+            <h2 className={cx("story-title-text", zh && "is-zh")}>{heading}</h2>
           </div>
           <div className="story-photo-box">
             <div className="story-photo-ghost" aria-hidden="true">
-              <Img src={content.portrait.src} alt="" sizes="(max-width: 767px) 40vw, 20vw" loading="lazy" hidden />
+              <Img src={content.portrait.src} alt="" sizes="(max-width: 1023px) 72vw, 27vw" loading="lazy" hidden />
             </div>
             <div className="story-photo-mask">
               <Img
                 className="story-photo"
                 src={content.portrait.src}
                 alt={t(content.portrait.alt, lang)}
-                sizes="(max-width: 767px) 40vw, 20vw"
+                sizes="(max-width: 1023px) 72vw, 27vw"
                 loading="lazy"
               />
             </div>
@@ -102,7 +133,17 @@ export const Journey = memo(function Journey({ lang, content }: SectionProps<"in
           </div>
         </div>
         <div className="story-copy">
-          <p className={cx("copy", zh && "is-zh")}>{t(content.primaryText, lang)}</p>
+          <div className="story-copy-inner">
+            <p className={cx("copy copy-lead", zh && "is-zh")}>
+              <Words text={lead} />
+            </p>
+            {body ? (
+              <p className={cx("copy copy-body", zh && "is-zh")}>
+                <Words text={body} />
+              </p>
+            ) : null}
+            <div className="story-copy-rule" aria-hidden="true" />
+          </div>
         </div>
       </div>
 
@@ -114,9 +155,13 @@ export const Journey = memo(function Journey({ lang, content }: SectionProps<"in
                 className="rail-image"
                 src={image.src}
                 alt={t(image.alt, lang)}
-                sizes="(max-width: 767px) 72vw, 40vw"
+                sizes="(max-width: 1023px) 78vw, 40vw"
                 loading="lazy"
               />
+              <figcaption className="rail-caption" aria-hidden="true">
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <span>{String(content.gallery.length).padStart(2, "0")}</span>
+              </figcaption>
             </figure>
           ))}
         </div>
@@ -129,11 +174,13 @@ export const Journey = memo(function Journey({ lang, content }: SectionProps<"in
             className={`coda-pic coda-pic-${index + 1}`}
             src={image.src}
             alt={t(image.alt, lang)}
-            sizes="(max-width: 767px) 30vw, 19vw"
+            sizes="(max-width: 1023px) 44vw, 19vw"
             loading="lazy"
           />
         ))}
-        <p className={cx("copy coda-text", zh && "is-zh")}>{t(content.secondaryText, lang)}</p>
+        <p className={cx("copy coda-text", zh && "is-zh")}>
+          <Words text={t(content.secondaryText, lang)} />
+        </p>
       </div>
     </section>
   );
@@ -142,12 +189,19 @@ export const Journey = memo(function Journey({ lang, content }: SectionProps<"in
 type WorksProps = SectionProps<"works"> & {
   phone: string;
   activeIndex: number;
+  /** Index of the work opened in the theater, or -1 while browsing the index. */
+  theaterIndex: number;
   onPreview: (index: number) => void;
+  onOpen: (index: number) => void;
+  onClose: () => void;
+  onStep: (delta: 1 | -1) => void;
 };
 
-export function Works({ lang, content, phone, activeIndex, onPreview }: WorksProps) {
+export function Works({ lang, content, phone, activeIndex, theaterIndex, onPreview, onOpen, onClose, onStep }: WorksProps) {
   const zh = lang === "zh";
   const active = activeIndex >= 0 ? content.items[activeIndex] : undefined;
+  const featured = theaterIndex >= 0 ? content.items[theaterIndex] : undefined;
+  const theaterOpen = theaterIndex >= 0;
   const { screen, width, height, src, alphaSrc } = content.tv;
   const tvStyle = {
     "--tv-ratio": `${width} / ${height}`,
@@ -195,6 +249,7 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
               frameWidth={width}
               frameHeight={height}
               label={(text) => t(text, lang)}
+              autoplay={theaterOpen}
             />
             <div className="tv-number-layer" aria-hidden="true">
               <div className="tv-number">{phone}</div>
@@ -215,6 +270,74 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
           <span className="tv-tune-noise" />
           <span className="tv-tune-bar" />
         </div>
+        {/* Theater: the room darkens around the set while a project plays. */}
+        <div className="tv-theater-veil" aria-hidden="true" />
+        <div
+          className="tv-sheet"
+          role="dialog"
+          aria-modal={theaterOpen || undefined}
+          aria-hidden={!theaterOpen || undefined}
+          aria-label={featured ? t(featured.title, lang) : undefined}
+        >
+          {featured ? (
+            <div key={featured.id} className="tv-sheet-inner">
+              <div className="tv-sheet-top">
+                <span className="tv-sheet-mask">
+                  <span className="tv-sheet-reveal tv-sheet-index">
+                    {String(theaterIndex + 1).padStart(2, "0")} / {String(content.items.length).padStart(2, "0")}
+                  </span>
+                </span>
+                <span className="tv-sheet-mask">
+                  <span className={cx("tv-sheet-reveal tv-sheet-kicker", zh && "is-zh")}>
+                    {t(content.heading, lang)}
+                  </span>
+                </span>
+              </div>
+              <h3 className="tv-sheet-title">
+                <span className="tv-sheet-mask">
+                  <span className={cx("tv-sheet-reveal", /[\u3400-\u9fff]/.test(t(featured.title, lang)) && "is-zh")}>
+                    {t(featured.title, lang)}
+                  </span>
+                </span>
+              </h3>
+              <ul className="tv-sheet-meta">
+                <li className="tv-sheet-mask"><span className="tv-sheet-reveal">{featured.year}</span></li>
+                {t(featured.credit, lang)
+                  .split("·")
+                  .map((tag) => tag.trim())
+                  .filter(Boolean)
+                  .map((tag) => (
+                    <li key={tag} className="tv-sheet-mask">
+                      <span className={cx("tv-sheet-reveal", zh && "is-zh")}>/ {tag}</span>
+                    </li>
+                  ))}
+              </ul>
+              <p className={cx("tv-sheet-fade tv-sheet-copy", zh && "is-zh")}>{t(featured.description, lang)}</p>
+              <div className="tv-sheet-fade tv-sheet-actions">
+                <a href={featured.url} target="_blank" rel="noreferrer" className="tv-sheet-link" data-cursor="link">
+                  <span>{zh ? "查看仓库" : "Open repository"}</span>
+                  <span aria-hidden="true">↗</span>
+                </a>
+                {!featured.video ? (
+                  <span className={cx("tv-sheet-note", zh && "is-zh")}>
+                    {zh ? "静帧预览 · 暂无演示视频" : "Still preview · no showreel yet"}
+                  </span>
+                ) : null}
+              </div>
+              <nav className="tv-sheet-fade tv-sheet-nav" aria-label={zh ? "项目切换" : "Project navigation"}>
+                <button type="button" className="tv-sheet-btn" onClick={() => onStep(-1)} data-cursor="link">
+                  <span aria-hidden="true">←</span> {zh ? "上一个" : "Previous"}
+                </button>
+                <button type="button" className="tv-sheet-btn" onClick={() => onStep(1)} data-cursor="link">
+                  {zh ? "下一个" : "Next"} <span aria-hidden="true">→</span>
+                </button>
+                <button type="button" className="tv-sheet-btn tv-sheet-close" onClick={onClose} data-cursor="link">
+                  {zh ? "关闭" : "Close"} <span aria-hidden="true">×</span>
+                </button>
+              </nav>
+            </div>
+          ) : null}
+        </div>
         <div className="tv-whiteout" aria-hidden="true" />
       </div>
 
@@ -224,6 +347,9 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
             {t(content.heading, lang)} <span className="works-period">{content.period}</span>
           </span>
         </h2>
+        <p className={cx("works-hint", zh && "is-zh")} aria-hidden="true">
+          {zh ? "悬停换台 · 点击进入放映" : "Hover to tune · click to screen"}
+        </p>
         <ol
           className="work-rows"
           onMouseLeave={(event) => {
@@ -248,7 +374,13 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
                 tabIndex={0}
                 onMouseEnter={() => onPreview(index)}
                 onFocus={() => onPreview(index)}
-                onClick={() => onPreview(index)}
+                onClick={() => onOpen(index)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onOpen(index);
+                  }
+                }}
               >
                 <span className="work-row-line" aria-hidden="true" />
                 <span className="work-row-index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>

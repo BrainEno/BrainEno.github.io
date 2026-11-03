@@ -14,6 +14,11 @@ import type { SectionId } from "../content/types";
 
 export const DESKTOP_QUERY = "(min-width: 768px)";
 export const MOBILE_QUERY = "(max-width: 767px)";
+/** The pinned, side-scrolling intro only works with real horizontal room: a
+ *  landscape viewport at least 1024 px wide and taller than a phone on its
+ *  side. Tablets in portrait, short laptops with the dev-tools open and phones
+ *  all get the vertical, flow-based intro instead (see `journeyFlow`). */
+export const JOURNEY_PINNED_QUERY = "(min-width: 1024px) and (min-height: 561px) and (orientation: landscape)";
 const REDUCED_QUERY = "(prefers-reduced-motion: reduce)";
 
 let registered = false;
@@ -63,6 +68,19 @@ function dwell(element: Element | null, min: number, max: number) {
   return gsap.utils.clamp(min, max, chars / perViewport);
 }
 
+/** Scrubbed reading light: words start dim and brighten in reading order so
+ *  the eye is led through the paragraph at the pace of the scroll. */
+function lightWords(tl: gsap.core.Timeline, selector: string, at: number, duration: number) {
+  const words = gsap.utils.toArray<HTMLElement>(selector);
+  if (!words.length) return;
+  tl.fromTo(
+    words,
+    { opacity: 0.22 },
+    { opacity: 1, duration: duration * 0.55, ease: "none", stagger: { each: (duration * 0.45) / words.length } },
+    at
+  );
+}
+
 /** Colour tokens live in CSS: `--stage` comes from the theme, `--sky` is
  * sampled from the television photograph (see portfolio.css). */
 function cssColor(scope: HTMLElement, name: string, fallback: string) {
@@ -88,7 +106,7 @@ export function createHeroEntrance() {
   return tl;
 }
 
-type Conditions = { desktop: boolean; mobile: boolean; reduce: boolean };
+type Conditions = { desktop: boolean; mobile: boolean; journeyPinned: boolean; reduce: boolean };
 
 export type ChoreographyOptions = {
   scope: HTMLElement;
@@ -147,11 +165,11 @@ function journeyDesktop(scope: HTMLElement) {
 
   const settle = 1;
   const approach = 0.7;
-  const hold1 = dwell(scope.querySelector(".story-copy p"), 0.45, 1.25);
+  const hold1 = dwell(scope.querySelector(".story-copy-inner"), 0.6, 1.4);
   const push = 1;
   const traverse = Math.max(0.6, ((railWidth() - vw() * 0.68) / vh()) * 0.8);
   const coda = 1;
-  const hold2 = dwell(scope.querySelector(".coda-text"), 0.4, 1);
+  const hold2 = dwell(scope.querySelector(".coda-text"), 0.5, 1.1);
   const outro = 0.45;
   const total = settle + approach + hold1 + push + traverse + coda + hold2 + outro;
 
@@ -212,9 +230,16 @@ function journeyDesktop(scope: HTMLElement) {
       { scale: 1, autoAlpha: 1, rotation: 0, duration: 0.3, ease: "back.out(2)" },
       at.settle + 0.66
     )
-    .fromTo(".story-copy", { x: 0 }, { x: () => -vw() * 0.47, duration: approach, ease: "power2.out" }, at.approach)
-    .fromTo(".story-copy p", { autoAlpha: 0.25 }, { autoAlpha: 1, duration: approach * 0.8 }, at.approach)
+    .fromTo(".story-kicker", { autoAlpha: 0, x: -16 }, { autoAlpha: 1, x: 0, duration: 0.3, ease: "power2.out" }, at.settle + 0.2)
+    // The biography enters from the right and parks beside the portrait; the
+    // lead sentence arrives first, the body a beat later.
+    .fromTo(".story-copy", { x: 0 }, { x: () => -vw() * 0.5, duration: approach, ease: "power2.out" }, at.approach)
+    .fromTo(".copy-lead", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: approach * 0.6, ease: "power2.out" }, at.approach + approach * 0.2)
+    .fromTo(".copy-body", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: approach * 0.6, ease: "power2.out" }, at.approach + approach * 0.4)
+    .fromTo(".story-copy-rule", { scaleX: 0, transformOrigin: "0% 50%" }, { scaleX: 1, duration: approach * 0.7, ease: "power2.out" }, at.approach + approach * 0.3)
     .to(".story-layer", { x: () => -vw() * 1.08, duration: push, ease: "power1.inOut" }, at.push)
+    // Soft parallax: the portrait lingers a touch behind the copy as both leave.
+    .fromTo(".story-photo-box", { xPercent: 0 }, { xPercent: 12, duration: push, ease: "power1.in" }, at.push)
     .fromTo(".rail", { x: () => vw() }, { x: () => vw() * 0.06, duration: push, ease: "power1.inOut" }, at.push)
     .fromTo(".rail-image", { xPercent: 10 }, { xPercent: -10, duration: push + traverse + coda }, at.push)
     .to(".rail", { x: () => -(railWidth() - vw() * 0.62), duration: traverse }, at.traverse)
@@ -224,7 +249,12 @@ function journeyDesktop(scope: HTMLElement) {
     .fromTo(".coda-pic-2", { y: () => vh() * 0.95, rotation: -5 }, { y: () => vh() * 0.03, rotation: 0, duration: coda * 0.85, ease: "power2.out" }, at.coda + 0.15)
     .to(".coda-pic-1", { y: () => -vh() * 0.2, duration: outro }, at.outro)
     .to(".coda-pic-2", { y: () => -vh() * 0.08, duration: outro }, at.outro)
-    .to(".coda-text", { y: () => -vh() * 0.04, duration: outro }, at.outro)
+    .to(".coda-text", { y: () => -vh() * 0.04, duration: outro }, at.outro);
+
+  lightWords(tl, ".story-copy .copy-word", at.hold1 - approach * 0.2, hold1 + approach * 0.2);
+  lightWords(tl, ".coda-text .copy-word", at.hold2 - coda * 0.3, hold2 + coda * 0.3);
+
+  tl
     // Black -> the photograph's night sky, from the gallery push to the coda.
     // Every journey layer paints var(--stage), so tweening the variable on the
     // section recolours all of them, and the timeline ends on exactly the
@@ -237,7 +267,7 @@ function journeyDesktop(scope: HTMLElement) {
     );
 }
 
-function journeyMobile(scope: HTMLElement) {
+function journeyFlow(scope: HTMLElement, desktop: boolean) {
   // Same colour hand-over as desktop, spread over the section's own scroll.
   const journey = scope.querySelector<HTMLElement>(".journey");
   if (journey) {
@@ -264,6 +294,22 @@ function journeyMobile(scope: HTMLElement) {
     ease: "expo.out",
     scrollTrigger: { trigger: ".story-title", start: "top 85%" },
   });
+  gsap.from(".story-kicker", {
+    autoAlpha: 0,
+    x: -12,
+    duration: 0.9,
+    ease: "power2.out",
+    scrollTrigger: { trigger: ".story-kicker", start: "top 90%" },
+  });
+  gsap.from(".story-copy-rule", {
+    scaleX: 0,
+    transformOrigin: "0% 50%",
+    duration: 1.2,
+    ease: "power3.out",
+    scrollTrigger: { trigger: ".story-copy-rule", start: "top 92%" },
+  });
+  // Paragraphs rise in, then their words brighten with the scroll — the same
+  // reading light as the pinned intro, spread over the paragraph's own height.
   gsap.utils.toArray<HTMLElement>(".story-copy p, .coda-text").forEach((el) => {
     gsap.from(el, {
       y: 40,
@@ -272,6 +318,19 @@ function journeyMobile(scope: HTMLElement) {
       ease: "power3.out",
       scrollTrigger: { trigger: el, start: "top 88%" },
     });
+    const words = el.querySelectorAll(".copy-word");
+    if (!words.length) return;
+    gsap.fromTo(
+      words,
+      { opacity: 0.28 },
+      {
+        opacity: 1,
+        ease: "none",
+        stagger: 0.6 / words.length,
+        duration: 0.4,
+        scrollTrigger: { trigger: el, start: desktop ? "top 72%" : "top 78%", end: desktop ? "bottom 45%" : "bottom 50%", scrub: 0.4 },
+      }
+    );
   });
 
   const rail = scope.querySelector<HTMLElement>(".rail");
@@ -557,15 +616,18 @@ export function setupChoreography(opts: ChoreographyOptions) {
   const { scope } = opts;
   const mm = gsap.matchMedia(scope);
 
-  mm.add({ desktop: DESKTOP_QUERY, mobile: MOBILE_QUERY, reduce: REDUCED_QUERY }, (context) => {
-    const { desktop, reduce } = context.conditions as Conditions;
-    heroScroll(desktop);
-    if (desktop) journeyDesktop(scope);
-    else journeyMobile(scope);
-    television(scope, opts, desktop);
-    contact(scope, desktop, reduce);
-    sectionTracking(opts);
-  });
+  mm.add(
+    { desktop: DESKTOP_QUERY, mobile: MOBILE_QUERY, journeyPinned: JOURNEY_PINNED_QUERY, reduce: REDUCED_QUERY },
+    (context) => {
+      const { desktop, journeyPinned, reduce } = context.conditions as Conditions;
+      heroScroll(desktop);
+      if (journeyPinned) journeyDesktop(scope);
+      else journeyFlow(scope, desktop);
+      television(scope, opts, desktop);
+      contact(scope, desktop, reduce);
+      sectionTracking(opts);
+    }
+  );
 
   let disposed = false;
   let refreshTimer = 0;

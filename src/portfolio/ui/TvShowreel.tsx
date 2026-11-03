@@ -34,6 +34,9 @@ type Props = {
   frameHeight: number;
   /** Alt text for the current language. */
   label: (text: LocalizedText) => string;
+  /** Theater mode: start the clip as soon as it is on the tube (muted), and
+   *  let stills drift slowly so the enlarged glass never looks frozen. */
+  autoplay?: boolean;
 };
 
 const RESTING_FILTER = "saturate(1.06) contrast(1.04) brightness(0.93)";
@@ -54,7 +57,7 @@ const RESTING_FILTER = "saturate(1.06) contrast(1.04) brightness(0.93)";
  *  - `.tv-ambient` casts a subtle, color-adaptive glow from the active project
  *    onto the inner bezel bevels and the dark night asphalt in front of the set.
  */
-export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, label }: Props) {
+export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, label, autoplay = false }: Props) {
   const rigRef = useRef<HTMLDivElement>(null);
   const ambientRef = useRef<HTMLDivElement>(null);
   const pictureRef = useRef<HTMLDivElement>(null);
@@ -69,6 +72,8 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
   const rigActiveRef = useRef<boolean>(Boolean(active));
   const timeline = useRef<gsap.core.Timeline | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  /** Clips that failed to load fall back to the project still. */
+  const [broken, setBroken] = useState<Record<string, true>>({});
 
   /** One 160 px tile of analogue snow, generated once and stepped by GSAP. */
   useEffect(() => {
@@ -251,11 +256,31 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
     };
   }, [shown?.videoSrc]);
 
-  const isVideoWork = Boolean(shown?.videoSrc);
+  const isVideoWork = Boolean(shown?.videoSrc) && !(shown?.videoSrc && broken[shown.videoSrc]);
   const posterSrc = shown?.videoPoster ?? shown?.src;
 
+  // Theater: play as soon as the picture has locked in; leaving the theater
+  // (or hovering back through the index) pauses and rewinds.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !isVideoWork) return;
+    if (!autoplay) {
+      video.pause();
+      return;
+    }
+    const start = () => void video.play().catch(() => setIsPlaying(false));
+    const delay = window.setTimeout(start, 380);
+    return () => window.clearTimeout(delay);
+  }, [autoplay, isVideoWork, shown?.id]);
+
   return (
-    <div ref={rigRef} className="tv-active-rig" data-active={active ? "true" : "false"} aria-hidden={!active || undefined}>
+    <div
+      ref={rigRef}
+      className="tv-active-rig"
+      data-active={active ? "true" : "false"}
+      data-theater={autoplay ? "true" : undefined}
+      aria-hidden={!active || undefined}
+    >
       {/* Subtle ambient light cast by the active screen onto the bezel & night asphalt */}
       <div ref={ambientRef} className="tv-ambient" aria-hidden="true">
         {posterSrc ? (
@@ -295,11 +320,12 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
               className="tv-cover tv-video"
               src={shown?.videoSrc ? asset(shown.videoSrc) : undefined}
               poster={posterSrc ? asset(posterSrc) : undefined}
-              preload="metadata"
+              preload={autoplay ? "auto" : "metadata"}
               muted
               loop
               playsInline
               onClick={handleScreenClick}
+              onError={() => shown?.videoSrc && setBroken((prev) => ({ ...prev, [shown.videoSrc as string]: true }))}
               aria-label={shown ? label(shown.alt) : ""}
               draggable={false}
             />
