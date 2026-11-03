@@ -5,6 +5,7 @@
 > **审查日期**：2026-11-03（UTC）
 > **审查范围**：整仓（源码 / 脚本 / 内容 / CI / 全部开放 Issue / 实际构建产物）
 > **本次特别关注**：后续 UI、动画交互设计改进
+> **状态同步（2026-11-03 07:10 UTC）**：仓库所有者已关闭 18 条 issue（§8.4 的 16 条确认项 + §8.3 的 #63 + 重复单 #79），并新登记 #80。本版据此更新 §5（新增 §5.7）、§8.1–§8.5、§9、§10.2、§11.5；关闭建议保留原样并追加「结果」列，便于对照。
 
 本报告区分四类结论，不把优化建议包装成 Bug：
 
@@ -342,7 +343,41 @@ contact(scope, desktop, reduce);     // 唯一处理 reduce 的
 
 用户明确要求「减少动态效果」后仍会看到：pin 住整屏并横向平移的肖像长卷、缩放到 4.56 倍的电视推镜、从视口下方抛入的图片。WCAG 2.3.3（Animation from Interactions）在这类大幅位移上是有明确期望的。CSS 侧也只在 `@media (prefers-reduced-motion: reduce)` 里关掉了雪花与电话亭浮动（`portfolio.css:2052-2080`），滚动编排的位移不受影响。
 
-### 5.7 动画设计改进的具体建议（针对「后续 UI / 动画交互」关注点）
+### 5.7 [BUG] 语言切换 / 窗口尺寸变化会重建整套编排，已入场的 reveal 重播（P2 · Issue #80）
+
+> 本条由仓库所有者在审查结束后登记（#79 为同题的残缺重复单，已关闭）。本版在 HEAD 上按源码复核了控制流；**视觉重播仍需浏览器实测**，行号已按 HEAD 更正（issue 原文的行号略有偏移）。
+
+`setupChoreography()` 的调用是一个以 `[lang, layoutKey, preview]` 为依赖的 effect：
+
+```ts
+// Portfolio.tsx:307-317
+const teardown = setupChoreography({ scope, onSection: setSection, onWork: preview, ... });
+return teardown;
+// `layoutKey` bumps on a viewport-size change: the choreography measures the
+// DOM, so it has to be rebuilt against the new geometry.
+}, [lang, layoutKey, preview]);
+```
+
+两条触发路径都来自上面这个依赖数组：
+
+- **语言切换** → `lang` 变 → effect 重跑；
+- **窗口宽度变化** → `layoutKey` 自增（`Portfolio.tsx:210-226`，250 ms 防抖、宽度差 < 2 px 时忽略）→ effect 重跑。
+
+teardown 走 `mm.revert()`（`choreography.ts:581-586`），它会 kill 并 **revert** 该 `gsap.matchMedia` 上下文里的全部动画与 ScrollTrigger。重建后，`from` 类 reveal 全部从「隐藏」重新开始，而 `ScrollTrigger.refresh()`（`choreography.ts:572-574`）时若 trigger 已在视口内或已被滚过，就会按 `toggleActions` 重新 play：
+
+| 位置 | 动画 | 初始隐藏态 |
+|---|---|---|
+| `choreography.ts:255-274` | 长卷：`.story-photo-mask`（`clipPath`）、`.story-title-text`、`.story-copy p / .coda-text` | `inset(100% …)` / `yPercent:110` / `y:40 + autoAlpha:0` |
+| `choreography.ts:343-367` | 作品区：`.works-heading-text`、`.work-row-line`、`.work-row-title` 等（`toggleActions: "play none none reverse"`） | `yPercent:110` / `scaleX:0` |
+| `choreography.ts:497-515` | Contact：`.contact-topbar > *`、`.contact-cta-*`、`.contact-footer > *`（同为 `play none none reverse`） | `autoAlpha:0` + 位移 |
+
+用户可见结果：已经读完的作品行、标题与联系区块，在点一次「中文 / English」或拖动一下窗口后**先闪回隐藏态、再重播一遍入场动画**。
+
+- **不受影响**：scrub 类动画（hero 视差、电视推镜），因为 refresh 时会立即按当前滚动位置重算。
+- **未验证**：`.tv-stage` / `.journey` 的 pin 在 `revert()` → 重建的瞬间是否有一帧错位；帧率代价未知。
+- **修复方向**（按成本排序）：重建前对已完成的 reveal `progress(1)`；或将 reveal 从 `choreography` 拆成独立 effect，不随 `lang` / `layoutKey` 重建；若重建只是为了让 `dwell()` 按新语言文案长度重算滚动距离，用定向的 `ScrollTrigger.refresh()` 替代 `mm.revert()` 全量重建更轻。
+
+### 5.8 动画设计改进的具体建议（针对「后续 UI / 动画交互」关注点）
 
 1. **先立降级契约，再加新动效**：把「reduce 下每个段落只保留 ≤ 0.3 s 的透明度变化、不 pin、不位移超过 8 vh」写成 `choreography.ts` 顶部的一段注释 + 一个 `reduced(scope)` 分支，新增时间线必须显式声明 `reduce` 行为（否则 lint 层面无法发现，但代码评审有据可依）。
 2. **把状态机与动画解耦**：`TvShowreel` 现在用「effect 早退 + 延迟 `commit`」表达状态，竞态正来自这里。建议引入一个显式的 `requested / committed` 两态 reducer（`useReducer`），动画只读 `committed` 并在 `onComplete` 里 dispatch —— 早退条件只比较 `requested`，`#49` 这类问题在结构上消失。
@@ -404,7 +439,7 @@ contact(scope, desktop, reduce);     // 唯一处理 reduce 的
 | **[改进]** 首屏图片策略优于同规模项目 | 单个 preload（`imageSrcSet` 480/800/1086 WebP）、装饰条改 `lazy`、`fetchPriority=high` 只给 hero、`width/height` 来自清单避免 CLS |
 | **[改进]** three.js 分块延迟加载 | 最大 chunk 584 KB（含 three），只在 Contact 前 1.5 屏 `import()`；`booth.ts` 在离屏与标签页隐藏时停 RAF（除 §5.3 的竞态） |
 | **[风险]** 滚动热路径每帧同步布局读取 | §7.1（Issue #76，静态推断，未 trace） |
-| **[风险]** 22 处常驻 `will-change` | §5.7-3（Issue #66 核心成立、清单过期） |
+| **[风险]** 22 处常驻 `will-change` | §5.8-3（Issue #66 核心成立、清单过期） |
 | **[改进]** 产物体积 | `out/` 12 MB，其中 60% 是图片、18% 是 GLB；`headline.png` 1.93 MB 只作为 `src` 兜底却仍随产物发布（带 `srcSet` 的浏览器不会请求它，但仓库与部署体积照算） |
 
 ### 6.6 测试
@@ -476,6 +511,8 @@ URIError: URI malformed
 | [#76](https://github.com/BrainEno/BrainEno.github.io/issues/76) | P2 | 滚动热路径每帧同步布局读取（`elementFromPoint`）+ 跑马灯每帧新建 4 个 tween | [风险] 性能 |
 | [#77](https://github.com/BrainEno/BrainEno.github.io/issues/77) | P3 | og:image 是 1.93 MB 竖版 1086×1448 PNG；JSON-LD `dateCreated` 非 ISO 8601 | [BUG] SEO/分享 |
 
+> **审查结束后新增（所有者登记，非本报告建议）**：[#80](https://github.com/BrainEno/BrainEno.github.io/issues/80)「语言切换 / 窗口尺寸变化重建整套编排，已入场 reveal 重播」（P2）——本版已按源码复核并写入 §5.7；[#79](https://github.com/BrainEno/BrainEno.github.io/issues/79) 是同一问题的重复单（正文代码片段在提交时丢失），已于 07:00 关闭。
+>
 > 只登记了「未被现有 Issue 覆盖 + 有独立根因 + 有可执行验收」的四条。其余发现（§4.3、§4.4、§7.4）作为改进建议写在本报告，并通过 **重定义** 归入已有 Issue（#68 / #16 / #22 / #64），没有另开新单。
 
 ### 8.2 本次确认仍然成立的既有 Issue（必须保留）
@@ -485,6 +522,7 @@ URIError: URI malformed
 | [#51](https://github.com/BrainEno/BrainEno.github.io/issues/51) | P1 | 实测：包装格式构建被静默忽略 | **成立**，全仓最高优先级 |
 | [#60](https://github.com/BrainEno/BrainEno.github.io/issues/60) | P1 | 产物 + CSS + 全仓无 noscript | **成立** |
 | [#61](https://github.com/BrainEno/BrainEno.github.io/issues/61) | P1 | `setupChoreography` 只把 reduce 传给 `contact()` | **成立** |
+| [#80](https://github.com/BrainEno/BrainEno.github.io/issues/80) | P2 | `Portfolio.tsx:307-317` 的 effect 依赖 `[lang, layoutKey]` + `choreography.ts:581-586` 的 `mm.revert()` 全量重建 | **成立**（静态控制流已核对；视觉重播待实测，详见 §5.7） |
 | [#3](https://github.com/BrainEno/BrainEno.github.io/issues/3) | P0 | `grep -c 'href="/works/' out/index.html` = 0 | **成立**（本条为全站最严重的产品断点） |
 | [#49](https://github.com/BrainEno/BrainEno.github.io/issues/49) | P2 | 早退在 `kill()` 之前 | **成立** |
 | [#50](https://github.com/BrainEno/BrainEno.github.io/issues/50) | P2 | 回调不记录可见状态、`start()` 无条件 | **成立** |
@@ -507,42 +545,44 @@ URIError: URI malformed
 | Issue | 建议 | 依据 |
 |---|---|---|
 | [#55](https://github.com/BrainEno/BrainEno.github.io/issues/55) → 并入 [#19](https://github.com/BrainEno/BrainEno.github.io/issues/19) | 同一根因（Service Worker 缓存策略），建议关闭 #55，把「`/offline` 缺尾斜杠」「预缓存图标进了 PAGES 桶」作为 #19 的子项 | `sw.js:20,78,37`：`CORE` 用 `at("/offline")`（导出产物是 `/offline/index.html`），`icon-192.png` 被预缓存进 `PAGES` 而请求时走 `STATIC`（`isStaticAsset`）→ 预缓存命中不到 |
-| [#63](https://github.com/BrainEno/BrainEno.github.io/issues/63) 需重写 | `.txt` **不是垃圾**：共 29 个 / 173 KB，是 App Router 客户端导航（`Link` 预取）的载荷，删掉会破坏 `/#works` 返回链接的软导航。真实问题只剩「`headline.png` 1.9 MB 随产物发布」与「`out/` 12 MB vs 文档 6.2 MB」 | 实测 `find out -name '*.txt'` 计数 = 29，合计 173 KB；`works/[id]` 的 `<Link>` 依赖 home 的 `index.txt` |
+| [#63](https://github.com/BrainEno/BrainEno.github.io/issues/63) —— **已关闭**（建议为重写，所有者选择直接关闭） | `.txt` **不是垃圾**：共 29 个 / 173 KB，是 App Router 客户端导航（`Link` 预取）的载荷，删掉会破坏 `/#works` 返回链接的软导航。真实问题只剩「`headline.png` 1.9 MB 随产物发布」与「`out/` 12 MB vs 文档 6.2 MB」 | 实测 `find out -name '*.txt'` 计数 = 29，合计 173 KB；`works/[id]` 的 `<Link>` 依赖 home 的 `index.txt`。**关闭后的残留已改派**：`headline.png` 1.93 MB → #77；`out/` 12 MB 与文档 6.2 MB 的漂移 → #64；「`.txt` 不能删」这条纠正仍然有效（见 §8.5.3） |
 | [#66](https://github.com/BrainEno/BrainEno.github.io/issues/66) 需重写 | 核心主张成立（22 处常驻 `will-change`、`.contact-booth-float` 的 9 s 无限动画在视口外仍运行），但清单已过期：`grep -c will-change` = **22**（非 23）；`.tv-box` **已无** `will-change`（`portfolio.css:723` 注释明确说明移除）；`.contact-headlines/.contact-line-text` **在 HEAD 中不存在**；行号整体偏移 | 同上；`document.getAnimations()` 那条验收标准仍然可执行 |
 | [#10](https://github.com/BrainEno/BrainEno.github.io/issues/10) 需重定义 | 「没有 CI」「eslint 6 error」都已不成立（CI 三层门禁通过、`eslint .` 退出码 0）。剩下的真实缺口是**单元/契约测试为零**，建议改标题为「测试盲区：内容管线无任何自动化测试」，并把 §4.1 的四种输入列为用例 | 本报告 §3 表格第 2–3 行（`typecheck` / `lint` 均退出码 0） |
 | [#54](https://github.com/BrainEno/BrainEno.github.io/issues/54) 正文需更正 | 第 2 条（电话亭侵入顶栏：`top:0`/`right:-0.6vw`）与第 3 条（`end: "top -4%"`）在当前代码中不存在——Contact 已重排为居中电话亭 + 双跑马灯，入场 `end` 为 `top 0%`；第 4 条的字号探针（`useLayoutEffect` + `--contact-fs`）也已删除，只剩「断点 768 vs 1023」成立 | `sections.tsx:305-398`、`choreography.ts:466-480`、`portfolio.css:1386-1470,1748` |
 
-### 8.4 建议关闭（已完成 / 已不适用 / 重复）
+### 8.4 关闭建议与执行结果（已完成 / 已不适用 / 重复）
 
-> 仅提出建议，本次**未关闭任何 Issue**。每条给了可核对的证据。
+> 前三列是 2026-11-03 的审查建议；「结果」列由 07:10 UTC 的仓库状态回填。关闭动作由仓库所有者手动完成（沙箱集成的尝试记录见 §8.5.1）。
 
-| Issue | 建议 | 证据 |
-|---|---|---|
-| [#71](https://github.com/BrainEno/BrainEno.github.io/issues/71) | **关闭（已被 #73 顺带修复）** | HEAD 的产物里 `"@id":"https://braineno.github.io/"`、`"url":"…/works/scribeforge/"`、`"item":"…/works/scribeforge/"`、`canonical`、`og:url` **全部带尾斜杠**；`seo/site.ts:79-105` 与 `works/[id]/page.tsx:69-70` 均为模板字符串 + `/`。Issue 建于 04:47，PR #73（改 `seo/site.ts` +29/−15、`works/[id]/page.tsx` +24/−7）于 05:49 合并。**残留项**：其验收标准里的「smoke 增加尾斜杠一致性断言」未做，可转到 #68 或 #10 |
-| [#1](https://github.com/BrainEno/BrainEno.github.io/issues/1) | 关闭（已不适用） | 服务端与 Demo 模式随第七轮删除，仓库无 `src/portfolio/server`、无 `/api` |
-| [#2](https://github.com/BrainEno/BrainEno.github.io/issues/2) | 关闭（已完成） | `output: "export"` + `build-static.mjs` + Pages workflow 已存在 |
-| [#4](https://github.com/BrainEno/BrainEno.github.io/issues/4) | 关闭（已修复） | 已删除的 `server/*`、`api/*`、`db/*` 确实不在仓库；当前文档漂移由 #64 跟踪 |
-| [#5](https://github.com/BrainEno/BrainEno.github.io/issues/5) | 关闭（已不适用） | 无上传接口、无媒体路由 |
-| [#6](https://github.com/BrainEno/BrainEno.github.io/issues/6) | 关闭（已不适用） | 无 `pg`、无连接串 |
-| [#7](https://github.com/BrainEno/BrainEno.github.io/issues/7) | 关闭（DB 部分已不适用；40 项上限转 #68） | `MAX_LIST = 40` 仍在 `normalize.ts:10`，但根因与验收已在 #68 覆盖 |
-| [#8](https://github.com/BrainEno/BrainEno.github.io/issues/8) | 关闭（已不适用） | 无「Live 模式」概念 |
-| [#9](https://github.com/BrainEno/BrainEno.github.io/issues/9) | 关闭（重复于 #65） | #65 为同一实测的更新版本（1 critical / 2 high / 14 moderate） |
-| [#13](https://github.com/BrainEno/BrainEno.github.io/issues/13) | 关闭（已完成） | `Img.tsx` 已提供 `srcSet/sizes/width/height`，hero 有单一 preload；详情页 4:3 现为**有意设计**（`work-detail.css:27` 注释） |
-| [#14](https://github.com/BrainEno/BrainEno.github.io/issues/14) | 关闭（已修复） | `works/[id]/page.tsx:78` 与 `page.tsx:14` 均转义 `<`（#58 已据此关闭） |
-| [#15](https://github.com/BrainEno/BrainEno.github.io/issues/15) | 关闭（已不适用） | 无数据库、无冷启动 |
-| [#17](https://github.com/BrainEno/BrainEno.github.io/issues/17) | 关闭（前提不成立） | 现有断点：`767px`、`1023px / (max-aspect-ratio: 11/10)`、`(hover:hover) and (pointer:fine)`、`(hover:none),(pointer:coarse)`；「只有一个 767」已不成立。若仍有平板问题，应以具体截图新开 |
-| [#20](https://github.com/BrainEno/BrainEno.github.io/issues/20) | 关闭（已不适用） | 无会话、无认证 |
-| [#21](https://github.com/BrainEno/BrainEno.github.io/issues/21) | 关闭（已不适用） | 无 DDL/drizzle/wrangler；字体已自托管（`layout.tsx:12-15`） |
-| [#23](https://github.com/BrainEno/BrainEno.github.io/issues/23) | 关闭（已修复） | 语言改由 `useSyncExternalStore` 读取（`Portfolio.tsx:186-188`），`eslint .` 退出码 0、无 `set-state-in-effect` 报告 |
-| [#24](https://github.com/BrainEno/BrainEno.github.io/issues/24) | 关闭（已不适用） | `/admin` 已删除 |
-| [#25](https://github.com/BrainEno/BrainEno.github.io/issues/25) | 关闭（已不适用；构建期诊断转 #68） | 无服务端、无 `/api/health` |
-| [#26](https://github.com/BrainEno/BrainEno.github.io/issues/26) | 关闭（大部分已修复） | `lastmod` 已取快照 `exportedAt`（`source.ts:43-50`，实测生效）；OG 有 hero 兜底（`works/[id]/page.tsx:34`）；无 `force-dynamic`、无 DB。仅剩「无快照时回落构建时间」，已归入 #51 |
+| Issue | 建议 | 证据 | 结果（2026-11-03 复核） |
+|---|---|---|---|
+| [#71](https://github.com/BrainEno/BrainEno.github.io/issues/71) | **关闭（已被 #73 顺带修复）** | HEAD 的产物里 `"@id":"https://braineno.github.io/"`、`"url":"…/works/scribeforge/"`、`"item":"…/works/scribeforge/"`、`canonical`、`og:url` **全部带尾斜杠**；`seo/site.ts:79-105` 与 `works/[id]/page.tsx:69-70` 均为模板字符串 + `/`。Issue 建于 04:47，PR #73（改 `seo/site.ts` +29/−15、`works/[id]/page.tsx` +24/−7）于 05:49 合并。**残留项**：其验收标准里的「smoke 增加尾斜杠一致性断言」未做，可转到 #68 或 #10 | ✅ 已关闭<br>07:06–07:08 |
+| [#1](https://github.com/BrainEno/BrainEno.github.io/issues/1) | 关闭（已不适用） | 服务端与 Demo 模式随第七轮删除，仓库无 `src/portfolio/server`、无 `/api` | ✅ 已关闭<br>07:06–07:08 |
+| [#2](https://github.com/BrainEno/BrainEno.github.io/issues/2) | 关闭（已完成） | `output: "export"` + `build-static.mjs` + Pages workflow 已存在 | ✅ 已关闭<br>07:06–07:08 |
+| [#4](https://github.com/BrainEno/BrainEno.github.io/issues/4) | 关闭（已修复） | 已删除的 `server/*`、`api/*`、`db/*` 确实不在仓库；当前文档漂移由 #64 跟踪 | ✅ 已关闭<br>07:06–07:08 |
+| [#5](https://github.com/BrainEno/BrainEno.github.io/issues/5) | 关闭（已不适用） | 无上传接口、无媒体路由 | ✅ 已关闭<br>07:06–07:08 |
+| [#6](https://github.com/BrainEno/BrainEno.github.io/issues/6) | 关闭（已不适用） | 无 `pg`、无连接串 | ✅ 已关闭<br>07:06–07:08 |
+| [#7](https://github.com/BrainEno/BrainEno.github.io/issues/7) | 关闭（DB 部分已不适用；40 项上限转 #68） | `MAX_LIST = 40` 仍在 `normalize.ts:10`，但根因与验收已在 #68 覆盖 | ✅ 已关闭<br>07:06–07:08 |
+| [#8](https://github.com/BrainEno/BrainEno.github.io/issues/8) | 关闭（已不适用） | 无「Live 模式」概念 | ✅ 已关闭<br>07:06–07:08 |
+| [#9](https://github.com/BrainEno/BrainEno.github.io/issues/9) | 关闭（重复于 #65） | #65 为同一实测的更新版本（1 critical / 2 high / 14 moderate） | ✅ 已关闭<br>07:06–07:08 |
+| [#13](https://github.com/BrainEno/BrainEno.github.io/issues/13) | 关闭（已完成） | `Img.tsx` 已提供 `srcSet/sizes/width/height`，hero 有单一 preload；详情页 4:3 现为**有意设计**（`work-detail.css:27` 注释） | ⏸ 仍开放<br>待所有者判断 |
+| [#14](https://github.com/BrainEno/BrainEno.github.io/issues/14) | 关闭（已修复） | `works/[id]/page.tsx:78` 与 `page.tsx:14` 均转义 `<`（#58 已据此关闭） | ✅ 已关闭<br>07:06–07:08 |
+| [#15](https://github.com/BrainEno/BrainEno.github.io/issues/15) | 关闭（已不适用） | 无数据库、无冷启动 | ✅ 已关闭<br>07:06–07:08 |
+| [#17](https://github.com/BrainEno/BrainEno.github.io/issues/17) | 关闭（前提不成立） | 现有断点：`767px`、`1023px / (max-aspect-ratio: 11/10)`、`(hover:hover) and (pointer:fine)`、`(hover:none),(pointer:coarse)`；「只有一个 767」已不成立。若仍有平板问题，应以具体截图新开 | ⏸ 仍开放<br>待所有者判断 |
+| [#20](https://github.com/BrainEno/BrainEno.github.io/issues/20) | 关闭（已不适用） | 无会话、无认证 | ✅ 已关闭<br>07:06–07:08 |
+| [#21](https://github.com/BrainEno/BrainEno.github.io/issues/21) | 关闭（已不适用） | 无 DDL/drizzle/wrangler；字体已自托管（`layout.tsx:12-15`） | ✅ 已关闭<br>07:06–07:08 |
+| [#23](https://github.com/BrainEno/BrainEno.github.io/issues/23) | 关闭（已修复） | 语言改由 `useSyncExternalStore` 读取（`Portfolio.tsx:186-188`），`eslint .` 退出码 0、无 `set-state-in-effect` 报告 | ✅ 已关闭<br>07:06–07:08 |
+| [#24](https://github.com/BrainEno/BrainEno.github.io/issues/24) | 关闭（已不适用） | `/admin` 已删除 | ✅ 已关闭<br>07:06–07:08 |
+| [#25](https://github.com/BrainEno/BrainEno.github.io/issues/25) | 关闭（已不适用；构建期诊断转 #68） | 无服务端、无 `/api/health` | ✅ 已关闭<br>07:06–07:08 |
+| [#26](https://github.com/BrainEno/BrainEno.github.io/issues/26) | 关闭（大部分已修复） | `lastmod` 已取快照 `exportedAt`（`source.ts:43-50`，实测生效）；OG 有 hero 兜底（`works/[id]/page.tsx:34`）；无 `force-dynamic`、无 DB。仅剩「无快照时回落构建时间」，已归入 #51 | ⏸ 仍开放<br>待所有者判断 |
 
-**统计**：审查开始时开放 **42** 条（本次新开 4 条后为 46 条）→ 建议关闭 **19** 条、合并/重写 **5** 条、保留 **18** 条（其中 #3、#51、#60、#61 为最高优先）。#54 列入「保留」但正文需更正，故同时出现在 §8.3。
+**统计（2026-11-03 07:10 UTC 复核）**：审查开始时开放 **42** 条；本次登记 4 条（#74–#77）→ 46 条；审查结束后所有者另登记 #80（#79 为重复单，已关闭）。截至本版：**已关闭 19 条建议中的 16 条**（§8.4 表内 16 个 ✅），#13 / #17 / #26 保持开放待判断；另有 §8.3 的 #63 与重复单 #79 也被关闭，合计本轮关闭 **18** 条。**当前开放 30 条** ＝ §8.2 表中 20 行（原有 19 条 + #80）＋ §8.3 待处理 4 条（#55、#66、#10、#54，其中 #54 亦在 §8.2）＋ 待判断 3 条（#13、#17、#26）＋ 本次新登记 4 条（#74–#77）；即 20 + 3 + 3 + 4 = 30（#54 重复计入 §8.2 与 §8.3）。其中 #3、#51、#60、#61 仍为最高优先。
 
-### 8.5 关闭执行记录与权限边界（2026-11-03）
+### 8.5 关闭执行记录与最终状态（2026-11-03）
 
-本轮**尝试直接关闭** §8.4 中已确认完成的 issue，全部被沙箱的 GitHub 集成拒绝：
+#### 8.5.1 沙箱侧：尝试被拒（权限边界）
+
+审查阶段尝试直接关闭 §8.4 中已确认完成的 issue，全部被沙箱的 GitHub 集成拒绝：
 
 | 尝试路径 | 结果 |
 |---|---|
@@ -550,14 +590,45 @@ URIError: URI malformed
 | `gh api -X PATCH /repos/{owner}/{repo}/issues/<n> -f state=closed`（REST） | 403；响应头声明 `X-Accepted-Github-Permissions: issues=write` |
 | `gh issue comment <n>`（对照：写评论） | 403，同上 |
 | `gh issue create`（对照：建 issue） | **可用**（#74–#77 即由该集成创建） |
-| `git push` / `gh pr create` / `gh pr edit` | 可用 |
+| `git push` / `gh pr create` / `gh api -X PATCH /pulls/78` | 可用 |
 
-**结论**：当前集成的权限边界是「可新建 issue/PR、可推代码，**不可修改已有 issue**」。因此 §8.4 的 19 条建议全部保持开放，需仓库所有者手动关闭；带直接链接的清单与一键脚本见 **PR #78** 的描述。本轮**没有关闭任何 Issue**（复核后 `gh issue list --state closed` 的 5 条均为本轮之前关闭：#52 / #57 / #58 / #59 / #67）。
+**结论**：该集成的权限边界是「可新建 issue/PR、可推代码、可改 PR，**不可修改已有 issue**」。
+注意 `gh api repos/{owner}/{repo} --jq .permissions` 会报 `admin: true`，那是 GitHub App 安装视图的假象，**不能**据此判断可写；判定可写与否要以实际写请求的 403 为准。
 
-为方便手动处理，把建议分成两组：
+#### 8.5.2 所有者侧：实际关闭 18 条
 
-- **确认可关（16 条，证据见 §8.4）**：#1、#2、#4、#5、#6、#7、#8、#9、#14、#15、#20、#21、#23、#24、#25、#71
-- **需你判断（3 条）**：#13（详情页 4:3 裁切现为有意设计，是否接受）、#17（「只有一个断点」的前提已不成立，若仍有平板问题请附截图重开）、#26（`lastmod`/OG 兜底已修，剩下的 `keywords` 属无害项）
+| 批次 | 时间（UTC） | 关闭的 issue | 条数 |
+|---|---|---|---|
+| 第一批 | 06:46 | #1、#2 | 2 |
+| 第二批 | 07:00 | #79（重复单） | 1 |
+| 第三批 | 07:06–07:08 | #4、#5、#6、#7、#8、#9、#14、#15、#20、#21、#23、#24、#25、#63、#71 | 15 |
+
+与建议的比对：
+
+- **一致**：§8.4「确认可关」的 16 条（#1、#2、#4–#9、#14、#15、#20、#21、#23、#24、#25、#71）**全部关闭**，16/16。
+- **一致**：#13、#17、#26 三条「待所有者判断」**保持开放**，未误关。
+- **不一致（需知情）**：#63 被关闭，而 §8.3 的建议是「重写而非关闭」；#79 被关闭，它是 #80 的重复单。两条的处置见 8.5.3。
+
+#### 8.5.3 #63 关闭后，它说的两件事并没有消失
+
+#63 的标题是「构建产物卫生」，其中**「`out/` 混入 6 个 RSC `.txt` 载荷」这一条是错的**——`.txt` 是 App Router 客户端软导航的载荷（实测 29 个 / 173 KB），删掉会破坏 `/#works` 返回链接的软导航。关闭 #63 不会让这个错误消失，所以后来者改产物前请先读本节：
+
+| #63 的原始论点 | 现状 | 承接位置 |
+|---|---|---|
+| `.txt` 是垃圾，应删除 | **不成立**，是软导航载荷 | 本报告 §8.3、§10.2 |
+| `headline.png` 1.93 MB 随产物发布 | **成立**，仍是 `og:image` 与 `src` 兜底 | **#77**（换 JPEG/WebP + 控制尺寸） |
+| `out/` 12 MB vs 文档 6.2 MB | **成立**，属文档漂移 | **#64**（文档校订） |
+
+因此 #63 无需重开；只有当日后再出现「产物体积」类回归时，才需要按 #77 / #64 的验收标准处理。
+
+#### 8.5.4 当前状态
+
+| 状态 | 数量 | 明细 |
+|---|---|---|
+| 已关闭 | **23** | 审查前已关 5 条（#52、#57、#58、#59、#67）+ 本轮 18 条 |
+| 开放 | **30** | §8.2 表 20 行（含 #80）+ §8.3 的 #55 / #66 / #10（#54 已计入 §8.2）+ #13 / #17 / #26 + #74–#77 |
+
+本轮**由沙箱关闭的 issue 数 = 0**；能够关闭 18 条的只有仓库所有者的账号。
 
 ---
 
@@ -579,16 +650,18 @@ URIError: URI malformed
   ⑧ #61 reduce 覆盖 journey / television（先写降级契约）
   ⑨ #54 锚点跳转 + 断点统一（同一文件、同一批测量）
   ⑩ #49 / #50 / #53 TV 与电话亭状态机收敛（requested/committed 重构）
+  ⑪ #80 重建策略：reveal 与 lang / layoutKey 解耦（与 ⑧⑨⑩ 同改 setupChoreography）
 
 第四批（体验补全）
-  ⑪ #75 自定义 404
-  ⑫ #77 分享图 + JSON-LD 日期
-  ⑬ #11 / #12 详情页与首页的语言/主题一致化（依赖 ①，工作量最大）
+  ⑫ #75 自定义 404
+  ⑬ #77 分享图 + JSON-LD 日期
+  ⑭ #11 / #12 详情页与首页的语言 / 主题一致化（依赖 ①，工作量最大）
 
 第五批（清理与测量）
-  ⑭ #76 性能：先测（trace）再改
-  ⑮ #66 / #63 / #55(#19) / #56 / #62 / #22 / #16 / #18 重写与收口
-  ⑯ #64 文档：在每个 PR 里同步，最后一轮统一校订（不要在代码稳定前先改文档）
+  ⑮ #76 性能：先测（trace）再改
+  ⑯ #66 / #55(#19) / #56 / #62 / #22 / #16 / #18 重写与收口（#63 已关闭，残留见 §8.5.3）
+  ⑰ #64 文档：在每个 PR 里同步，最后一轮统一校订（不要在代码稳定前先改文档）
+  ⑱ #13 / #17 / #26 由所有者定夺：接受现状即关闭，否则按验收标准重开
 ```
 
 **关键依赖说明**：
@@ -597,6 +670,7 @@ URIError: URI malformed
 - `#61` 与 `#54` 必须同批 —— 两者都改 `setupChoreography` 的条件分支与断点常量，分开做会互相冲突。
 - `#11/#12` 应最后做 —— 它可能引入 `/en/` 路由或 `?lang=` 方案，会改变 canonical / sitemap / hreflang，进而影响 #71 相关的断言，以及 ① 的链接结构。
 - `#64` 放最后：文档目前描述的是两代之前的版面，先改文档只会再漂一次。
+- `#80` 与 `#61`、`#54` 同批：三者都在改 `setupChoreography()` 的 `matchMedia` 结构与条件分支（`#61` 加 reduce 分支、`#54` 统一断点、`#80` 决定是否全量重建），分开做会反复推翻同一段代码。
 
 ---
 
@@ -618,7 +692,7 @@ URIError: URI malformed
 
 另外两处「看起来像 Bug、实测后降级」的项：
 
-- `out/**/*.txt`（29 个 RSC 载荷）看着像构建垃圾，实际是客户端软导航所需（#63 需重写，见 §8.3）。
+- `out/**/*.txt`（29 个 RSC 载荷）看着像构建垃圾，实际是客户端软导航所需（#63 已关闭，但「不能删」这条纠正仍然成立，见 §8.3 与 §8.5.3）。
 - `test-tv-assets.mjs` 用正则读 `defaults.ts` 看似简陋，但它校验的是「矩形是否盖住 alpha 开口」这一几何不变量，对默认内容有效，因此没有升级为新 Issue（只指出「用户换 `published.json` 后失效」这一盲区）。
 
 ### 10.3 已知但本次未登记的问题（建议并入已有 Issue）
@@ -684,6 +758,20 @@ URIError: URI malformed
 | 浏览器 / 网络抓取 | **无**浏览器；出网仅限白名单（GitHub / npm / PyPI），无法访问 `braineno.github.io` |
 | 操作系统 / 运行时 | Linux · Node v22.22.3 · npm 10.9.8 · 仓库为 shallow clone（depth 1） |
 | 审查期间的仓库改动 | 仅新增本文件 `docs/full-code-review.md`；未改业务代码、未改数据库、未合并 PR、未关闭 Issue |
+
+### 11.5 审查后的状态同步（2026-11-03 07:10 UTC）
+
+为响应「所有者已关闭一批 issue」，按最新仓库状态做了一次只读复核，并据此改写 §5.7、§8.1–§8.5、§9、§10.2：
+
+| 动作 | 命令 / 依据 | 结果 |
+|---|---|---|
+| 拉取关闭列表 | `gh issue list --state closed --limit 100 --json number,closedAt,title` | 23 条（审查前 5 条 + 本轮 18 条） |
+| 拉取开放列表 | `gh issue list --state open --limit 100 --json number,title` | 30 条，与 §8.4 统计一致 |
+| 核对 #79 / #80 | `gh issue view 79/80 --json author,state,createdAt,body` | #79 正文代码片段丢失（残缺重复），07:00 关闭；#80 完整，开放 |
+| 复核 #80 的控制流 | 读 `Portfolio.tsx:205-230,307-317`、`choreography.ts:250-274,343-367,497-515,570-586` | 依赖数组、`layoutKey` 防抖、`mm.revert()`、三处 reveal 全部对上（issue 原文行号有偏移，已按 HEAD 更正） |
+| 比对建议与实际 | §8.4 逐行 | 16/16 确认项已关闭；#13 / #17 / #26 保持开放；#63 被关闭（建议为重写），残留改派 #77 / #64 |
+
+> 本轮仍未改动任何业务代码：`git diff --stat main...HEAD` 只有 `docs/full-code-review.md` 一个文件。
 
 ---
 
