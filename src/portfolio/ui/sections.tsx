@@ -191,16 +191,33 @@ type WorksProps = SectionProps<"works"> & {
   activeIndex: number;
   /** Index of the work opened in the theater, or -1 while browsing the index. */
   theaterIndex: number;
+  /**
+   * Work whose sheet is rendered. Equal to `theaterIndex` while screening, but
+   * it outlives the theater by one exit animation so the copy can fade out
+   * instead of being unmounted mid-transition.
+   */
+  sheetIndex: number;
   onPreview: (index: number) => void;
   onOpen: (index: number) => void;
   onClose: () => void;
   onStep: (delta: 1 | -1) => void;
 };
 
-export function Works({ lang, content, phone, activeIndex, theaterIndex, onPreview, onOpen, onClose, onStep }: WorksProps) {
+export function Works({
+  lang,
+  content,
+  phone,
+  activeIndex,
+  theaterIndex,
+  sheetIndex,
+  onPreview,
+  onOpen,
+  onClose,
+  onStep,
+}: WorksProps) {
   const zh = lang === "zh";
   const active = activeIndex >= 0 ? content.items[activeIndex] : undefined;
-  const featured = theaterIndex >= 0 ? content.items[theaterIndex] : undefined;
+  const featured = sheetIndex >= 0 ? content.items[sheetIndex] : undefined;
   const theaterOpen = theaterIndex >= 0;
   const { screen, width, height, src, alphaSrc } = content.tv;
   const tvStyle = {
@@ -280,59 +297,89 @@ export function Works({ lang, content, phone, activeIndex, theaterIndex, onPrevi
           aria-label={featured ? t(featured.title, lang) : undefined}
         >
           {featured ? (
-            <div key={featured.id} className="tv-sheet-inner">
-              <div className="tv-sheet-top">
-                <span className="tv-sheet-mask">
-                  <span className="tv-sheet-reveal tv-sheet-index">
-                    {String(theaterIndex + 1).padStart(2, "0")} / {String(content.items.length).padStart(2, "0")}
+            <div className="tv-sheet-inner">
+              {/* Only the project copy is keyed: switching works remounts this
+                  block (and `TheaterHandle.swap` reveals it), while the nav
+                  below stays mounted for the whole screening — it never loses
+                  its visibility or the keyboard focus. */}
+              <div key={featured.id} className="tv-sheet-content">
+                <div className="tv-sheet-top">
+                  <span className="tv-sheet-mask">
+                    <span className="tv-sheet-reveal tv-sheet-index">
+                      {String(sheetIndex + 1).padStart(2, "0")} / {String(content.items.length).padStart(2, "0")}
+                    </span>
                   </span>
-                </span>
-                <span className="tv-sheet-mask">
-                  <span className={cx("tv-sheet-reveal tv-sheet-kicker", zh && "is-zh")}>
-                    {t(content.heading, lang)}
+                  <span className="tv-sheet-mask">
+                    <span className={cx("tv-sheet-reveal tv-sheet-kicker", zh && "is-zh")}>
+                      {t(content.heading, lang)}
+                    </span>
                   </span>
-                </span>
+                </div>
+                <h3 className="tv-sheet-title">
+                  <span className="tv-sheet-mask">
+                    <span className={cx("tv-sheet-reveal", /[\u3400-\u9fff]/.test(t(featured.title, lang)) && "is-zh")}>
+                      {t(featured.title, lang)}
+                    </span>
+                  </span>
+                </h3>
+                <ul className="tv-sheet-meta">
+                  <li className="tv-sheet-mask"><span className="tv-sheet-reveal">{featured.year}</span></li>
+                  {t(featured.credit, lang)
+                    .split("·")
+                    .map((tag) => tag.trim())
+                    .filter(Boolean)
+                    .map((tag) => (
+                      <li key={tag} className="tv-sheet-mask">
+                        <span className={cx("tv-sheet-reveal", zh && "is-zh")}>/ {tag}</span>
+                      </li>
+                    ))}
+                </ul>
+                <p className={cx("tv-sheet-fade tv-sheet-copy", zh && "is-zh")}>{t(featured.description, lang)}</p>
+                <div className="tv-sheet-fade tv-sheet-actions">
+                  <a href={featured.url} target="_blank" rel="noreferrer" className="tv-sheet-link" data-cursor="link">
+                    <span>{zh ? "查看仓库" : "Open repository"}</span>
+                    <span aria-hidden="true">↗</span>
+                  </a>
+                  {!featured.video ? (
+                    <span className={cx("tv-sheet-note", zh && "is-zh")}>
+                      {zh ? "静帧预览 · 暂无演示视频" : "Still preview · no showreel yet"}
+                    </span>
+                  ) : null}
+                </div>
               </div>
-              <h3 className="tv-sheet-title">
-                <span className="tv-sheet-mask">
-                  <span className={cx("tv-sheet-reveal", /[\u3400-\u9fff]/.test(t(featured.title, lang)) && "is-zh")}>
-                    {t(featured.title, lang)}
-                  </span>
-                </span>
-              </h3>
-              <ul className="tv-sheet-meta">
-                <li className="tv-sheet-mask"><span className="tv-sheet-reveal">{featured.year}</span></li>
-                {t(featured.credit, lang)
-                  .split("·")
-                  .map((tag) => tag.trim())
-                  .filter(Boolean)
-                  .map((tag) => (
-                    <li key={tag} className="tv-sheet-mask">
-                      <span className={cx("tv-sheet-reveal", zh && "is-zh")}>/ {tag}</span>
-                    </li>
-                  ))}
-              </ul>
-              <p className={cx("tv-sheet-fade tv-sheet-copy", zh && "is-zh")}>{t(featured.description, lang)}</p>
-              <div className="tv-sheet-fade tv-sheet-actions">
-                <a href={featured.url} target="_blank" rel="noreferrer" className="tv-sheet-link" data-cursor="link">
-                  <span>{zh ? "查看仓库" : "Open repository"}</span>
-                  <span aria-hidden="true">↗</span>
-                </a>
-                {!featured.video ? (
-                  <span className={cx("tv-sheet-note", zh && "is-zh")}>
-                    {zh ? "静帧预览 · 暂无演示视频" : "Still preview · no showreel yet"}
-                  </span>
-                ) : null}
-              </div>
-              <nav className="tv-sheet-fade tv-sheet-nav" aria-label={zh ? "项目切换" : "Project navigation"}>
-                <button type="button" className="tv-sheet-btn" onClick={() => onStep(-1)} data-cursor="link">
-                  <span aria-hidden="true">←</span> {zh ? "上一个" : "Previous"}
+              <nav className="tv-sheet-nav" aria-label={zh ? "项目切换" : "Project navigation"}>
+                <button
+                  type="button"
+                  className="tv-sheet-btn"
+                  onClick={() => onStep(-1)}
+                  disabled={!theaterOpen}
+                  aria-label={zh ? "上一个项目" : "Previous project"}
+                  data-cursor="link"
+                >
+                  <span className="tv-sheet-btn-icon" aria-hidden="true">←</span>
+                  <span className={cx("tv-sheet-btn-label", zh && "is-zh")}>{zh ? "上一个" : "Previous"}</span>
                 </button>
-                <button type="button" className="tv-sheet-btn" onClick={() => onStep(1)} data-cursor="link">
-                  {zh ? "下一个" : "Next"} <span aria-hidden="true">→</span>
+                <button
+                  type="button"
+                  className="tv-sheet-btn"
+                  onClick={() => onStep(1)}
+                  disabled={!theaterOpen}
+                  aria-label={zh ? "下一个项目" : "Next project"}
+                  data-cursor="link"
+                >
+                  <span className={cx("tv-sheet-btn-label", zh && "is-zh")}>{zh ? "下一个" : "Next"}</span>
+                  <span className="tv-sheet-btn-icon" aria-hidden="true">→</span>
                 </button>
-                <button type="button" className="tv-sheet-btn tv-sheet-close" onClick={onClose} data-cursor="link">
-                  {zh ? "关闭" : "Close"} <span aria-hidden="true">×</span>
+                <button
+                  type="button"
+                  className="tv-sheet-btn tv-sheet-close"
+                  onClick={onClose}
+                  disabled={!theaterOpen}
+                  aria-label={zh ? "关闭放映，返回作品列表" : "Close and return to the works index"}
+                  data-cursor="link"
+                >
+                  <span className={cx("tv-sheet-btn-label", zh && "is-zh")}>{zh ? "关闭" : "Close"}</span>
+                  <span className="tv-sheet-btn-icon tv-sheet-btn-x" aria-hidden="true">×</span>
                 </button>
               </nav>
             </div>
@@ -374,6 +421,17 @@ export function Works({ lang, content, phone, activeIndex, theaterIndex, onPrevi
                 tabIndex={0}
                 onMouseEnter={() => onPreview(index)}
                 onFocus={() => onPreview(index)}
+                // Rows are focusable (tabIndex 0). A mouse press would focus the
+                // row with the browser's default scroll-into-view, which runs
+                // against ScrollSmoother's transformed content and can move the
+                // row between pointerdown and pointerup — the click then lands on
+                // the list instead of the row and the theater never opens. Focus
+                // it ourselves, without scrolling.
+                onMouseDown={(event) => {
+                  if (event.button !== 0) return;
+                  event.preventDefault();
+                  event.currentTarget.focus({ preventScroll: true });
+                }}
                 onClick={() => onOpen(index)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {

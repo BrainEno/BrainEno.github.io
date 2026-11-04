@@ -11,6 +11,7 @@
 
 import { gsap } from "gsap";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type RefObject } from "react";
 import { t } from "../content/normalize";
 import type { Language, PortfolioContent, SectionId } from "../content/types";
@@ -190,8 +191,14 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
   const [section, setSection] = useState<SectionId>("intro");
   const [activeWork, setActiveWork] = useState(-1);
   const [theaterWork, setTheaterWork] = useState(-1);
+  // The sheet outlives the theater by one exit animation (see `closeWork`).
+  const [sheetWork, setSheetWork] = useState(-1);
   const theaterRef = useRef<TheaterHandle | null>(null);
   const theaterIndexRef = useRef(-1);
+  const shownTheaterRef = useRef(-1);
+  /** Scroll progress (0–1) carried across a choreography rebuild. */
+  const scrollMemoryRef = useRef<number | null>(null);
+  const stepDirectionRef = useRef<1 | -1>(1);
   const [layoutKey, setLayoutKey] = useState(0);
 
   useEffect(() => {
@@ -224,19 +231,29 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
     theaterIndexRef.current = index;
     lastWorkRef.current = index;
     setTheaterWork(index);
+    setSheetWork(index);
     setActiveWork(index);
   }, [workCount]);
 
   // The sheet is rendered by the state change above; the zoom timeline is
   // built right after that commit so it can find the sheet's text to reveal.
+  // Switching projects inside the theater only remounts the keyed project
+  // copy; `swap` reveals it while the nav (prev / next / close) stays put.
   useLayoutEffect(() => {
-    if (theaterWork < 0 || theaterRef.current) return;
+    const previous = shownTheaterRef.current;
+    shownTheaterRef.current = theaterWork;
+    if (theaterWork < 0) return;
+    if (theaterRef.current) {
+      if (previous >= 0 && previous !== theaterWork) theaterRef.current.swap(stepDirectionRef.current);
+      return;
+    }
     const section = scopeRef.current?.querySelector<HTMLElement>("#works");
     if (!section) return;
     const handle = openTheater(section);
     if (!handle) {
       theaterIndexRef.current = -1;
       setTheaterWork(-1);
+      setSheetWork(-1);
       return;
     }
     theaterRef.current = handle;
@@ -251,6 +268,7 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
     void handle.close().then(() => {
       // Back on the index: the tube returns to the untouched set unless the
       // pointer is still parked on a row (the cursor re-syncs on its own).
+      setSheetWork(-1);
       setActiveWork(-1);
       syncPointerRef.current?.();
     });
@@ -260,6 +278,7 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
     (delta: 1 | -1) => {
       const current = theaterIndexRef.current;
       if (current < 0) return;
+      stepDirectionRef.current = delta;
       openWork((current + delta + workCount) % workCount);
     },
     [openWork, workCount]
@@ -389,7 +408,30 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
       lastWork: () => lastWorkRef.current,
       syncPointer: () => syncPointerRef.current?.(),
     });
-    return teardown;
+    // Rebuilding the choreography (language switch, resize) first reverts every
+    // pin, which collapses the pin spacing and clamps the scroll position — the
+    // page used to land thousands of pixels away from where the reader was, and
+    // the focus-scroll of the next click then hit the wrong row. Put the reader
+    // back at the same relative progress once the new pins are measured.
+    const resume = scrollMemoryRef.current;
+    scrollMemoryRef.current = null;
+    let frame = 0;
+    if (resume !== null) {
+      frame = window.requestAnimationFrame(() => {
+        ScrollTrigger.refresh();
+        const target = resume * ScrollTrigger.maxScroll(window);
+        const smoother = ScrollSmoother.get();
+        if (smoother) smoother.scrollTop(target);
+        else window.scrollTo(0, target);
+      });
+    }
+    return () => {
+      window.cancelAnimationFrame(frame);
+      const max = ScrollTrigger.maxScroll(window);
+      const y = ScrollSmoother.get()?.scrollTop() ?? window.scrollY;
+      scrollMemoryRef.current = max > 0 ? Math.min(1, Math.max(0, y / max)) : null;
+      teardown();
+    };
     // `layoutKey` bumps on a viewport-size change: the choreography measures the
     // DOM, so it has to be rebuilt against the new geometry.
   }, [lang, layoutKey, preview]);
@@ -422,6 +464,7 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
               phone={content.contact.phone}
               activeIndex={activeWork}
               theaterIndex={theaterWork}
+              sheetIndex={sheetWork}
               onPreview={preview}
               onOpen={openWork}
               onClose={closeWork}

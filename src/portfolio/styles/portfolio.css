@@ -1492,8 +1492,14 @@ body {
 }
 
 .tv-sheet-inner {
+  display: flex;
+  flex-direction: column;
   width: min(40vw, 34em);
   color: var(--ink);
+}
+
+.tv-sheet-content {
+  min-height: 0;
 }
 
 .tv-sheet-mask {
@@ -1603,39 +1609,98 @@ body {
   color: rgba(214, 226, 255, 0.42);
 }
 
+/* Prev / next / close. Mounted once per screening (outside the keyed project
+   copy) and revealed by the theater timeline, so it never vanishes when the
+   project changes. Selectors are scoped under `.pf` on purpose: the global
+   `.pf button { padding: 0; border: 0; background: none }` reset is (0,1,1)
+   and silently beat the old (0,1,0) `.tv-sheet-btn` rule — that was the
+   "no padding, off-centre label" bug. */
 .tv-sheet-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.6em;
-  margin-top: 3vw;
+  align-items: center;
+  gap: 10px;
+  margin-top: clamp(22px, 3vw, 52px);
+  padding-top: clamp(14px, 1.2vw, 20px);
+  border-top: 1px solid var(--rule-night);
   visibility: hidden;
 }
 
-.tv-sheet-btn {
-  appearance: none;
-  padding: 0.7em 1.1em;
-  border: 1px solid rgba(214, 226, 255, 0.28);
+.pf .tv-sheet-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6em;
+  min-height: 44px;
+  padding: 0 1.3em;
+  border: 1px solid rgba(214, 226, 255, 0.32);
   border-radius: 999px;
-  background: rgba(2, 6, 13, 0.4);
-  font: inherit;
+  background: rgba(2, 6, 13, 0.46);
+  font-family: inherit;
   font-size: clamp(11px, 0.8vw, 13px);
-  letter-spacing: 0.12em;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0;
   text-transform: uppercase;
+  white-space: nowrap;
   color: var(--ink);
   cursor: pointer;
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
-  transition: background 0.3s, border-color 0.3s, color 0.3s;
+  transition: background-color 0.3s, border-color 0.3s, color 0.3s, transform 0.3s var(--ease-out);
 }
 
-.tv-sheet-btn:hover,
-.tv-sheet-btn:focus-visible {
+.pf .tv-sheet-btn:hover,
+.pf .tv-sheet-btn:focus-visible {
   border-color: var(--ink);
   background: var(--ink);
   color: #02060d;
-  outline: none;
 }
 
-.tv-sheet-close {
+.pf .tv-sheet-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.pf .tv-sheet-btn:active {
+  transform: scale(0.97);
+}
+
+.pf .tv-sheet-btn:disabled {
+  cursor: default;
+}
+
+.tv-sheet-btn-label,
+.tv-sheet-btn-icon {
+  display: block;
+  line-height: 1;
+}
+
+/* Letter-spacing also trails the last glyph, which pushes the label off
+   centre. A negative end margin equal to the tracking removes that trailing
+   space, so the padding stays symmetric and the label is optically centred
+   whether the icon sits before or after it. */
+.tv-sheet-btn-label {
+  letter-spacing: 0.12em;
+  margin-right: -0.12em;
+}
+
+.tv-sheet-btn-label.is-zh {
+  letter-spacing: 0.2em;
+  margin-right: -0.2em;
+}
+
+.tv-sheet-btn-icon {
+  font-size: 1.15em;
+  letter-spacing: 0;
+}
+
+.tv-sheet-btn-x {
+  font-size: 1.45em;
+  margin-top: -0.06em;
+}
+
+.pf .tv-sheet-close {
   margin-left: auto;
 }
 
@@ -1648,13 +1713,18 @@ body {
 .works[data-theater-layout="stack"] .tv-sheet-inner {
   width: 100%;
   max-width: 40em;
-  max-height: 44svh;
+  max-height: 46svh;
+}
+
+/* Only the copy scrolls; the nav stays pinned under it, always reachable. */
+.works[data-theater-layout="stack"] .tv-sheet-content {
+  flex: 1 1 auto;
   overflow: auto;
   overscroll-behavior: contain;
   scrollbar-width: none;
 }
 
-.works[data-theater-layout="stack"] .tv-sheet-inner::-webkit-scrollbar {
+.works[data-theater-layout="stack"] .tv-sheet-content::-webkit-scrollbar {
   display: none;
 }
 
@@ -1685,12 +1755,23 @@ body {
 }
 
 .works[data-theater-layout="stack"] .tv-sheet-nav {
-  margin-top: 16px;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
 }
 
-.works[data-theater-layout="stack"] .tv-sheet-btn {
+.pf .works[data-theater-layout="stack"] .tv-sheet-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 0.8em;
   font-size: 11px;
-  padding: 0.6em 0.9em;
+}
+
+.pf .works[data-theater-layout="stack"] .tv-sheet-close {
+  margin-left: 0;
 }
 
 /* Contact ------------------------------------------------------------ */
