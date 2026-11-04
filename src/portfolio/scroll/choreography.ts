@@ -251,9 +251,13 @@ function heroScroll(desktop: boolean) {
       scrub: true,
     },
   })
-    .to(".hero-word-1", { x: desktop ? "-1.2vw" : -12, y: desktop ? "3.6vw" : 80 }, 0)
-    .to(".hero-word-2", { x: desktop ? "-1.2vw" : -12, y: desktop ? "3.6vw" : 80 }, 0.08)
-    .to(".hero-word-3", { x: desktop ? "-1.2vw" : -12, y: desktop ? "3.6vw" : 80 }, 0.16);
+    // The trio is one measured column now, so it drifts as one piece: a per-line
+    // stagger would break the shared left margin the type is built on.
+    .to(
+      [".hero-word-1", ".hero-word-2", ".hero-word-3"],
+      { x: desktop ? "-0.8vw" : -6, y: desktop ? "1vw" : 14 },
+      0,
+    );
 
   gsap.fromTo(
     ".hero-bar-image",

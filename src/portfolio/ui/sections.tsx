@@ -34,6 +34,11 @@ export const Hero = memo(function Hero({ lang, content, name }: SectionProps<"he
       <div className="hero-box">
         {content.headlines.map((headline, index) => (
           <div key={index} className={cx("hero-word", `hero-word-${index + 1}`, zh && "is-zh")}>
+            {/* A numeral per line, right-aligned to the photograph's edge: the
+                tick that measures the type column against the frame. */}
+            <span className="hero-word-index" aria-hidden="true">
+              {String(index + 1).padStart(2, "0")}
+            </span>
             <span className="hero-word-mask">
               <span className="hero-word-text">{t(headline, lang)}</span>
             </span>
