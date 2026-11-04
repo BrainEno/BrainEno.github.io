@@ -16,6 +16,7 @@ import "@fontsource/inria-serif/latin-700.css";
 import { getSiteContent } from "@/portfolio/content/source";
 import { htmlLang, pageTitle, pickText, siteUrl, absoluteUrl } from "@/portfolio/seo/site";
 import PwaRegister from "@/portfolio/ui/PwaRegister";
+import WaterHover from "@/portfolio/ui/WaterHover";
 import "./globals.css";
 
 // Fonts are self-hosted from the npm packages above, not fetched from Google:
@@ -85,6 +86,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         />
         {children}
         <PwaRegister />
+        <WaterHover />
       </body>
     </html>
   );

@@ -570,8 +570,34 @@ body {
   will-change: transform;
 }
 
-/* Journey (intro story + gallery + coda) ---------------------------- */
+/* Pointer ripple overlay (`ui/WaterHover.tsx`) ----------------------
+   The controller writes every box property inline; these are the invariants
+   that must hold even before the first frame is painted. No `will-change`
+   here: the canvas only exists while a pointer is on a picture. */
+canvas[data-water-canvas] {
+  pointer-events: none !important;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  canvas[data-water-canvas] {
+    display: none !important;
+  }
+}
+
+/* Journey (intro story + gallery + coda) ----------------------------
+   The pinned story sits on one 12-column grid: the portrait owns columns
+   2–5, the biography owns 7–12, and the gallery reuses the same gutter and
+   gap on its horizontal track. `.story-layer` and `.story-visual` are two
+   absolutely positioned grids over the same section box, so both resolve
+   their columns against identical tracks — the copy lands in its column by
+   layout, not by translating a full viewport and guessing a per-language
+   offset afterwards. */
 .journey {
+  --grid-columns: 12;
+  --grid-gap: clamp(12px, 1.25vw, 24px);
+
   position: relative;
   width: 100vw;
   height: 100vh;
@@ -584,46 +610,42 @@ body {
 .story-visual {
   position: absolute;
   inset: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
+  column-gap: var(--grid-gap);
+  box-sizing: border-box;
+  padding-inline: var(--gutter);
   will-change: transform;
 }
 
 .story-photo-box {
-  position: absolute;
+  position: relative;
   z-index: 5;
-  top: 18vh;
-  left: 12vw;
-  width: 30vw;
-  height: 64vh;
+  grid-column: 2 / 6;
+  align-self: start;
+  width: auto;
+  height: 60vh;
+  margin-top: 18vh;
 }
 
-.story-photo-mask,
-.story-photo-ghost {
+/* A plain rectangular frame on the grid. The only entry-animation state left
+   is the rectangular `clip-path` reveal in `journeyFlow()`. */
+.story-photo-mask {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 20vw;
-  height: 60vh;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
+  border-radius: 0;
+  clip-path: inset(0%);
   background: var(--stage);
   contain: layout paint;
-}
-
-.story-photo-mask {
-  z-index: 2;
-  transform: rotate(18.17deg);
+  transform: rotate(2.5deg);
+  transform-origin: 50% 50%;
   filter: grayscale(40%);
 }
 
-.story-photo-ghost {
-  z-index: 1;
-  top: 1.1vw;
-  left: 1.5vw;
-  opacity: 0.55;
-  filter: grayscale(70%);
-}
-
-.story-photo-mask img,
-.story-photo-ghost img {
+.story-photo-mask img {
   position: absolute;
   inset: 0;
   display: block;
@@ -639,8 +661,8 @@ body {
 .story-credit {
   position: absolute;
   z-index: 3;
-  top: 66vh;
-  left: 22vw;
+  top: calc(100% + 12px);
+  left: 0;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -660,19 +682,21 @@ body {
 }
 
 .story-copy {
-  position: absolute;
-  top: 0;
-  left: 100vw;
+  position: relative;
+  grid-column: 7 / 13;
+  align-self: stretch;
   display: flex;
   align-items: center;
-  width: min(44vw, 760px);
+  min-width: 0;
+  width: auto;
   height: 100%;
-  padding-bottom: 0;
+  padding: 0;
+  transform: translateX(100vw);
   will-change: transform;
 }
 
 .lang-zh .story-copy {
-  width: min(40vw, 660px);
+  width: auto;
 }
 
 .copy {
@@ -693,6 +717,7 @@ body {
 /* Optical measures are intentionally different in the two languages. */
 .story-copy-inner {
   width: 100%;
+  min-width: 0;
 }
 
 .story-copy .copy-lead {
@@ -713,11 +738,14 @@ body {
   font-style: normal;
   font-weight: 600;
   letter-spacing: -0.045em;
+  /* The name is one word — never let the comma lockup break after it. */
+  white-space: nowrap;
 }
 
 .copy-lead-role {
   display: block;
   font-weight: 400;
+  min-width: 0;
 }
 
 /* Chinese keeps its own rhythm: wider tracking, taller leading, justified to
@@ -788,10 +816,11 @@ body {
 .rail {
   display: flex;
   align-items: center;
-  gap: 3vw;
+  /* Same gutter/gap rhythm as the story grid above it. */
+  gap: var(--grid-gap);
   width: max-content;
   height: 100%;
-  padding-right: 3vw;
+  padding-inline: var(--gutter);
   transform: translateX(100vw);
   will-change: transform;
 }
@@ -806,6 +835,9 @@ body {
   overflow: hidden;
   background: var(--stage);
   contain: layout paint;
+  /* `.rail-stage` is click-through so the pinned track never eats scroll;
+     the pictures themselves still need pointer hit-testing for the ripple. */
+  pointer-events: auto;
 }
 
 .rail-item:nth-child(odd) { transform: translateY(-4vh); }
@@ -2403,10 +2435,18 @@ body {
     padding: 12vh 0 0;
   }
 
+  /* The desktop 12-column grid is a pinned-scene device; in flow the section
+     is a plain vertical stack again, and the copy must not inherit the
+     `translateX(100vw)` off-stage start. */
   .story-layer,
   .story-visual {
     position: relative;
     inset: auto;
+  }
+
+  .story-layer {
+    display: block;
+    padding: 0;
   }
 
   .story-visual {
@@ -2419,36 +2459,34 @@ body {
     position: relative;
     top: auto;
     left: auto;
+    grid-column: auto;
     width: 100%;
     height: min(118vw, 92svh);
-  }
-
-  .story-photo-mask,
-  .story-photo-ghost {
-    width: min(72vw, 56svh);
-    height: min(100vw, 78svh);
-    left: 8vw;
+    margin-top: 0;
   }
 
   .story-photo-mask {
-    transform: rotate(-4deg);
+    top: 0;
+    right: auto;
+    bottom: auto;
+    left: 8vw;
+    width: min(72vw, 56svh);
+    height: min(100vw, 78svh);
+    border-radius: 0;
+    clip-path: inset(0%);
+    transform: none;
     filter: none;
-    border-top-left-radius: 34vw;
-    clip-path: inset(0% 0% 0% 0%);
   }
 
-  .story-photo-ghost {
-    top: 4vw;
-    left: 14vw;
-    transform: rotate(6deg);
-    opacity: 0.35;
-  }
-
+  /* The credit keeps its bottom-right corner, but measured against the
+     portrait itself rather than the (wider) photo box. */
   .story-credit {
-    top: auto;
-    bottom: 2vw;
-    left: auto;
-    right: 0;
+    top: calc(min(100vw, 78svh) + 10px);
+    bottom: auto;
+    left: 8vw;
+    right: auto;
+    width: min(72vw, 56svh);
+    justify-content: flex-end;
     opacity: 1;
     visibility: visible;
     font-size: 11px;
@@ -2457,10 +2495,12 @@ body {
   .story-copy,
   .lang-zh .story-copy {
     position: relative;
+    grid-column: auto;
     left: auto;
     width: 100%;
     height: auto;
     padding: 3vh var(--gutter) 0;
+    transform: none;
   }
 
   .story-copy-inner {
@@ -2560,18 +2600,22 @@ body {
   }
 
   .story-photo-box {
-    grid-column: 1;
+    width: 100%;
     height: min(61vw, 68svh);
+    margin-top: 0;
   }
 
-  .story-photo-mask,
-  .story-photo-ghost {
+  .story-photo-mask {
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
-    left: 0;
+    border-radius: 0;
+    transform: none;
   }
 
   .story-credit {
+    top: auto;
     left: auto;
     right: 0;
     bottom: -2.6rem;
@@ -2579,7 +2623,10 @@ body {
 
   .story-copy,
   .lang-zh .story-copy {
+    grid-column: 2;
+    width: 100%;
     padding: 0;
+    transform: none;
   }
 
   .story-copy-inner {
