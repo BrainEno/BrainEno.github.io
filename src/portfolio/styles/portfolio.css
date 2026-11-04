@@ -632,7 +632,6 @@ body {
 
 .copy-word {
   display: inline;
-  will-change: opacity;
 }
 
 .story-copy-rule {
