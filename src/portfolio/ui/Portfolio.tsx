@@ -416,6 +416,13 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
   }, []);
 
   useEffect(() => {
+    // Belt and braces for the parse-time reset in `app/layout.tsx`: a browser
+    // can hand the restored offset back once the DOM is interactive, and the
+    // smoother would then adopt it as its starting position. Only re-assert it
+    // when that reset actually ran (never on a deep link or a back navigation).
+    if (document.documentElement.dataset.boot === "top" && window.scrollY > 0) {
+      window.scrollTo(0, 0);
+    }
     registerGsap();
     const smoother = createSmoother();
     const scope = scopeRef.current;

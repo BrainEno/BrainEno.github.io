@@ -483,16 +483,6 @@ body {
   white-space: nowrap;
 }
 
-/* Statement punctuation: each line closes, so the trio reads as three
-   declarative sentences rather than three keywords. */
-.hero-word-text::after {
-  content: ".";
-}
-
-.hero-word.is-zh .hero-word-text::after {
-  content: "\3002";
-}
-
 /* The numeral stands on the photograph's edge (the frame starts at 49.2vw of
    the column), a tick that ties every line back to the picture. */
 .hero-word-index {
@@ -714,19 +704,20 @@ body {
   text-wrap: balance;
 }
 
-/* The name line is the one serif moment in the column: Inria Serif italic at
-   the same optical size as the grotesk beside it, so switching faces does not
-   switch weight or colour, only voice. */
+/* One family in the column. The name line still owns the hierarchy, but it
+   earns it from weight and tracking rather than from a second typeface: 600
+   against the role line's 400 at the same optical size. */
 .copy-lead-name {
   display: block;
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-weight: 400;
-  letter-spacing: -0.012em;
+  font-family: inherit;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: -0.045em;
 }
 
 .copy-lead-role {
   display: block;
+  font-weight: 400;
 }
 
 /* Chinese keeps its own rhythm: wider tracking, taller leading, justified to
@@ -741,9 +732,9 @@ body {
 }
 
 .story-copy .copy-lead.is-zh .copy-lead-name {
-  font-family: var(--font-serif);
-  font-style: italic;
-  letter-spacing: -0.012em;
+  font-family: inherit;
+  font-style: normal;
+  letter-spacing: 0.02em;
 }
 
 .story-copy .copy-body {

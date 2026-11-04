@@ -66,6 +66,23 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang={htmlLang(content.identity.defaultLanguage)} suppressHydrationWarning>
       <body>
+        {/* The page opens at the masthead. Browsers otherwise restore the
+            previous scroll position on a reload, which drops the reader
+            straight into the intro before the hero has ever been seen — the
+            smoother then pauses there and the loader plays over the wrong
+            frame. Runs while the body is still parsing, so nothing is painted
+            at the restored offset first.
+
+            Two navigations keep their position: a deep link (hash) and going
+            *back* to the page, which the reader expects to land where they
+            left the index. `data-boot` tells the portfolio that the reset
+            happened, so it only re-asserts the top when it did. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              'try{var n=performance.getEntriesByType&&performance.getEntriesByType("navigation")[0];if(!location.hash&&!(n&&n.type==="back_forward")&&"scrollRestoration"in history){history.scrollRestoration="manual";window.scrollTo(0,0);document.documentElement.setAttribute("data-boot","top")}}catch(e){}',
+          }}
+        />
         {children}
         <PwaRegister />
       </body>
