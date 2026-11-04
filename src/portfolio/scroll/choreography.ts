@@ -75,7 +75,7 @@ function lightWords(tl: gsap.core.Timeline, selector: string, at: number, durati
   if (!words.length) return;
   tl.fromTo(
     words,
-    { opacity: 0.22 },
+    { opacity: 0.42 },
     { opacity: 1, duration: duration * 0.55, ease: "none", stagger: { each: (duration * 0.45) / words.length } },
     at
   );
@@ -99,6 +99,7 @@ function screenLift(section: HTMLElement) {
 export function createHeroEntrance() {
   const tl = gsap.timeline({ paused: true, defaults: { ease: "expo.out", duration: 1.5 } });
   tl.from(".hero-word-text", { yPercent: 118, stagger: 0.12 }, 0)
+    .from(".hero-brand-text", { yPercent: 115, duration: 1.3 }, 0.1)
     .from(".hero-bar", { clipPath: "inset(100% 0% 0% 0%)", stagger: 0.12, duration: 1.7 }, 0.1)
     .from(".hero-photo-reveal", { clipPath: "inset(100% 0% 0% 0%)", duration: 1.7 }, 0)
     .from(".hero-photo-zoom", { scale: 1.32, duration: 2.2 }, 0)
@@ -292,12 +293,12 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean) {
   // portrait landing now, the beat is a little shorter.
   const settle = 0.85;
   const approach = 0.7;
-  const hold1 = dwell(scope.querySelector(".story-copy-inner"), 0.6, 1.4);
+  const hold1 = dwell(scope.querySelector(".story-copy-inner"), 0.75, 1.4);
   const push = 1;
   const traverse = Math.max(0.6, ((railWidth() - vw() * 0.68) / vh()) * 0.8);
   const coda = 1;
   const hold2 = dwell(scope.querySelector(".coda-text"), 0.5, 1.1);
-  const outro = 0.45;
+  const outro = 0.3;
   const total = settle + approach + hold1 + push + traverse + coda + hold2 + outro;
 
   const tl = gsap.timeline({
@@ -356,10 +357,8 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean) {
       { scale: 1, autoAlpha: 1, rotation: 0, duration: 0.3, ease: "back.out(2)" },
       at.settle + 0.5
     )
-    // The biography enters from the right and parks beside the portrait: the
-    // "01 简介" folio first, then the lead sentence, the body a beat later.
-    .fromTo(".story-copy", { x: 0 }, { x: () => -vw() * 0.5, duration: approach, ease: "power2.out" }, at.approach)
-    .fromTo(".story-kicker", { autoAlpha: 0, x: -16 }, { autoAlpha: 1, x: 0, duration: approach * 0.5, ease: "power2.out" }, at.approach + approach * 0.1)
+    // Each language keeps its own reading measure and optical column position.
+    .fromTo(".story-copy", { x: 0 }, { x: () => -vw() * (scope.classList.contains("lang-zh") ? 0.48 : 0.5), duration: approach, ease: "power2.out" }, at.approach)
     .fromTo(".copy-lead", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: approach * 0.6, ease: "power2.out" }, at.approach + approach * 0.2)
     .fromTo(".copy-body", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: approach * 0.6, ease: "power2.out" }, at.approach + approach * 0.4)
     .to(".story-layer", { x: () => -vw() * 1.08, duration: push, ease: "power1.inOut" }, at.push)
@@ -379,7 +378,7 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean) {
   // Reading light is motion: under `prefers-reduced-motion` the words are lit
   // by CSS instead (see the `.copy-word` rule in the reduced-motion block).
   if (!reduce) {
-    lightWords(tl, ".story-copy .copy-word", at.hold1 - approach * 0.2, hold1 + approach * 0.2);
+    lightWords(tl, ".story-copy .copy-body .copy-word", at.hold1 - approach * 0.2, hold1 + approach * 0.2);
     lightWords(tl, ".coda-text .copy-word", at.hold2 - coda * 0.3, hold2 + coda * 0.3);
   }
 
@@ -417,19 +416,6 @@ function journeyFlow(scope: HTMLElement, desktop: boolean, reduce: boolean) {
     ease: "expo.out",
     scrollTrigger: { trigger: ".story-photo-box", start: "top 80%" },
   });
-  // `fromTo`, not `from`: the folio is hidden in CSS until it is revealed, so a
-  // `from` tween would have animated from hidden to hidden on this layout.
-  gsap.fromTo(
-    ".story-kicker",
-    { autoAlpha: 0, x: -12 },
-    {
-      autoAlpha: 1,
-      x: 0,
-      duration: 0.9,
-      ease: "power2.out",
-      scrollTrigger: { trigger: ".story-kicker", start: "top 90%" },
-    }
-  );
   // Paragraphs rise in, then their words brighten with the scroll — the same
   // reading light as the pinned intro, spread over the paragraph's own height.
   gsap.utils.toArray<HTMLElement>(".story-copy p, .coda-text").forEach((el) => {
@@ -444,7 +430,7 @@ function journeyFlow(scope: HTMLElement, desktop: boolean, reduce: boolean) {
     if (!words.length || reduce) return;
     gsap.fromTo(
       words,
-      { opacity: 0.28 },
+      { opacity: 0.5 },
       {
         opacity: 1,
         ease: "none",
@@ -694,6 +680,7 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
   let phase: TvPhase = "rows";
   const setPhase = (next: TvPhase) => {
     phase = next;
+    if (section.dataset.theaterLayout) return;
     section.dataset.tvPhase = next;
   };
   setPhase("rows");
@@ -735,12 +722,16 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
     }
   );
 
-  gsap.from(".works-heading-text", {
-    yPercent: 110,
-    duration: 1.3,
-    ease: "expo.out",
-    scrollTrigger: { trigger: ".works-heading", start: "top 85%", toggleActions: "play none none reverse" },
-  });
+  // The coda leaves as the night arrives. Skipped outright under reduced
+  // motion: that preference asks for no motion, not the same motion shorter.
+  if (!reduce) {
+    gsap.to(".coda", {
+      yPercent: -12,
+      autoAlpha: 0,
+      ease: "none",
+      scrollTrigger: { trigger: section, start: "top 85%", end: "top 35%", scrub: true },
+    });
+  }
 
   gsap.utils.toArray<HTMLElement>(".work-row").forEach((row, index) => {
     const reveal = { trigger: row, start: "top 90%", toggleActions: "play none none reverse" };
@@ -870,14 +861,28 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
       .fromTo(progress, { u: 0 }, { u: 1, duration: 1, onUpdate: () => dive.render(progress.u) }, 0);
   }
 
-  return () => dive?.reset();
+  // Resolve phase once after all callbacks, including jumps backwards across
+  // several beats. Callback registration order must not leave rows unclickable.
+  const syncPhase = () => {
+    const phone = phoneTl.scrollTrigger;
+    const exit = exitTl.scrollTrigger;
+    if (!phone || !exit) return;
+    const y = phone.scroll();
+    setPhase(y < phone.start ? "rows" : y < exit.start ? "phone" : "exit");
+  };
+  ScrollTrigger.create({ trigger: section, start: "top bottom", endTrigger: "#contact", end: "bottom top", onUpdate: syncPhase, onRefresh: syncPhase });
+
+  return () => {
+    message?.kill();
+    dive?.reset();
+  };
 }
 
 function contact(scope: HTMLElement, desktop: boolean, reduce: boolean) {
   const rows = gsap.utils.toArray<HTMLElement>(".contact-reel-row", scope);
   if (reduce) {
     gsap.set(
-      ".contact-booth, .contact-booth-shadow, .contact-reel-row, .contact-topbar > *, .contact-cta-label, .contact-mail-text, .contact-mail-arrow, .contact-cta .contact-item, .contact-footer > *",
+      ".contact-booth, .contact-booth-shadow, .contact-reel-row, .contact-cta-label, .contact-mail-text, .contact-mail-arrow, .contact-cta .contact-item, .contact-footer > *",
       { autoAlpha: 1, clearProps: "transform" }
     );
     return;
@@ -906,15 +911,6 @@ function contact(scope: HTMLElement, desktop: boolean, reduce: boolean) {
     .fromTo(".contact-booth-shadow", { autoAlpha: 0, scale: 0.4 }, { autoAlpha: 1, scale: 1, duration: 0.35, ease: "power2.out" }, 0.3)
     // Rest of the dive: nothing left to arrive, the sheet just lands.
     .to({}, { duration: 0.3 }, 0.7);
-
-  // Type reveals are time-based rather than scrubbed: crisp, deliberate, and
-  // never left half-risen when the visitor stops scrolling midway.
-  gsap
-    .timeline({
-      defaults: { ease: "expo.out", duration: 1.2 },
-      scrollTrigger: { trigger: ".contact-stage", start: "top 75%", toggleActions: "play none none reverse" },
-    })
-    .fromTo(".contact-topbar > *", { autoAlpha: 0, yPercent: 60 }, { autoAlpha: 1, yPercent: 0, stagger: 0.08 }, 0);
 
   gsap
     .timeline({

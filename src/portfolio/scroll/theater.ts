@@ -80,6 +80,10 @@ function measure(section: HTMLElement): Fit | null {
 export type TheaterHandle = {
   /** Re-fit the glass after a resize / orientation change. */
   refit: () => void;
+  /** Translate in place without rebuilding the scroll/pin context. */
+  relabel: () => void;
+  /** Idempotent cancellation, including scroll-lock release on unmount. */
+  dispose: () => void;
   /**
    * Reveal the freshly mounted copy of another project. Called after React
    * swaps the keyed `.tv-sheet-content`; the persistent nav is untouched.
@@ -101,43 +105,68 @@ export function openTheater(section: HTMLElement): TheaterHandle | null {
   const nav = section.querySelector<HTMLElement>(".tv-sheet-nav");
   if (!box || !sheet) return null;
 
+  const smoother = ScrollSmoother.get();
+  const wasPaused = smoother?.paused() ?? false;
+  const previousOverflow = document.documentElement.style.overflow;
+  const originals = [box, list, sheet, veil, scrim, nav]
+    .filter((node): node is HTMLElement => Boolean(node))
+    .map((node) => ({ node, style: node.getAttribute("style") }));
+  const ctx = gsap.context(() => {}, section);
+  let disposed = false;
+  let closing = false;
+  let closingPromise: Promise<void> | null = null;
+  let resolveClose: (() => void) | undefined;
+  let refitTween: gsap.core.Tween | null = null;
+  let refreshFrame = 0;
+  const readingBand = (list?.getBoundingClientRect().top ?? window.innerHeight * 0.25) / window.innerHeight;
+
   section.dataset.tvPhase = "theater";
   section.dataset.theaterLayout = fit.layout;
   // Lock the page: the smoother keeps the pinned stage exactly where it is.
-  ScrollSmoother.get()?.paused(true);
+  if (smoother) smoother.paused(true);
+  else document.documentElement.style.overflow = "hidden";
 
   const dur = reduce ? 0 : 1.15;
-  const tl = gsap.timeline({ defaults: { ease: "expo.inOut", duration: dur } });
-  tl.to(box, { x: fit.x, y: fit.y, scale: fit.scale, rotation: 0 }, 0)
-    .to(list, { autoAlpha: 0, y: -24, duration: dur * 0.45, ease: "power2.in" }, 0)
-    .to(scrim, { autoAlpha: 0, duration: dur * 0.5 }, 0)
-    .fromTo(veil, { autoAlpha: 0 }, { autoAlpha: 1, duration: dur * 0.8 }, dur * 0.2)
-    .fromTo(sheet, { autoAlpha: 0 }, { autoAlpha: 1, duration: dur * 0.4, ease: "none" }, dur * 0.45)
-    .fromTo(
-      sheet.querySelectorAll(".tv-sheet-reveal"),
-      { yPercent: 110 },
-      { yPercent: 0, duration: reduce ? 0 : 1.1, ease: "expo.out", stagger: 0.06 },
-      dur * 0.5
-    )
-    .fromTo(
-      sheet.querySelectorAll(".tv-sheet-fade"),
-      { autoAlpha: 0, y: 14 },
-      { autoAlpha: 1, y: 0, duration: reduce ? 0 : 0.9, ease: "power3.out", stagger: 0.05 },
-      dur * 0.7
-    )
-    // The nav is mounted once for the whole screening (it is not part of the
-    // keyed project copy), so this is the only tween that ever shows it.
-    .fromTo(nav, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: reduce ? 0 : 0.8, ease: "power3.out" }, dur * 0.8);
+  let tl!: gsap.core.Timeline;
+  ctx.add(() => {
+    tl = gsap.timeline({ defaults: { ease: "expo.inOut", duration: dur } });
+    tl.to(box, { x: fit.x, y: fit.y, scale: fit.scale, rotation: 0 }, 0)
+      .to(list, { autoAlpha: 0, y: -24, duration: dur * 0.45, ease: "power2.in" }, 0)
+      .to(scrim, { autoAlpha: 0, duration: dur * 0.5 }, 0)
+      .fromTo(veil, { autoAlpha: 0 }, { autoAlpha: 1, duration: dur * 0.8 }, dur * 0.2)
+      .fromTo(sheet, { autoAlpha: 0 }, { autoAlpha: 1, duration: dur * 0.4, ease: "none" }, dur * 0.45)
+      .fromTo(
+        sheet.querySelectorAll(".tv-sheet-reveal"),
+        { yPercent: 110 },
+        { yPercent: 0, duration: reduce ? 0 : 1.1, ease: "expo.out", stagger: 0.06 },
+        dur * 0.5
+      )
+      .fromTo(
+        sheet.querySelectorAll(".tv-sheet-fade"),
+        { autoAlpha: 0, y: 14 },
+        { autoAlpha: 1, y: 0, duration: reduce ? 0 : 0.9, ease: "power3.out", stagger: 0.05 },
+        dur * 0.7
+      )
+      // The nav is mounted once for the whole screening (it is not part of the
+      // keyed project copy), so this is the only tween that ever shows it.
+      .fromTo(nav, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: reduce ? 0 : 0.8, ease: "power3.out" }, dur * 0.8);
+  });
 
   const refit = () => {
+    if (disposed || closing) return;
     const next = measure(section);
     if (!next) return;
+    section.dataset.tvPhase = "theater";
     section.dataset.theaterLayout = next.layout;
-    gsap.to(box, { x: next.x, y: next.y, scale: next.scale, duration: 0.5, ease: "power3.out", overwrite: "auto" });
+    refitTween?.kill();
+    ctx.add(() => {
+      refitTween = gsap.to(box, { x: next.x, y: next.y, scale: next.scale, rotation: 0, duration: reduce ? 0 : 0.35, ease: "power3.out" });
+    });
   };
 
   let swapTl: gsap.core.Timeline | null = null;
   const swap = (direction: 1 | -1) => {
+    if (disposed || closing) return;
     const content = sheet.querySelector<HTMLElement>(".tv-sheet-content");
     if (!content) return;
     swapTl?.kill();
@@ -146,6 +175,7 @@ export function openTheater(section: HTMLElement): TheaterHandle | null {
     if (tl.progress() < 1) {
       tl.progress(1);
     }
+    ctx.add(() => {
     gsap.set([sheet, nav], { autoAlpha: 1, y: 0 });
     const d = reduce ? 0 : 1;
     swapTl = gsap
@@ -163,20 +193,78 @@ export function openTheater(section: HTMLElement): TheaterHandle | null {
         { autoAlpha: 1, y: 0, duration: 0.7 * d, ease: "power3.out", stagger: 0.05 * d },
         0.15 * d
       );
+    });
   };
 
-  const close = () =>
-    new Promise<void>((resolve) => {
+  const relabel = () => {
+    if (disposed || closing) return;
+    tl.progress(1);
+    swapTl?.kill();
+    ctx.add(() => {
+      gsap.set([sheet, nav], { autoAlpha: 1, y: 0 });
+      gsap.set(sheet.querySelectorAll(".tv-sheet-content, .tv-sheet-reveal, .tv-sheet-fade"), { autoAlpha: 1, x: 0, y: 0, yPercent: 0 });
+      gsap.set([list, scrim], { autoAlpha: 0 });
+      gsap.set(veil, { autoAlpha: 1 });
+    });
+    refit();
+  };
+  const onRefresh = () => {
+    cancelAnimationFrame(refreshFrame);
+    refreshFrame = requestAnimationFrame(() => {
+      if (disposed || closing) return;
+      // A breakpoint can rebuild pins while the smoother is paused. Re-anchor
+      // the live stage before locking again; changing scrollTop while paused
+      // updates its number but deliberately does not render the content.
+      if (smoother && list && ScrollSmoother.get() === smoother) {
+        smoother.paused(false);
+        smoother.scrollTo(smoother.offset(list, "top top") - readingBand * window.innerHeight, false);
+        smoother.paused(true);
+      }
+      relabel();
+    });
+  };
+  ScrollTrigger.addEventListener("refresh", onRefresh);
+
+  const dispose = () => {
+    if (disposed) return;
+    disposed = true;
+    cancelAnimationFrame(refreshFrame);
+    ScrollTrigger.removeEventListener("refresh", onRefresh);
+    ctx.revert();
+    // Killed entrance/swap tweens are no longer guaranteed to be revertible.
+    // Restore the exact pre-dialog inline state, including the visible index.
+    originals.forEach(({ node, style }) => {
+      gsap.set(node, { clearProps: "transform,translate,rotate,scale,opacity,visibility" });
+      if (style === null) node.removeAttribute("style");
+      else node.setAttribute("style", style);
+    });
+    delete section.dataset.theaterLayout;
+    section.dataset.tvPhase = "rows";
+    if (smoother && ScrollSmoother.get() === smoother) smoother.paused(wasPaused);
+    if (!smoother) document.documentElement.style.overflow = previousOverflow;
+    resolveClose?.();
+  };
+
+  const close = () => {
+    if (closingPromise) return closingPromise;
+    if (disposed) return Promise.resolve();
+    closing = true;
+    closingPromise = new Promise<void>((resolve) => {
+      resolveClose = resolve;
       tl.kill();
       swapTl?.kill();
+      refitTween?.kill();
+      ctx.add(() => {
       const out = gsap.timeline({
         defaults: { ease: "expo.inOut", duration: dur },
         onComplete: () => {
-          delete section.dataset.theaterLayout;
-          section.dataset.tvPhase = "rows";
-          ScrollSmoother.get()?.paused(false);
-          ScrollTrigger.refresh();
-          resolve();
+          // Dispose on the next frame: `dispose()` reverts the context that
+          // owns this very timeline, and reverting from inside a completing
+          // tween can drop the frame the visitor is looking at.
+          requestAnimationFrame(() => {
+            dispose();
+            ScrollTrigger.refresh();
+          });
         },
       });
       out
@@ -186,7 +274,10 @@ export function openTheater(section: HTMLElement): TheaterHandle | null {
         .to(box, { x: 0, y: 0, scale: 1, rotation: 0 }, dur * 0.1)
         .to(scrim, { autoAlpha: 1, duration: dur * 0.5 }, dur * 0.5)
         .to(list, { autoAlpha: 1, y: 0, duration: dur * 0.5, ease: "power2.out", clearProps: "transform" }, dur * 0.55);
+      });
     });
+    return closingPromise;
+  };
 
-  return { refit, swap, close };
+  return { refit, relabel, swap, close, dispose };
 }

@@ -65,6 +65,11 @@ const Header = memo(function Header({ name, lang, section, navigation, onLanguag
                 type="button"
                 className={cx("lang", lang === code && "is-selected")}
                 aria-pressed={lang === code}
+                onMouseDown={(event) => {
+                  if (event.button !== 0) return;
+                  event.preventDefault();
+                  event.currentTarget.focus({ preventScroll: true });
+                }}
                 onClick={() => onLanguage(code)}
               >
                 <span className="lang-long">{code === "zh" ? "中文" : "English"}</span>
@@ -220,10 +225,16 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
   // The sheet outlives the theater by one exit animation (see `closeWork`).
   const [sheetWork, setSheetWork] = useState(-1);
   const theaterRef = useRef<TheaterHandle | null>(null);
+  const closingRef = useRef<Promise<void> | null>(null);
+  const layoutDirtyRef = useRef(false);
+  // The dialog owns the camera until it closes. Translating its copy must not
+  // revert the scroll context underneath that camera or overwrite its phase.
+  const [theaterLanguage, setTheaterLanguage] = useState<Language | null>(null);
+  const layoutLanguage = theaterLanguage ?? lang;
   const theaterIndexRef = useRef(-1);
   const shownTheaterRef = useRef(-1);
   /** Scroll progress (0–1) carried across a choreography rebuild. */
-  const scrollMemoryRef = useRef<number | null>(null);
+  const scrollMemoryRef = useRef<{ progress: number; worksTop: number | null } | null>(null);
   const stepDirectionRef = useRef<1 | -1>(1);
   const [layoutKey, setLayoutKey] = useState(0);
 
@@ -249,17 +260,18 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
 
   const openWork = useCallback((index: number) => {
     const section = scopeRef.current?.querySelector<HTMLElement>("#works");
-    if (!section || index < 0 || index >= workCount) return;
+    if (!section || closingRef.current || index < 0 || index >= workCount) return;
     if (theaterIndexRef.current < 0) {
       const phase = section.dataset.tvPhase;
       if (phase && phase !== "rows") return;
+      setTheaterLanguage(lang);
     }
     theaterIndexRef.current = index;
     lastWorkRef.current = index;
     setTheaterWork(index);
     setSheetWork(index);
     setActiveWork(index);
-  }, [workCount]);
+  }, [workCount, lang]);
 
   // The sheet is rendered by the state change above; the zoom timeline is
   // built right after that commit so it can find the sheet's text to reveal.
@@ -271,6 +283,7 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
     if (theaterWork < 0) return;
     if (theaterRef.current) {
       if (previous >= 0 && previous !== theaterWork) theaterRef.current.swap(stepDirectionRef.current);
+      else if (!closingRef.current) theaterRef.current.relabel();
       return;
     }
     const section = scopeRef.current?.querySelector<HTMLElement>("#works");
@@ -280,30 +293,47 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
       theaterIndexRef.current = -1;
       setTheaterWork(-1);
       setSheetWork(-1);
+      setTheaterLanguage(null);
       return;
     }
     theaterRef.current = handle;
-  }, [theaterWork]);
+  }, [theaterWork, lang]);
 
   const closeWork = useCallback(() => {
+    if (closingRef.current) return closingRef.current;
     const handle = theaterRef.current;
-    if (!handle) return;
-    theaterRef.current = null;
-    theaterIndexRef.current = -1;
-    setTheaterWork(-1);
-    void handle.close().then(() => {
-      // Back on the index: the tube returns to the untouched set unless the
-      // pointer is still parked on a row (the cursor re-syncs on its own).
+    if (!handle) return Promise.resolve();
+    const closing = handle.close().then(() => {
+      if (theaterRef.current !== handle) return;
+      theaterRef.current = null;
+      closingRef.current = null;
+      theaterIndexRef.current = -1;
+      setTheaterWork(-1);
       setSheetWork(-1);
       setActiveWork(-1);
+      setTheaterLanguage(null);
+      if (layoutDirtyRef.current) {
+        layoutDirtyRef.current = false;
+        setLayoutKey((key) => key + 1);
+      }
+      scopeRef.current?.querySelector<HTMLElement>(`.work-row[data-work-index="${lastWorkRef.current}"]`)?.focus({ preventScroll: true });
       syncPointerRef.current?.();
     });
+    closingRef.current = closing;
+    return closing;
+  }, []);
+
+  useEffect(() => () => {
+    const handle = theaterRef.current;
+    theaterRef.current = null;
+    closingRef.current = null;
+    handle?.dispose();
   }, []);
 
   const stepWork = useCallback(
     (delta: 1 | -1) => {
       const current = theaterIndexRef.current;
-      if (current < 0) return;
+      if (current < 0 || closingRef.current) return;
       stepDirectionRef.current = delta;
       openWork((current + delta + workCount) % workCount);
     },
@@ -329,9 +359,13 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
   }, [closeWork, stepWork]);
 
   const navigate = useCallback((id: SectionId) => {
-    setSection(id);
-    scrollToSection(id);
-  }, []);
+    void closeWork().then(() => {
+      window.requestAnimationFrame(() => {
+        setSection(id);
+        scrollToSection(id);
+      });
+    });
+  }, [closeWork]);
 
   useEffect(() => {
     let width = window.innerWidth;
@@ -339,8 +373,13 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
     const onResize = () => {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
-        if (Math.abs(window.innerWidth - width) < 2 || theaterIndexRef.current >= 0) return;
+        if (Math.abs(window.innerWidth - width) < 2) return;
         width = window.innerWidth;
+        if (theaterIndexRef.current >= 0) {
+          layoutDirtyRef.current = true;
+          theaterRef.current?.refit();
+          return;
+        }
         setLayoutKey((key) => key + 1);
       }, 250);
     };
@@ -452,8 +491,11 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
     if (resume !== null) {
       frame = window.requestAnimationFrame(() => {
         ScrollTrigger.refresh();
-        const target = resume * ScrollTrigger.maxScroll(window);
         const smoother = ScrollSmoother.get();
+        const list = scope.querySelector<HTMLElement>(".works-list");
+        const target = resume.worksTop !== null && list
+          ? (smoother?.offset(list, "top top") ?? list.getBoundingClientRect().top + window.scrollY) - resume.worksTop
+          : resume.progress * ScrollTrigger.maxScroll(window);
         if (smoother) smoother.scrollTop(target);
         else window.scrollTo(0, target);
       });
@@ -462,12 +504,17 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
       window.cancelAnimationFrame(frame);
       const max = ScrollTrigger.maxScroll(window);
       const y = ScrollSmoother.get()?.scrollTop() ?? window.scrollY;
-      scrollMemoryRef.current = max > 0 ? Math.min(1, Math.max(0, y / max)) : null;
+      const works = scope.querySelector<HTMLElement>("#works")?.getBoundingClientRect();
+      const list = scope.querySelector<HTMLElement>(".works-list");
+      scrollMemoryRef.current = max > 0 ? {
+        progress: Math.min(1, Math.max(0, y / max)),
+        worksTop: works && works.top <= 0 && works.bottom > window.innerHeight && list ? list.getBoundingClientRect().top : null,
+      } : null;
       teardown();
     };
     // `layoutKey` bumps on a viewport-size change: the choreography measures the
     // DOM, so it has to be rebuilt against the new geometry.
-  }, [lang, layoutKey, preview]);
+  }, [layoutLanguage, layoutKey, preview]);
 
   const themeStyle = {
     "--accent": content.theme.accent,

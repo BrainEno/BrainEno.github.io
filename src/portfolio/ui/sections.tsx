@@ -17,6 +17,7 @@ import { t } from "../content/normalize";
 import type { Language, PortfolioContent } from "../content/types";
 import { cx } from "./cx";
 import { PhoneBoothModel } from "./PhoneBoothModel";
+import { WorkTitle } from "./WorkTitle";
 
 type SectionProps<K extends keyof PortfolioContent> = {
   lang: Language;
@@ -27,8 +28,8 @@ export const Hero = memo(function Hero({ lang, content, name }: SectionProps<"he
   const zh = lang === "zh";
   return (
     <section id="intro" className="hero" aria-label={name}>
-      <h1 className="sr-only">{name}</h1>
       <div className="hero-box">
+        <h1 className="hero-brand"><span className="hero-brand-text">{name}</span></h1>
         {content.headlines.map((headline, index) => (
           <div key={index} className={cx("hero-word", `hero-word-${index + 1}`, zh && "is-zh")}>
             <span className="hero-word-mask">
@@ -104,8 +105,7 @@ export const Journey = memo(function Journey({ lang, content }: SectionProps<"in
     <section className="journey" aria-label={heading}>
       <div className="story-layer">
         <div className="story-visual">
-          {/* The heading is carried by the folio below; the h2 stays for the
-              document outline and for screen readers. */}
+          {/* Keep the document outline without a second visible label. */}
           <h2 className="sr-only">{heading}</h2>
           <div className="story-photo-box">
             <div className="story-photo-ghost" aria-hidden="true">
@@ -130,12 +130,13 @@ export const Journey = memo(function Journey({ lang, content }: SectionProps<"in
         </div>
         <div className="story-copy">
           <div className="story-copy-inner">
-            <div className="story-kicker" aria-hidden="true">
-              <span className="story-kicker-index">01</span>
-              <span className={cx(zh && "is-zh")}>{heading}</span>
-            </div>
             <p className={cx("copy copy-lead", zh && "is-zh")}>
-              <Words text={lead} />
+              {zh && lead.includes("，") ? (
+                <>
+                  <span className="copy-lead-name">{lead.slice(0, lead.indexOf("，") + 1)}</span>
+                  <span className="copy-lead-role"><Words text={lead.slice(lead.indexOf("，") + 1)} /></span>
+                </>
+              ) : <Words text={lead} />}
             </p>
             {body ? (
               <p className={cx("copy copy-body", zh && "is-zh")}>
@@ -371,7 +372,17 @@ export function Works({
                   </a>
                 </div>
               </div>
-              <nav className="tv-sheet-nav" aria-label={zh ? "项目切换" : "Project navigation"}>
+              <nav
+                className="tv-sheet-nav"
+                aria-label={zh ? "项目切换" : "Project navigation"}
+                onMouseDown={(event) => {
+                  if (event.button !== 0) return;
+                  const button = (event.target as Element).closest<HTMLButtonElement>("button");
+                  if (!button) return;
+                  event.preventDefault();
+                  button.focus({ preventScroll: true });
+                }}
+              >
                 <button
                   type="button"
                   className="tv-sheet-btn"
@@ -412,14 +423,7 @@ export function Works({
       </div>
 
       <div className="works-list">
-        <h2 className="works-heading">
-          <span className="works-index" aria-hidden="true">
-            02
-          </span>
-          <span className={cx("works-heading-text", zh && "is-zh")}>
-            {t(content.heading, lang)} <span className="works-period">{content.period}</span>
-          </span>
-        </h2>
+        <h2 className="sr-only">{t(content.heading, lang)}</h2>
         <ol
           className="work-rows"
           onMouseLeave={(event) => {
@@ -441,35 +445,36 @@ export function Works({
                 className={cx("work-row", zh && "is-zh", index === activeIndex && "is-active")}
                 data-cursor="view"
                 data-work-index={index}
-                tabIndex={0}
                 onMouseEnter={() => onPreview(index)}
-                onFocus={() => onPreview(index)}
-                // Rows are focusable (tabIndex 0). A mouse press would focus the
-                // row with the browser's default scroll-into-view, which runs
-                // against ScrollSmoother's transformed content and can move the
-                // row between pointerdown and pointerup — the click then lands on
-                // the list instead of the row and the theater never opens. Focus
-                // it ourselves, without scrolling.
-                onMouseDown={(event) => {
-                  if (event.button !== 0) return;
-                  event.preventDefault();
-                  event.currentTarget.focus({ preventScroll: true });
-                }}
-                onClick={() => onOpen(index)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    onOpen(index);
-                  }
-                }}
               >
+                {/* One real control per row, covering it: the <ol>/<li> keep
+                    their list semantics, the row is still announced as a
+                    button, and its accessible name is the project title rather
+                    than the year / credit line underneath. */}
+                <button
+                  type="button"
+                  className="work-row-hit"
+                  aria-haspopup="dialog"
+                  onFocus={() => onPreview(index)}
+                  // A mouse press would focus with the browser's default
+                  // scroll-into-view, which runs against ScrollSmoother's
+                  // transformed content and can move the row between
+                  // pointerdown and pointerup — the click then lands on the
+                  // list instead of the row and the theater never opens. Focus
+                  // it ourselves, without scrolling.
+                  onMouseDown={(event) => {
+                    if (event.button !== 0) return;
+                    event.preventDefault();
+                    event.currentTarget.focus({ preventScroll: true });
+                  }}
+                  onClick={() => onOpen(index)}
+                >
+                  <span className="sr-only">{title}</span>
+                </button>
                 <span className="work-row-line" aria-hidden="true" />
                 <span className="work-row-index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
                 <span className="work-row-mask">
-                  <span className="work-row-title">
-                    <span className="work-row-name">{title}</span>
-                    <span className="work-row-name-alt" aria-hidden="true">{title}</span>
-                  </span>
+                  <WorkTitle text={title} />
                 </span>
                 <span className="work-row-meta">
                   <span className="work-row-mask"><span>{work.year}</span></span>
@@ -534,13 +539,6 @@ export const Contact = memo(function Contact({ lang, content }: SectionProps<"co
   return (
     <section id="contact" className="contact">
       <div className="contact-inner">
-        <div className="contact-topbar">
-          <span>
-            <span className="contact-topbar-index">03</span>
-            <span className={cx(zh && "is-zh")}>{zh ? "联系" : "Contact"}</span>
-          </span>
-        </div>
-
         <div className="contact-stage">
           <h2 className="sr-only">{lines.join(" ")}</h2>
           {/* Decorative repetition: hidden from the accessibility tree, the link
