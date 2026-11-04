@@ -17,6 +17,7 @@ import { t } from "../content/normalize";
 import type { Language, PortfolioContent, SectionId } from "../content/types";
 import {
   createHeroEntrance,
+  createLoader,
   createSmoother,
   prefersReducedMotion,
   registerGsap,
@@ -94,15 +95,40 @@ const Header = memo(function Header({ name, lang, section, navigation, onLanguag
   );
 });
 
+/**
+ * The loading screen: a CRT tuning to the wordmark. Four stacked copies of the
+ * name — a dark ghost, the phosphor pass the scan reveals, and the red / cyan
+ * guns that slip on lock. The flood is a *sibling*: white with the letters
+ * punched out, so the camera can dive through the stem of the "I" into the
+ * page behind it. Choreography lives in `scroll/choreography.ts#createLoader`.
+ */
 function Preloader({ name }: { name: string }) {
+  const letters = Array.from(name.toUpperCase().replace(/\s+/g, ""));
+  // The pivot is the stem the dive is aimed at: the "I" of BRAINENO.
+  const pivot = 3;
   return (
-    <div className="preloader" aria-hidden="true">
-      <div className="preloader-inner">
-        <span className="preloader-mask"><span className="preloader-name">{name}</span></span>
-        <span className="preloader-mask"><span className="preloader-count">000</span></span>
+    <>
+      <div className="preloader" aria-hidden="true">
+        <div className="preloader-stretch">
+          <div className="preloader-word">
+            <span className="preloader-word-ghost">{name}</span>
+            <span className="preloader-word-lit">{name}</span>
+            <span className="preloader-word-r">{name}</span>
+            <span className="preloader-word-c">{name}</span>
+          </div>
+          <div className="preloader-beam" />
+          <div className="preloader-wipe" />
+          <span className="preloader-count">000</span>
+        </div>
       </div>
-      <div className="preloader-bar"><span className="preloader-bar-fill" /></div>
-    </div>
+      <div className="preloader-flood" aria-hidden="true">
+        <span className="preloader-mark">
+          {letters.slice(0, pivot).join("")}
+          <span className="is-pivot">{letters[pivot] ?? "I"}</span>
+          {letters.slice(pivot + 1).join("")}
+        </span>
+      </div>
+    </>
   );
 }
 
@@ -331,9 +357,14 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
     const scope = scopeRef.current;
     if (!scope) return;
     const preloader = scope.querySelector<HTMLElement>(".preloader");
-    const count = scope.querySelector<HTMLElement>(".preloader-count");
+    const flood = scope.querySelector<HTMLElement>(".preloader-flood");
     const heroImage = scope.querySelector<HTMLImageElement>(".hero-photo");
     const entrance = createHeroEntrance();
+    // The loader is never unmounted: it is parked outside the flow once done.
+    const hideLoader = () => {
+      if (preloader) preloader.style.display = "none";
+      if (flood) flood.style.display = "none";
+    };
 
     // Reduced motion means *no* motion, not the same motion, quicker. The two
     // pieces that cannot be made "short enough" are the full-screen loading
@@ -341,7 +372,7 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
     // there, already in its final pose. Scroll choreography, the booth and the
     // television each check the same media query on their own.
     if (prefersReducedMotion()) {
-      if (preloader) preloader.style.display = "none";
+      hideLoader();
       entrance.progress(1);
       smoother.paused(false);
       return () => {
@@ -351,16 +382,11 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
     }
 
     const quick = window.sessionStorage.getItem(SEEN_KEY) === "1";
-    const counter = { value: 0 };
-    const renderCount = () => {
-      if (count) count.textContent = String(Math.round(counter.value)).padStart(3, "0");
-    };
-
     smoother.paused(true);
-    const intro = gsap.timeline();
-    intro
-      .to(counter, { value: 82, duration: quick ? 0.35 : 1.3, ease: "power2.inOut", onUpdate: renderCount })
-      .to(".preloader-bar-fill", { scaleX: 0.82, duration: quick ? 0.35 : 1.3, ease: "power2.inOut" }, 0);
+    // A repeat visit in the same session halves every beat; the ready promise
+    // still gates the finish, so the loader never ends before the page is up.
+    const loader = preloader && flood ? createLoader(preloader, flood, quick) : null;
+    const intro = loader?.intro ?? gsap.timeline();
 
     const ready = Promise.race([
       Promise.all([
@@ -374,18 +400,25 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
     let cancelled = false;
     void ready.then(() => {
       if (cancelled) return;
-      outro = gsap.timeline({ delay: intro.isActive() ? intro.duration() - intro.time() : 0 });
-      outro
-        .to(counter, { value: 100, duration: 0.45, ease: "power2.out", onUpdate: renderCount })
-        .to(".preloader-bar-fill", { scaleX: 1, duration: 0.45, ease: "power2.out" }, "<")
-        .to(".preloader-mask > *", { yPercent: -110, duration: 0.6, ease: "expo.in", stagger: 0.05 })
-        .to(".preloader", { yPercent: -100, duration: 1.05, ease: "expo.inOut" }, "-=0.15")
-        .add(() => entrance.play(), "-=0.6")
-        .add(() => {
+      const delay = intro.isActive() ? intro.duration() - intro.time() : 0;
+      if (!loader) {
+        entrance.play();
+        smoother.paused(false);
+        window.sessionStorage.setItem(SEEN_KEY, "1");
+        hideLoader();
+        return;
+      }
+      // The hero entrance starts while the camera is still inside the "I", so
+      // the dive lands on a page that is already arriving.
+      outro = loader.reveal({
+        delay,
+        entrance: () => entrance.play(),
+        done: () => {
           smoother.paused(false);
           window.sessionStorage.setItem(SEEN_KEY, "1");
-          if (preloader) preloader.style.display = "none";
-        });
+          hideLoader();
+        },
+      });
     });
 
     return () => {
@@ -444,6 +477,9 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
   return (
     <div ref={scopeRef} className={cx("pf", lang === "zh" && "lang-zh")} style={themeStyle}>
       <Preloader name={content.identity.name} />
+      {/* The glass the dive passes through: positioned every frame by
+          `createDive`, invisible until the sheet is on the tube. */}
+      <div className="tv-glass" aria-hidden="true" />
       <Cursor onHoverWork={preview} syncRef={syncPointerRef} />
       <Header
         name={content.identity.name}
@@ -461,7 +497,7 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
             <Works
               lang={lang}
               content={content.works}
-              phone={content.contact.phone}
+              email={content.contact.email}
               activeIndex={activeWork}
               theaterIndex={theaterWork}
               sheetIndex={sheetWork}

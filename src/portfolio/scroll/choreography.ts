@@ -106,6 +106,131 @@ export function createHeroEntrance() {
   return tl;
 }
 
+export type Loader = {
+  /** Warm-up and the first 82 % of the scan, played while the page decodes. */
+  intro: gsap.core.Timeline;
+  /** Finish the scan, lock the signal, flood the tube and dive into the hero. */
+  reveal: (hooks: { delay: number; entrance: () => void; done: () => void }) => gsap.core.Timeline;
+};
+
+/**
+ * The loading screen (markup in `ui/Portfolio.tsx#Preloader`), in four beats:
+ *
+ * 1. **Scan** — a phosphor beam rasters the wordmark top to bottom; above it the
+ *    letters are lit, below it they are still dark glass. The beam position is
+ *    the load progress (`--scan`, 0–1) and the counter rides along with it.
+ * 2. **Lock** — the beam flares out, the phosphor overdrives for a moment and
+ *    the colour guns slip (red / cyan copies jitter, then converge).
+ * 3. **Flood** — a full white raster rolls down the tube. Above its edge the
+ *    loader is replaced by `.preloader-flood`: white with the letters punched
+ *    out (black under `mix-blend-mode: screen` is transparent to the page).
+ * 4. **Dive** — the camera pushes through the stem of the "I" (`.is-pivot`)
+ *    until the hole fills the viewport; the hero entrance starts on the way in.
+ *
+ * `quick` (a repeat visit in the same session) halves every beat.
+ */
+export function createLoader(preloader: HTMLElement, flood: HTMLElement, quick: boolean): Loader {
+  const k = quick ? 0.5 : 1;
+  const stretch = preloader.querySelector<HTMLElement>(".preloader-stretch");
+  const ghost = preloader.querySelector<HTMLElement>(".preloader-word-ghost");
+  const lit = preloader.querySelector<HTMLElement>(".preloader-word-lit");
+  const red = preloader.querySelector<HTMLElement>(".preloader-word-r");
+  const cyan = preloader.querySelector<HTMLElement>(".preloader-word-c");
+  const beam = preloader.querySelector<HTMLElement>(".preloader-beam");
+  const count = preloader.querySelector<HTMLElement>(".preloader-count");
+  const wipe = preloader.querySelector<HTMLElement>(".preloader-wipe");
+  const mark = flood.querySelector<HTMLElement>(".preloader-mark");
+  const pivot = flood.querySelector<HTMLElement>(".is-pivot");
+  const guns = [red, cyan].filter((el): el is HTMLElement => Boolean(el));
+
+  const scan = { value: 0 };
+  const paintScan = () => {
+    stretch?.style.setProperty("--scan", (scan.value / 100).toFixed(4));
+    if (count) count.textContent = String(Math.round(scan.value)).padStart(3, "0");
+  };
+  const flooded = { value: 0 };
+  const paintFlood = () => {
+    const p = flooded.value;
+    preloader.style.clipPath = `inset(${p}% 0% 0% 0%)`;
+    flood.style.clipPath = `inset(0% 0% ${100 - p}% 0%)`;
+    if (wipe) wipe.style.top = `${p}%`;
+  };
+
+  const intro = gsap.timeline();
+  if (ghost) intro.fromTo(ghost, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.5 * k, ease: "power2.out" }, 0);
+  if (beam) intro.fromTo(beam, { autoAlpha: 0, scaleX: 0 }, { autoAlpha: 1, scaleX: 1, duration: 0.55 * k, ease: "expo.out" }, 0);
+  intro.to(scan, { value: 82, duration: quick ? 0.35 : 1.15, ease: "power2.inOut", onUpdate: paintScan }, 0.15 * k);
+
+  // The dive is aimed when it starts (fonts are ready by then): scale the hole
+  // until the stem of the pivot letter covers the whole viewport.
+  let aim: { scale: number; origin: string } | null = null;
+  const aimDive = () => {
+    if (aim) return aim;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const box = mark?.getBoundingClientRect();
+    const hole = pivot?.getBoundingClientRect();
+    if (!box || !hole || !hole.width || !hole.height) {
+      aim = { scale: 60, origin: "50% 50%" };
+      return aim;
+    }
+    const cx = hole.left + hole.width / 2;
+    const cy = hole.top + hole.height / 2;
+    // The span is the advance width and the whole line box; the stem and the
+    // cap height are narrower than that, so both are taken conservatively.
+    const stem = hole.width * 0.42;
+    const cap = hole.height * 0.55;
+    const scale = 1.12 * Math.max((2 * Math.max(cx, vw - cx)) / stem, (2 * Math.max(cy, vh - cy)) / cap);
+    aim = { scale, origin: `${cx - box.left}px ${cy - box.top}px` };
+    return aim;
+  };
+
+  const reveal: Loader["reveal"] = ({ delay, entrance, done }) => {
+    const tl = gsap.timeline({ delay });
+    tl.to(scan, { value: 100, duration: 0.35 * k, ease: "power2.out", onUpdate: paintScan }).addLabel("lock");
+    if (beam) tl.to(beam, { scaleY: 7, autoAlpha: 0, duration: 0.32 * k, ease: "power2.out" }, "lock");
+    if (count) tl.to(count, { autoAlpha: 0, duration: 0.18 * k }, "lock");
+    if (lit) {
+      tl.fromTo(lit, { filter: "brightness(1.9)" }, { filter: "brightness(1)", duration: 0.4 * k, ease: "power2.out" }, "lock")
+        .set(lit, { x: 3, skewX: -7 }, "lock")
+        .set(lit, { x: -2, skewX: 4 }, `lock+=${0.07 * k}`)
+        .set(lit, { x: 0, skewX: 0 }, `lock+=${0.14 * k}`);
+    }
+    if (red && cyan) {
+      tl.set(guns, { autoAlpha: 0.9 }, "lock")
+        .set(red, { x: -9 }, "lock")
+        .set(cyan, { x: 7 }, "lock")
+        .set(red, { x: 5 }, `lock+=${0.07 * k}`)
+        .set(cyan, { x: -4 }, `lock+=${0.07 * k}`)
+        .set(red, { x: -2 }, `lock+=${0.14 * k}`)
+        .set(cyan, { x: 2 }, `lock+=${0.14 * k}`)
+        .set(guns, { autoAlpha: 0, x: 0 }, `lock+=${0.21 * k}`);
+    }
+    tl.addLabel("flood", `lock+=${0.2 * k}`);
+    if (wipe) tl.set(wipe, { autoAlpha: 1 }, "flood");
+    tl.to(flooded, { value: 100, duration: 0.5 * k, ease: "power3.inOut", onUpdate: paintFlood }, "flood").addLabel(
+      "dive",
+      `flood+=${0.56 * k}`
+    );
+    if (mark) {
+      tl.to(
+        mark,
+        {
+          scale: () => aimDive().scale,
+          transformOrigin: () => aimDive().origin,
+          duration: quick ? 0.7 : 1.05,
+          ease: "power3.in",
+        },
+        "dive"
+      );
+    }
+    tl.add(entrance, `dive+=${0.4 * k}`).add(done);
+    return tl;
+  };
+
+  return { intro, reveal };
+}
+
 type Conditions = { desktop: boolean; mobile: boolean; journeyPinned: boolean; reduce: boolean };
 
 export type ChoreographyOptions = {
@@ -163,7 +288,9 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean) {
   const vh = () => window.innerHeight;
   const railWidth = () => rail.scrollWidth;
 
-  const settle = 1;
+  // The display title used to rise during the settle beat; with only the
+  // portrait landing now, the beat is a little shorter.
+  const settle = 0.85;
   const approach = 0.7;
   const hold1 = dwell(scope.querySelector(".story-copy-inner"), 0.6, 1.4);
   const push = 1;
@@ -223,20 +350,18 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean) {
       { rotation: 9, x: "2.6vw", y: "2.2vw", autoAlpha: 0.35, duration: settle },
       at.settle
     )
-    .fromTo(".story-title-text", { yPercent: -110 }, { yPercent: 0, duration: 0.7, ease: "power3.out" }, at.settle + 0.12)
     .fromTo(
       ".story-credit",
       { scale: 0.01, autoAlpha: 0, rotation: 18 },
       { scale: 1, autoAlpha: 1, rotation: 0, duration: 0.3, ease: "back.out(2)" },
-      at.settle + 0.66
+      at.settle + 0.5
     )
-    .fromTo(".story-kicker", { autoAlpha: 0, x: -16 }, { autoAlpha: 1, x: 0, duration: 0.3, ease: "power2.out" }, at.settle + 0.2)
-    // The biography enters from the right and parks beside the portrait; the
-    // lead sentence arrives first, the body a beat later.
+    // The biography enters from the right and parks beside the portrait: the
+    // "01 简介" folio first, then the lead sentence, the body a beat later.
     .fromTo(".story-copy", { x: 0 }, { x: () => -vw() * 0.5, duration: approach, ease: "power2.out" }, at.approach)
+    .fromTo(".story-kicker", { autoAlpha: 0, x: -16 }, { autoAlpha: 1, x: 0, duration: approach * 0.5, ease: "power2.out" }, at.approach + approach * 0.1)
     .fromTo(".copy-lead", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: approach * 0.6, ease: "power2.out" }, at.approach + approach * 0.2)
     .fromTo(".copy-body", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: approach * 0.6, ease: "power2.out" }, at.approach + approach * 0.4)
-    .fromTo(".story-copy-rule", { scaleX: 0, transformOrigin: "0% 50%" }, { scaleX: 1, duration: approach * 0.7, ease: "power2.out" }, at.approach + approach * 0.3)
     .to(".story-layer", { x: () => -vw() * 1.08, duration: push, ease: "power1.inOut" }, at.push)
     // Soft parallax: the portrait lingers a touch behind the copy as both leave.
     .fromTo(".story-photo-box", { xPercent: 0 }, { xPercent: 12, duration: push, ease: "power1.in" }, at.push)
@@ -292,26 +417,19 @@ function journeyFlow(scope: HTMLElement, desktop: boolean, reduce: boolean) {
     ease: "expo.out",
     scrollTrigger: { trigger: ".story-photo-box", start: "top 80%" },
   });
-  gsap.from(".story-title-text", {
-    yPercent: 110,
-    duration: 1.2,
-    ease: "expo.out",
-    scrollTrigger: { trigger: ".story-title", start: "top 85%" },
-  });
-  gsap.from(".story-kicker", {
-    autoAlpha: 0,
-    x: -12,
-    duration: 0.9,
-    ease: "power2.out",
-    scrollTrigger: { trigger: ".story-kicker", start: "top 90%" },
-  });
-  gsap.from(".story-copy-rule", {
-    scaleX: 0,
-    transformOrigin: "0% 50%",
-    duration: 1.2,
-    ease: "power3.out",
-    scrollTrigger: { trigger: ".story-copy-rule", start: "top 92%" },
-  });
+  // `fromTo`, not `from`: the folio is hidden in CSS until it is revealed, so a
+  // `from` tween would have animated from hidden to hidden on this layout.
+  gsap.fromTo(
+    ".story-kicker",
+    { autoAlpha: 0, x: -12 },
+    {
+      autoAlpha: 1,
+      x: 0,
+      duration: 0.9,
+      ease: "power2.out",
+      scrollTrigger: { trigger: ".story-kicker", start: "top 90%" },
+    }
+  );
   // Paragraphs rise in, then their words brighten with the scroll — the same
   // reading light as the pinned intro, spread over the paragraph's own height.
   gsap.utils.toArray<HTMLElement>(".story-copy p, .coda-text").forEach((el) => {
@@ -357,7 +475,219 @@ function journeyFlow(scope: HTMLElement, desktop: boolean, reduce: boolean) {
 
 type TvPhase = "rows" | "phone" | "exit";
 
-function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: boolean) {
+/**
+ * Smallest scale at which the glass — a rounded rectangle, `border-radius:
+ * 10% / 11%` as drawn by `.tv-glass` — centred on (ox, oy) covers the viewport.
+ */
+function coverScale(ox: number, oy: number, sw: number, sh: number, vw: number, vh: number) {
+  const hx = Math.max(ox, vw - ox);
+  const hy = Math.max(oy, vh - oy);
+  const covers = (s: number) => {
+    const a = (s * sw) / 2;
+    const b = (s * sh) / 2;
+    if (hx > a || hy > b) return false;
+    const rx = 0.2 * a;
+    const ry = 0.22 * b;
+    const dx = hx - (a - rx);
+    const dy = hy - (b - ry);
+    return dx <= 0 || dy <= 0 || (dx / rx) ** 2 + (dy / ry) ** 2 <= 1;
+  };
+  let lo = 1;
+  let hi = 2;
+  for (let i = 0; i < 24 && !covers(hi); i += 1) hi *= 2;
+  for (let i = 0; i < 28; i += 1) {
+    const mid = (lo + hi) / 2;
+    if (covers(mid)) hi = mid;
+    else lo = mid;
+  }
+  return hi;
+}
+
+/**
+ * The set tunes to the call sign once the index has scrolled past (markup:
+ * `sections.tsx#TvMessage`). Time-based rather than scrubbed, so the tube is
+ * always doing something — power-on, flicker-in, the address typing out, a
+ * blinking caret — instead of a frozen frame the reader has to scroll through.
+ */
+function createMessage(section: HTMLElement, reduce: boolean) {
+  const rig = section.querySelector<HTMLElement>(".tv-msg-rig");
+  const raster = section.querySelector<HTMLElement>(".tv-msg-raster");
+  const flash = section.querySelector<HTMLElement>(".tv-msg-flash");
+  const handle = section.querySelector<HTMLElement>(".tv-msg-handle");
+  const mail = section.querySelector<HTMLElement>(".tv-msg-mail");
+  const chars = gsap.utils.toArray<HTMLElement>(".tv-msg-char", section);
+  if (!rig || !raster || !handle || !mail) return null;
+
+  const typed = { n: 0 };
+  let painted = -1;
+  const paintTyping = () => {
+    const n = Math.round(typed.n);
+    if (n === painted) return;
+    painted = n;
+    chars.forEach((char, index) => char.classList.toggle("is-on", index < n));
+    mail.style.setProperty("--typed", String(n));
+    if (n > 0) mail.dataset.caret = "on";
+    else delete mail.dataset.caret;
+  };
+
+  const tl = gsap.timeline({ paused: true });
+  tl.fromTo(rig, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.1, ease: "power1.out" }, 0)
+    // CRT power-on: a dot, a line, then the raster opens vertically.
+    .fromTo(raster, { scaleX: 0.03, scaleY: 0.006 }, { scaleX: 1, duration: 0.2, ease: "power3.out" }, 0)
+    .to(raster, { scaleY: 1, duration: 0.32, ease: "expo.out" }, 0.18);
+  if (flash) tl.fromTo(flash, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.55, ease: "power2.out" }, 0.12);
+  tl.fromTo(
+    handle,
+    { autoAlpha: 0 },
+    { keyframes: { autoAlpha: [0, 0.85, 0.25, 1], easeEach: "steps(1)" }, duration: 0.26, ease: "none" },
+    0.42
+  ).fromTo(typed, { n: 0 }, { n: chars.length, duration: chars.length * 0.034, ease: "none", onUpdate: paintTyping }, 0.66);
+
+  return {
+    on: () => {
+      if (reduce) tl.progress(1);
+      else tl.timeScale(1).play();
+    },
+    off: () => {
+      if (reduce) tl.progress(0);
+      // Reversed at speed it reads as the set switching off: the address
+      // un-types and the raster collapses back to a line.
+      else tl.timeScale(2.4).reverse();
+    },
+    kill: () => tl.kill(),
+  };
+}
+
+/**
+ * The dive through the glass into the contact section (the "zoom into the
+ * hole" of thewhoopsies.co.uk, where the next section lives inside the
+ * portal). `#contact` is real, live DOM: while it rises from the bottom edge
+ * to the top it is mapped by a matrix into the television's screen and grows
+ * with the camera, so the white page *on the tube* becomes the page itself —
+ * no cross-fade, no white flash, no copy of the section. Everything is derived
+ * from one number (the exit progress) and measured live, so the sheet stays
+ * locked to the glass on any viewport.
+ */
+function createDive(scope: HTMLElement, section: HTMLElement) {
+  const anchor = section.querySelector<HTMLElement>(".tv-anchor");
+  const zoom = section.querySelector<HTMLElement>(".tv-zoom");
+  const box = section.querySelector<HTMLElement>(".tv-box");
+  const contact = scope.querySelector<HTMLElement>("#contact");
+  const glass = scope.querySelector<HTMLElement>(".tv-glass");
+  if (!anchor || !zoom || !box || !contact) return null;
+
+  const css = getComputedStyle(anchor);
+  const pct = (name: string, fallback: number) => {
+    const value = parseFloat(css.getPropertyValue(name));
+    return Number.isFinite(value) ? value / 100 : fallback;
+  };
+  const screen = {
+    top: pct("--screen-top", 0.654),
+    left: pct("--screen-left", 0.4262),
+    width: pct("--screen-width", 0.1092),
+    height: pct("--screen-height", 0.1198),
+  };
+  // Beats of the exit, as fractions of its scroll distance.
+  const DIVE_FROM = 0.04;
+  const DIVE_TO = 0.93;
+  const diveEase = gsap.parseEase("power2.inOut");
+  /** Where `#contact` comes to rest when the page ends before its top reaches the top edge. */
+  let landing = 0;
+
+  const clearContact = () => {
+    contact.style.removeProperty("transform");
+    contact.style.removeProperty("transform-origin");
+    contact.style.removeProperty("clip-path");
+  };
+  const hideGlass = () => {
+    if (glass) glass.style.visibility = "hidden";
+  };
+
+  const render = (u: number) => {
+    if (u <= 0) {
+      zoom.style.removeProperty("transform");
+      clearContact();
+      hideGlass();
+      return;
+    }
+    // Reads first, then writes.
+    const a = anchor.getBoundingClientRect();
+    const contactTop = section.getBoundingClientRect().bottom;
+    const contactHeight = contact.offsetHeight;
+    const vw = document.documentElement.clientWidth || window.innerWidth;
+    const vh = window.innerHeight;
+    const ox = a.left + a.width * (screen.left + screen.width / 2);
+    const oy = a.top + a.height * (screen.top + screen.height / 2);
+    const sw = a.width * screen.width;
+    const sh = a.height * screen.height;
+    const s0 = Number(gsap.getProperty(box, "scaleX")) || 1;
+    const r0 = Number(gsap.getProperty(box, "rotation")) || 0;
+    const full = coverScale(ox, oy, sw, sh, vw, vh) * 1.05;
+
+    // Camera: geometric zoom (constant perceived speed) from the lean-in to
+    // "the glass covers the viewport", straightening the lean on the way in.
+    const z = diveEase(gsap.utils.clamp(0, 1, (u - DIVE_FROM) / (DIVE_TO - DIVE_FROM)));
+    const s = Math.pow(full / s0, z);
+    const rho = -r0 * z;
+    zoom.style.transform = `rotate(${rho.toFixed(4)}deg) scale(${s.toFixed(5)})`;
+
+    if (u >= 1) {
+      // Landed: the section is back in the flow, untransformed and interactive.
+      clearContact();
+      hideGlass();
+      return;
+    }
+
+    // Sheet: the same similarity transform as the set, relative to its final
+    // pose, so it lands at scale 1 exactly when the glass covers the viewport.
+    const S = s0 * s;
+    const c = S / full;
+    const angle = ((r0 + rho) * Math.PI) / 180;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const qx = -ox;
+    const qy = landing - oy;
+    const e = ox + c * (cos * qx - sin * qy);
+    const f = oy + c * (sin * qx + cos * qy) - contactTop;
+    contact.style.transformOrigin = "0 0";
+    contact.style.transform = `matrix(${(c * cos).toFixed(6)}, ${(c * sin).toFixed(6)}, ${(-c * sin).toFixed(6)}, ${(c * cos).toFixed(6)}, ${e.toFixed(2)}, ${f.toFixed(2)})`;
+    // Only the first screenful is on the tube, with the glass's round corners.
+    const below = Math.max(0, contactHeight - (vh - landing));
+    const rx = 0.1 * sw * full * (1 - z);
+    const ry = 0.11 * sh * full * (1 - z);
+    contact.style.clipPath = `inset(0px 0px ${below.toFixed(1)}px 0px round ${rx.toFixed(1)}px / ${ry.toFixed(1)}px)`;
+
+    if (glass) {
+      // Scanlines, vignette and glare over the sheet while it is still a
+      // picture on the tube; they thin out as the camera passes the glass.
+      const gx = a.left + a.width * screen.left;
+      const gy = a.top + a.height * screen.top;
+      const fadeIn = gsap.utils.clamp(0, 1, (u - 0.02) / 0.05);
+      const fadeOut = 1 - gsap.utils.clamp(0, 1, (z - 0.28) / 0.42);
+      glass.style.visibility = "visible";
+      glass.style.width = `${sw.toFixed(2)}px`;
+      glass.style.height = `${sh.toFixed(2)}px`;
+      glass.style.transformOrigin = `${(ox - gx).toFixed(2)}px ${(oy - gy).toFixed(2)}px`;
+      glass.style.transform = `translate(${gx.toFixed(2)}px, ${gy.toFixed(2)}px) rotate(${(r0 + rho).toFixed(4)}deg) scale(${S.toFixed(5)})`;
+      glass.style.opacity = Math.min(fadeIn, fadeOut).toFixed(3);
+    }
+  };
+
+  return {
+    contact,
+    measure: (self: ScrollTrigger) => {
+      landing = Math.max(0, window.innerHeight - (self.end - self.start));
+    },
+    render,
+    reset: () => {
+      zoom.style.removeProperty("transform");
+      clearContact();
+      if (glass) glass.removeAttribute("style");
+    },
+  };
+}
+
+function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: boolean, reduce: boolean) {
   const section = scope.querySelector<HTMLElement>("#works");
   if (!section) return;
   const hoverCapable = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
@@ -368,11 +698,13 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
   };
   setPhase("rows");
 
+  // The set stays in frame until the contact sheet has fully risen over it —
+  // through the message and the whole dive into the glass.
   ScrollTrigger.create({
     trigger: ".tv-stage",
     start: "top top",
-    endTrigger: ".tv-exit-spacer",
-    end: "bottom bottom",
+    endTrigger: "#contact",
+    end: "clamp(top top)",
     pin: true,
     pinSpacing: false,
     anticipatePin: 1,
@@ -459,8 +791,9 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
     defaults: { ease: "none" },
     scrollTrigger: {
       trigger: ".tv-phone-spacer",
-      start: "top 70%",
-      end: "bottom 30%",
+      start: "top 78%",
+      // Ends exactly where the dive starts: `#contact` touching the bottom edge.
+      end: "bottom bottom",
       scrub: true,
       invalidateOnRefresh: true,
       onEnter: () => {
@@ -479,51 +812,65 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
     },
   });
 
-  // The set is framed whole now, so this beat travels further than the old
-  // 1.14 lean: the anchor lifts the screen to the optical centre while the box
-  // leans in, landing on about the screen size the 185vw crop showed.
+  // The set is framed whole, so this beat travels further than the old 1.14
+  // lean: the anchor lifts the screen to the optical centre while the box leans
+  // in. The message reads during the second half, where the camera keeps
+  // creeping in — the old version parked a still frame for over a screen of
+  // scrolling, which read as the page having frozen.
   phoneTl
-    .to(".tv-anchor", { y: () => screenLift(section), duration: 0.34, ease: "sine.inOut" }, 0)
-    .to(".tv-box", { scale: lean, rotation: -1.5, duration: 0.34, ease: "sine.inOut" }, 0)
-    .fromTo(".tv-scrim, .tv-seam", { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.2, immediateRender: false }, 0)
-    .fromTo(
-      ".tv-number",
-      { autoAlpha: 0, yPercent: 18, scale: 0.92, filter: "blur(6px)" },
-      { autoAlpha: 1, yPercent: 0, scale: 1, filter: "blur(0px)", duration: 0.18, ease: "power2.out" },
-      0.1
-    )
-    .to(".tv-number", { autoAlpha: 1, duration: 0.72 }, 0.28);
+    .to(".tv-anchor", { y: () => screenLift(section), duration: 0.52, ease: "sine.inOut" }, 0)
+    .to(".tv-box", { scale: lean, rotation: -1.5, duration: 0.52, ease: "sine.inOut" }, 0)
+    .fromTo(".tv-scrim, .tv-seam", { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.24, immediateRender: false }, 0)
+    .to(".tv-box", { scale: lean * 1.05, rotation: -1.8, duration: 0.48 }, 0.52);
 
+  const message = createMessage(section, reduce);
+  if (message) {
+    ScrollTrigger.create({
+      trigger: ".tv-phone-spacer",
+      start: desktop ? "top 45%" : "top 48%",
+      endTrigger: "#contact",
+      end: "bottom bottom",
+      onEnter: message.on,
+      onLeaveBack: message.off,
+    });
+  }
+
+  // Exit: the dive through the glass. It runs while `#contact` rises from the
+  // bottom edge to the top (no spacer of its own), and lands on the sheet.
+  const dive = reduce ? null : createDive(scope, section);
   const exitTl = gsap.timeline({
     defaults: { ease: "none" },
     scrollTrigger: {
-      trigger: ".tv-exit-spacer",
-      start: "top 30%",
-      end: "bottom bottom",
+      trigger: "#contact",
+      start: "top bottom",
+      end: "clamp(top top)",
       scrub: true,
+      invalidateOnRefresh: true,
       onEnter: () => setPhase("exit"),
       onLeaveBack: () => setPhase("phone"),
+      onRefresh: (self) => dive?.measure(self),
     },
   });
 
-  // Exit over the untouched `tv.webp` photograph:
-  //   1. `@BrainEno` zooms up inside the original TV screen and dissolves out,
-  //   2. the TV pushes in while cross-fading cleanly by opacity into `.tv-whiteout`
-  //      and the rising Contact sheet — zero screen-overlay sticker to misalign.
-  exitTl
-    .to(".tv-number", { scale: desktop ? 4.8 : 3.2, duration: 0.28, ease: "power2.in" }, 0)
-    .to(".tv-number", { autoAlpha: 0, filter: "blur(14px)", duration: 0.2, ease: "power1.in" }, 0.08)
-    .to(".tv-box", { scale: lean * 1.07, rotation: -2.4, duration: 0.12, ease: "sine.inOut" }, 0.04)
-    .to(".tv-box", { scale: lean * 4.56, rotation: -5.5, duration: 0.32, ease: "power2.in" }, 0.14)
-    .to(".tv-box", { autoAlpha: 0, duration: 0.22, ease: "power1.inOut" }, 0.24)
-    .fromTo(".tv-whiteout", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.24, ease: "power1.inOut" }, 0.22)
-    .fromTo(
-      ".contact",
-      { backgroundColor: "rgba(255,255,255,0)" },
-      { backgroundColor: "rgba(255,255,255,1)", duration: 0.2, ease: "power1.inOut" },
-      0.28
-    )
-    .to(".tv-whiteout", { autoAlpha: 1, duration: 0.54 }, 0.46);
+  if (dive) {
+    // 1. The set changes channel: a burst of snow, then the white contact page
+    //    is on the tube (the sheet itself, mapped into the glass by `dive`).
+    // 2. The camera dives until the glass covers the viewport; the sheet grows
+    //    with it and lands at scale 1 — the hand-over has no seam to hide.
+    const progress = { u: 0 };
+    exitTl
+      .fromTo(
+        ".tv-msg-static",
+        { autoAlpha: 0 },
+        { keyframes: { autoAlpha: [0, 0.95, 0.75, 0] }, duration: 0.07 },
+        0
+      )
+      .fromTo(".tv-msg-portal", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.03 }, 0.028)
+      .fromTo(dive.contact, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.035 }, 0.028)
+      .fromTo(progress, { u: 0 }, { u: 1, duration: 1, onUpdate: () => dive.render(progress.u) }, 0);
+  }
+
+  return () => dive?.reset();
 }
 
 function contact(scope: HTMLElement, desktop: boolean, reduce: boolean) {
@@ -538,24 +885,27 @@ function contact(scope: HTMLElement, desktop: boolean, reduce: boolean) {
   const vw = () => window.innerWidth;
   const vh = () => window.innerHeight;
 
-  // Arrival, scrubbed with the sheet rising out of the white burn: the two
-  // bands slide in from opposite edges while the booth rises onto its mark and
-  // settles — one composed move instead of the old sideways throw.
+  // Arrival, scrubbed with the dive (the same scroll range): while the sheet is
+  // still a picture on the tube the bands slide in from opposite edges and the
+  // booth rises onto its mark. Kept short and gentle so the page reads as
+  // composed well before the camera passes the glass.
   const arrive = gsap.timeline({
     defaults: { ease: "none" },
-    scrollTrigger: { trigger: "#contact", start: "top 100%", end: "top 0%", scrub: 0.8, invalidateOnRefresh: true },
+    scrollTrigger: { trigger: "#contact", start: "top 100%", end: "clamp(top top)", scrub: 0.6, invalidateOnRefresh: true },
   });
   rows.forEach((row, index) => {
-    arrive.fromTo(row, { x: () => vw() * (index % 2 ? -0.32 : 0.32) }, { x: 0, duration: 1, ease: "power3.out" }, 0);
+    arrive.fromTo(row, { x: () => vw() * (index % 2 ? -0.18 : 0.18) }, { x: 0, duration: 0.7, ease: "power3.out" }, 0);
   });
   arrive
     .fromTo(
       ".contact-booth",
-      { autoAlpha: 0, y: () => vh() * 0.26, scale: 0.84, rotation: desktop ? -3 : 0, transformOrigin: "50% 100%" },
-      { autoAlpha: 1, y: 0, scale: 1, rotation: 0, duration: 0.9, ease: "power3.out" },
-      0.1
+      { autoAlpha: 0, y: () => vh() * 0.1, scale: 0.9, rotation: desktop ? -2 : 0, transformOrigin: "50% 100%" },
+      { autoAlpha: 1, y: 0, scale: 1, rotation: 0, duration: 0.55, ease: "power3.out" },
+      0.05
     )
-    .fromTo(".contact-booth-shadow", { autoAlpha: 0, scale: 0.4 }, { autoAlpha: 1, scale: 1, duration: 0.5, ease: "power2.out" }, 0.5);
+    .fromTo(".contact-booth-shadow", { autoAlpha: 0, scale: 0.4 }, { autoAlpha: 1, scale: 1, duration: 0.35, ease: "power2.out" }, 0.3)
+    // Rest of the dive: nothing left to arrive, the sheet just lands.
+    .to({}, { duration: 0.3 }, 0.7);
 
   // Type reveals are time-based rather than scrubbed: crisp, deliberate, and
   // never left half-risen when the visitor stops scrolling midway.
@@ -627,9 +977,12 @@ export function setupChoreography(opts: ChoreographyOptions) {
       heroScroll(desktop);
       if (journeyPinned) journeyDesktop(scope, reduce);
       else journeyFlow(scope, desktop, reduce);
-      television(scope, opts, desktop);
+      const tvCleanup = television(scope, opts, desktop, reduce);
       contact(scope, desktop, reduce);
       sectionTracking(opts);
+      // The dive writes matrices straight to the DOM (not through tweens), so
+      // they are cleared by hand when the context reverts (resize, language).
+      return () => tvCleanup?.();
     }
   );
 
