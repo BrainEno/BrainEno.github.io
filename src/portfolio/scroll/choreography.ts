@@ -341,27 +341,30 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean) {
     { y: 0, x: 0, duration: settle, ease: "power2.out" },
     at.settle
   )
+    // The frame settles from a slight tilt to the rectangular box the grid
+    // gave it. Nothing here may reintroduce a shaped radius: the portrait is
+    // meant to read as a plain picture in a column.
     .fromTo(
       ".story-photo-mask",
-      { rotation: 18.17, width: "20vw", borderTopLeftRadius: "0vw", filter: "grayscale(40%)" },
-      { rotation: -3, width: "27vw", borderTopLeftRadius: "13vw", filter: "grayscale(0%)", duration: settle, ease: "power1.inOut" },
+      { rotation: 2.5, width: "76%", filter: "grayscale(40%)" },
+      { rotation: 0, width: "100%", filter: "grayscale(0%)", duration: settle, ease: "power1.inOut" },
       at.settle
     )
     .fromTo(".story-photo", { objectPosition: "50% 50%" }, { objectPosition: "50% 18%", duration: settle }, at.settle)
-    .fromTo(
-      ".story-photo-ghost",
-      { rotation: 0, x: 0, y: 0, autoAlpha: 0.55 },
-      { rotation: 9, x: "2.6vw", y: "2.2vw", autoAlpha: 0.35, duration: settle },
-      at.settle
-    )
     .fromTo(
       ".story-credit",
       { scale: 0.01, autoAlpha: 0, rotation: 18 },
       { scale: 1, autoAlpha: 1, rotation: 0, duration: 0.3, ease: "back.out(2)" },
       at.settle + 0.5
     )
-    // Each language keeps its own reading measure and optical column position.
-    .fromTo(".story-copy", { x: 0 }, { x: () => -vw() * (scope.classList.contains("lang-zh") ? 0.48 : 0.5), duration: approach, ease: "power2.out" }, at.approach)
+    // The copy already sits in columns 7–12; it simply slides into its own
+    // column from beyond the right edge, so no per-language offset is guessed.
+    .fromTo(
+      ".story-copy",
+      { x: () => vw() },
+      { x: 0, duration: approach, ease: "power2.out", immediateRender: false },
+      at.approach
+    )
     .fromTo(".copy-lead", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: approach * 0.6, ease: "power2.out" }, at.approach + approach * 0.2)
     .fromTo(".copy-body", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: approach * 0.6, ease: "power2.out" }, at.approach + approach * 0.4)
     .to(".story-layer", { x: () => -vw() * 1.08, duration: push, ease: "power1.inOut" }, at.push)

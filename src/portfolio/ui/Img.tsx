@@ -45,6 +45,16 @@ type ImgProps = {
   height?: number;
   /** Decorative images should not be announced. */
   hidden?: boolean;
+  /**
+   * Opt this picture into the pointer-driven ripple (see `ui/WaterHover.tsx`).
+   * Marking is all this component does — the controller lives once per page, so
+   * there is no wrapper, no canvas per image, and no extra request: the ripple
+   * texture is read from the `<img>`'s own `currentSrc`.
+   *
+   * Decorative/composited images opt out automatically through `hidden`.
+   * "subtle" is intended for the hero's primary photograph.
+   */
+  water?: boolean | "subtle";
 };
 
 /** The WebP candidate list for a source, if one was generated. */
@@ -77,6 +87,7 @@ export function Img({
   width,
   height,
   hidden,
+  water = true,
 }: ImgProps) {
   const srcSet = srcSetFor(src);
   return (
@@ -96,6 +107,15 @@ export function Img({
       fetchPriority={priority ? "high" : undefined}
       decoding={decoding}
       draggable={draggable}
+      // The only contract with `WaterHover`: a marker on the real `<img>`.
+      // Nothing is wrapped, so direct-child selectors keep working.
+      data-water={
+        !hidden && water
+          ? water === "subtle"
+            ? "subtle"
+            : "true"
+          : undefined
+      }
       width={width ?? intrinsicSize(src)?.width}
       height={height ?? intrinsicSize(src)?.height}
     />

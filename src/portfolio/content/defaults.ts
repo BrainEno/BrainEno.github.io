@@ -52,8 +52,8 @@ export const defaultContent: PortfolioContent = {
     },
     portraitCredit: { zh: "BrainEno", en: "BrainEno" },
     primaryText: {
-      zh: "BrainEno，独立开发者与界面设计师。曾深耕软件工程一线，如今以自由职业 Vibe Coder 的身份独立构建数字产品。他擅长将前沿 AI 能力转化为真正可交付的作品——从视觉语言、动态交互，到前端架构与底层数据，均由一人贯通完成。创作横跨品牌体验站、内容型产品与跨端效率工具，并在开源社区持续维护与公开自己的代码。",
-      en: "BrainEno is an independent developer and interface designer. Grounded in software engineering and now working solo as a freelance vibe coder, he turns frontier AI capabilities into shipped digital products — carrying each piece end to end from visual language and motion choreography to frontend architecture and the data layer. His work spans brand experiences, editorial products, and cross-platform tools, alongside open-source repositories maintained in public.",
+      zh: "BrainEno，独立开发者与界面设计师。在做文档、音频和内容发布工具，常用的技术包括 TypeScript、Python 和 Flutter。ScribeForge、LyricForge KTV 以及一些网页实验的代码和记录放在 GitHub。",
+      en: "BrainEno, independent developer and interface designer. I build tools for documents, audio and publishing, mostly with TypeScript, Python and Flutter. Code and notes for ScribeForge, LyricForge KTV and smaller web experiments are on GitHub.",
     },
     gallery: [
       { src: "/images/red2.webp", alt: { zh: "视觉摄影 01", en: "Editorial frame 01" } },
@@ -67,8 +67,8 @@ export const defaultContent: PortfolioContent = {
       { src: "/images/screenshot2.jpg", alt: { zh: "精选画面 02", en: "Featured still 02" } },
     ],
     secondaryText: {
-      zh: "当编码的门槛被 AI 消解，决定作品上限的便不再是实现手段，而是审美与判断。机器能够迅速穷尽功能的解法，却无法替人感知分寸，更无法代人做出取舍——克制什么、放大什么，恰恰构成了作品真正的性格。",
-      en: "Once AI dissolves the friction of implementation, the ceiling of a work is no longer set by code, but by taste and judgement. Machines can exhaust every technical path, yet they cannot sense proportion or make the decisive trade-offs — what to hold back and what to amplify is ultimately what gives a piece its character.",
+      zh: "我偏好能在本地运行、让使用者掌握数据的工具。这里收录一些项目、界面和实验，代码与后续更新放在 GitHub。",
+      en: "I prefer tools that can run locally and leave data with the people using them. This site collects selected projects, interfaces and experiments, with code and updates on GitHub.",
     },
   },
   works: {

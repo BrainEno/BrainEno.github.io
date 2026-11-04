@@ -71,7 +71,7 @@
 
 ## 5. 图片「画框」约定（换图不用管尺寸）
 
-Hero、肖像（含重影层）、画廊、两张点缀图、电视封面、作品详情页的所有图片都放在**设计固定尺寸的容器**中，
+Hero、肖像、画廊、两张点缀图、电视封面、作品详情页的所有图片都放在**设计固定尺寸的容器**中，
 `<img>` 绝对定位铺满、`object-fit: cover`、`max-width: none`，容器带 `overflow:hidden; contain: layout paint`。
 因此任意比例/像素的新图都只会被裁切，不会改变容器尺寸、不会触发回流，GSAP 时间线的测量值不变。
 电话亭改为 WebGL 模型（见第 6 节），模型未就绪时用透明抠图 `/images/phone-booth-cutout.png` 兜底，`object-fit: contain`。
@@ -87,6 +87,15 @@ Hero、肖像（含重影层）、画廊、两张点缀图、电视封面、作�
 1. `src` 永远是真实文件——清单没跟上、浏览器不支持 `srcSet`、图被删掉，都只是"没有优化"，不会 404/空白；
 2. 不包 `<picture>`——`.story-photo-mask img`、`.tv-frame` 这类选择器，以及 flex 几何，都要求 `<img>` 自己就是那个盒子；
 3. 清单是提交进仓库的生成物，脚本按 mtime 增量跳过，几十毫秒就跑完。
+
+**指针水波**：`ui/Img.tsx` 只给非装饰的内容图挂一个 `data-water` 标记（Hero 主图是 `"subtle"`，
+强度约一半），由 `ui/WaterHover.tsx` 在全页复用**一个**惰性创建的 canvas/WebGL context，同一时刻
+只画一张图。它只在 `(hover: hover) and (pointer: fine)` 且未开启 `prefers-reduced-motion` 时运行；
+纹理取自该 `<img>` 已经加载好的 `currentSrc`（经离屏 2D canvas 按 `object-fit` / `object-position`
+裁好），图层每帧同步原图的 position、尺寸、margin、transform、圆角与裁切，所以能跟着 Hero 视差、
+画廊横向位移与 coda 漂移走。指针离开、页面滚动、标签页隐藏或卸载时 canvas 立即移除，空闲时没有 RAF。
+`hidden` 的装饰层（`.hero-bar-image`、`.tv-frame`、`.tv-frame-alpha`）以及电视内部的 `.tv-cover`、
+视频、CRT 层和电话亭 canvas 都不带标记——电视合成层不会叠第二套扭曲。
 
 **电视图的分层**：未选中作品时只显示完整的 `tv.webp`。选中作品时，项目画面和雪花
 铺在 `works.tv.screen` 矩形内，外扩覆盖 `tv-alpha.webp` 的透明开口；抠好的电视图放在
@@ -111,6 +120,10 @@ Hero、肖像（含重影层）、画廊、两张点缀图、电视封面、作�
    下不做穿屏，直接衔接。
 
 各 section 之间不再用分隔细线，三个区块统一以 `01 / 02 / 03` 小标题编号；简介区去掉了与小标题重复的大标题。
+简介的桌面 pinned 场景里，肖像与文案共用一套 12 列网格（肖像占 2–5 列、文案占 7–12 列，画廊沿用同一套
+`--gutter` / `--grid-gap` 节奏），文案因此靠版面定位而不是先 `left: 100vw` 再按语言猜偏移；
+平板与手机仍是原来的纵向 flow，不强行保留 pin。肖像只剩一个矩形画框：没有有机圆角、没有重影层，
+入场也只保留矩形的 `clip-path` reveal。
 
 **加载动画**（`ui/Portfolio.tsx#Preloader` + `choreography.ts#createLoader`）：名字像电视画面一样被扫描点亮
 （扫描线位置即加载进度，计数器随扫描线移动）→ 信号锁定时 RGB 枪错位 → 白色光栅自上而下翻转 →

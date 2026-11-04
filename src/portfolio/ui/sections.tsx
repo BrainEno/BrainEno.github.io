@@ -70,6 +70,7 @@ export const Hero = memo(function Hero({ lang, content, name }: SectionProps<"he
                 sizes="(max-width: 767px) 56vw, 45vw"
                 priority
                 draggable={false}
+                water="subtle"
               />
             </div>
           </div>
@@ -115,17 +116,36 @@ export const Journey = memo(function Journey({ lang, content, name }: JourneyPro
   // attempted when the sentence really opens with the name (or, failing that,
   // with a comma clause), so edited copy can never be cut mid-thought.
   const leadParts = (() => {
+    const cleanName = (value: string) =>
+      value.replace(/[，,]\s*$/, "").trim();
+    const cleanRole = (value: string) =>
+      value.replace(/[。．.!?！？]+\s*$/, "").trim();
+
     if (lead.startsWith(name)) {
       const tail = lead.slice(name.length);
-      const cut = name.length + (/^[，,]/.test(tail) ? 1 : 0);
+      const cut =
+        name.length + (/^[，,]/.test(tail) ? 1 : 0);
       const rest = lead.slice(cut).trim();
-      return rest ? ([lead.slice(0, cut).trim(), rest] as const) : null;
+
+      return rest
+        ? ([
+            cleanName(lead.slice(0, cut)),
+            cleanRole(rest),
+          ] as const)
+        : null;
     }
+
     const comma = lead.search(/[，,]/);
     if (comma > 0) {
       const rest = lead.slice(comma + 1).trim();
-      return rest ? ([lead.slice(0, comma + 1), rest] as const) : null;
+      return rest
+        ? ([
+            cleanName(lead.slice(0, comma + 1)),
+            cleanRole(rest),
+          ] as const)
+        : null;
     }
+
     return null;
   })();
   return (
@@ -135,9 +155,6 @@ export const Journey = memo(function Journey({ lang, content, name }: JourneyPro
           {/* Keep the document outline without a second visible label. */}
           <h2 className="sr-only">{heading}</h2>
           <div className="story-photo-box">
-            <div className="story-photo-ghost" aria-hidden="true">
-              <Img src={content.portrait.src} alt="" sizes="(max-width: 1023px) 72vw, 27vw" loading="lazy" hidden />
-            </div>
             <div className="story-photo-mask">
               <Img
                 className="story-photo"
