@@ -46,6 +46,15 @@ body {
 .pf {
   --stage: #000;
   --accent: #e55139;
+  /* One grid for the pinned intro: twelve columns between the gutters and a
+     fixed gutter between them. Everything that used to be a magic number —
+     the photograph at 12vw, the copy resting at 52vw, the rail tiles at
+     40/32vw — is a column index now (`--grid-step` is one column plus one
+     gap), so the stage can be re-proportioned in a single place and every
+     edge stays on a column. */
+  --grid-gap: 1.25vw;
+  --grid-col: calc((100vw - var(--gutter) * 2 - var(--grid-gap) * 11) / 12);
+  --grid-step: calc(var(--grid-col) + var(--grid-gap));
   position: relative;
   font-family: var(--font-sans);
   color: var(--ink);
@@ -587,43 +596,60 @@ body {
   will-change: transform;
 }
 
+/* Columns 2–5, one band of the grid. */
 .story-photo-box {
   position: absolute;
   z-index: 5;
-  top: 18vh;
-  left: 12vw;
-  width: 30vw;
-  height: 64vh;
+  top: 16vh;
+  left: calc(var(--gutter) + var(--grid-step));
+  width: calc(var(--grid-step) * 4 - var(--grid-gap));
+  height: 62vh;
 }
 
-.story-photo-mask,
-.story-photo-ghost {
+/* A hard-edged plate: no rotation, no radius, no second copy behind it. The
+   photograph is a rectangle sitting on a column, which is the only shape the
+   page uses now — the curved top-left corner is gone for good, on the pinned
+   stage and in the flow layout alike. */
+.story-photo-mask {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 20vw;
-  height: 60vh;
+  inset: 0;
+  z-index: 2;
   overflow: hidden;
   background: var(--stage);
   contain: layout paint;
 }
 
-.story-photo-mask {
-  z-index: 2;
-  transform: rotate(18.17deg);
-  filter: grayscale(40%);
+/* Water on the frame (`ui/RippleFrame.tsx`). The filter lives on `.ripple-water`
+   and the drag on `.ripple-media`, which is oversized by 3% on every side so a
+   displaced edge always has pixels to pull in from instead of the background. */
+.ripple {
+  position: absolute;
+  inset: 0;
+  display: block;
 }
 
-.story-photo-ghost {
-  z-index: 1;
-  top: 1.1vw;
-  left: 1.5vw;
-  opacity: 0.55;
-  filter: grayscale(70%);
+.ripple-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 
-.story-photo-mask img,
-.story-photo-ghost img {
+.ripple-water {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+}
+
+.ripple-media {
+  position: absolute;
+  inset: -3%;
+  display: block;
+}
+
+.story-photo-mask img {
   position: absolute;
   inset: 0;
   display: block;
@@ -639,8 +665,8 @@ body {
 .story-credit {
   position: absolute;
   z-index: 3;
-  top: 66vh;
-  left: 22vw;
+  top: calc(16vh + 62vh + 2vh);
+  left: calc(var(--gutter) + var(--grid-step));
   display: flex;
   align-items: center;
   gap: 7px;
@@ -659,10 +685,37 @@ body {
   background: var(--ink);
 }
 
+/* Columns 7–12. The slide-in is a percentage of the block's own width
+   (see `journeyDesktop`), so the column stays the single source of truth for
+   where the text rests. */
+/* The section's index mark: the same micro-cap scale as the hero's numerals,
+   standing on the photograph's column so the mark and the picture share an
+   edge. */
+.story-index {
+  position: absolute;
+  z-index: 6;
+  top: 10vh;
+  left: calc(var(--gutter) + var(--grid-step));
+  display: flex;
+  gap: 0.9em;
+  align-items: baseline;
+  margin: 0;
+  font-size: clamp(9px, 0.66vw, 12px);
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.story-index-num {
+  color: var(--ink);
+}
+
 .story-copy {
   position: absolute;
   top: 0;
-  left: 100vw;
+  left: calc(var(--gutter) + var(--grid-step) * 6);
   display: flex;
   align-items: center;
   width: min(44vw, 760px);
@@ -799,7 +852,8 @@ body {
 .rail-item {
   position: relative;
   flex: 0 0 auto;
-  width: 40vw;
+  /* Five columns for the tall frames, four for the lowered ones. */
+  width: calc(var(--grid-step) * 5 - var(--grid-gap));
   height: 30vw;
   aspect-ratio: 4 / 3;
   max-height: 72vh;
@@ -808,8 +862,13 @@ body {
   contain: layout paint;
 }
 
-.rail-item:nth-child(odd) { transform: translateY(-4vh); }
-.rail-item:nth-child(even) { transform: translateY(5vh); width: 32vw; }
+/* A symmetric stagger instead of two unrelated offsets: the rail reads as one
+   band broken into alternating columns rather than items nudged by eye. */
+.rail-item:nth-child(odd) { transform: translateY(-4.5vh); }
+.rail-item:nth-child(even) {
+  transform: translateY(4.5vh);
+  width: calc(var(--grid-step) * 4 - var(--grid-gap));
+}
 
 .rail-image {
   position: absolute;
@@ -837,7 +896,7 @@ body {
 .coda-text {
   position: relative;
   z-index: 1;
-  width: min(48vw, 33em);
+  width: min(calc(var(--grid-step) * 6 - var(--grid-gap)), 33em);
   font-size: clamp(22px, 2.1vw, 34px);
   line-height: 1.5;
   letter-spacing: -0.025em;
@@ -2423,25 +2482,19 @@ body {
     height: min(118vw, 92svh);
   }
 
-  .story-photo-mask,
-  .story-photo-ghost {
+  /* Same hard rectangle as the pinned stage: the photograph keeps its column
+     edge here too, with no tilt and no rounded corner. */
+  .story-photo-mask {
+    inset: 0 auto auto 0;
     width: min(72vw, 56svh);
     height: min(100vw, 78svh);
     left: 8vw;
-  }
-
-  .story-photo-mask {
-    transform: rotate(-4deg);
-    filter: none;
-    border-top-left-radius: 34vw;
     clip-path: inset(0% 0% 0% 0%);
   }
 
-  .story-photo-ghost {
-    top: 4vw;
-    left: 14vw;
-    transform: rotate(6deg);
-    opacity: 0.35;
+  .story-index {
+    position: static;
+    margin: 0 0 2.4vh;
   }
 
   .story-credit {
@@ -2564,8 +2617,7 @@ body {
     height: min(61vw, 68svh);
   }
 
-  .story-photo-mask,
-  .story-photo-ghost {
+  .story-photo-mask {
     width: 100%;
     height: 100%;
     left: 0;
@@ -2574,6 +2626,7 @@ body {
   .story-credit {
     left: auto;
     right: 0;
+    top: auto;
     bottom: -2.6rem;
   }
 

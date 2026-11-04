@@ -18,6 +18,7 @@ import type { Language, PortfolioContent } from "../content/types";
 import { cx } from "./cx";
 import { PhoneBoothModel } from "./PhoneBoothModel";
 import { WorkTitle } from "./WorkTitle";
+import { RippleFrame } from "./RippleFrame";
 
 type SectionProps<K extends keyof PortfolioContent> = {
   lang: Language;
@@ -97,8 +98,18 @@ export function Words({ text }: { text: string }) {
   );
 }
 
-/** First sentence of the biography becomes the lead, the rest the body. */
+/**
+ * The first paragraph of the biography is the lead, the rest is the body.
+ * A single-paragraph text still splits on its first sentence, so content
+ * written before the paragraph break existed keeps its shape.
+ */
 function splitLead(text: string): [string, string] {
+  const paragraphs = text.split(/\n\s*\n/);
+  if (paragraphs.length > 1) {
+    const [first, ...rest] = paragraphs;
+    const body = rest.join("\n\n").trim();
+    if (body) return [first.trim(), body];
+  }
   const match = text.match(/^(.+?[。！？]|.+?[.!?](?=\s))\s*([\s\S]*)$/);
   if (!match || !match[2]) return [text, ""];
   return [match[1].trim(), match[2].trim()];
@@ -115,16 +126,19 @@ export const Journey = memo(function Journey({ lang, content, name }: JourneyPro
   // attempted when the sentence really opens with the name (or, failing that,
   // with a comma clause), so edited copy can never be cut mid-thought.
   const leadParts = (() => {
+    // Latin role lines open with a capital once they stand on their own; the
+    // lead itself is written without punctuation, so nothing is trimmed here.
+    const role = (text: string) => (zh ? text : text.charAt(0).toUpperCase() + text.slice(1));
     if (lead.startsWith(name)) {
       const tail = lead.slice(name.length);
       const cut = name.length + (/^[，,]/.test(tail) ? 1 : 0);
       const rest = lead.slice(cut).trim();
-      return rest ? ([lead.slice(0, cut).trim(), rest] as const) : null;
+      return rest ? ([lead.slice(0, cut).trim(), role(rest)] as const) : null;
     }
     const comma = lead.search(/[，,]/);
     if (comma > 0) {
       const rest = lead.slice(comma + 1).trim();
-      return rest ? ([lead.slice(0, comma + 1), rest] as const) : null;
+      return rest ? ([lead.slice(0, comma + 1).trim(), role(rest)] as const) : null;
     }
     return null;
   })();
@@ -132,20 +146,23 @@ export const Journey = memo(function Journey({ lang, content, name }: JourneyPro
     <section className="journey" aria-label={heading}>
       <div className="story-layer">
         <div className="story-visual">
-          {/* Keep the document outline without a second visible label. */}
-          <h2 className="sr-only">{heading}</h2>
+          {/* The heading is also the section's index mark on the grid, so it is
+              visible now instead of screen-reader-only. */}
+          <h2 className="story-index">
+            <span className="story-index-num">01</span>
+            <span>{heading}</span>
+          </h2>
           <div className="story-photo-box">
-            <div className="story-photo-ghost" aria-hidden="true">
-              <Img src={content.portrait.src} alt="" sizes="(max-width: 1023px) 72vw, 27vw" loading="lazy" hidden />
-            </div>
             <div className="story-photo-mask">
-              <Img
-                className="story-photo"
-                src={content.portrait.src}
-                alt={t(content.portrait.alt, lang)}
-                sizes="(max-width: 1023px) 72vw, 27vw"
-                loading="lazy"
-              />
+              <RippleFrame>
+                <Img
+                  className="story-photo"
+                  src={content.portrait.src}
+                  alt={t(content.portrait.alt, lang)}
+                  sizes="(max-width: 1023px) 72vw, 30vw"
+                  loading="lazy"
+                />
+              </RippleFrame>
             </div>
             {t(content.portraitCredit, lang) ? (
               <div className="story-credit" aria-hidden="true">

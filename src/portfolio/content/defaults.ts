@@ -51,9 +51,15 @@ export const defaultContent: PortfolioContent = {
       alt: { zh: "BrainEno 肖像", en: "BrainEno portrait" },
     },
     portraitCredit: { zh: "BrainEno", en: "BrainEno" },
+    // The lead is its own paragraph and carries no punctuation; the body is
+    // everything after the break (see `splitLead` in `ui/sections.tsx`).
+    // Content is written from the public repositories rather than from
+    // adjectives: the languages actually used, the projects that exist, the
+    // year the account was opened. Kept to the length the column holds — a
+    // lead of two lines and a body of four or five at both widths.
     primaryText: {
-      zh: "BrainEno，独立开发者与界面设计师。曾深耕软件工程一线，如今以自由职业 Vibe Coder 的身份独立构建数字产品。他擅长将前沿 AI 能力转化为真正可交付的作品——从视觉语言、动态交互，到前端架构与底层数据，均由一人贯通完成。创作横跨品牌体验站、内容型产品与跨端效率工具，并在开源社区持续维护与公开自己的代码。",
-      en: "BrainEno is an independent developer and interface designer. Grounded in software engineering and now working solo as a freelance vibe coder, he turns frontier AI capabilities into shipped digital products — carrying each piece end to end from visual language and motion choreography to frontend architecture and the data layer. His work spans brand experiences, editorial products, and cross-platform tools, alongside open-source repositories maintained in public.",
+      zh: "BrainEno 独立开发者与界面设计师\n\n主要写 Dart、TypeScript、Python 和 C#。近两年的项目大多落在本地优先这条线上：练歌房用的 KTV 制作与播放工具 lyric-forge-ktv，长文阅读客户端 No Wave，以及把写作与排版放在一起考虑的 ScribeForge。界面、交互和数据层通常由我一个人做完，代码都开在 GitHub 上，最早一批仓库从 2019 年保留至今。",
+      en: "BrainEno independent developer and interface designer\n\nI mostly write Dart, TypeScript, Python and C#. The last two years went into local-first tools: lyric-forge-ktv, a KTV production and playback app; No Wave, a reading client for long-form essays; and ScribeForge, where writing and typesetting share one surface. Interface, motion and the data layer are usually mine end to end. The code is public on GitHub, some of it since 2019.",
     },
     gallery: [
       { src: "/images/red2.webp", alt: { zh: "视觉摄影 01", en: "Editorial frame 01" } },
@@ -67,8 +73,8 @@ export const defaultContent: PortfolioContent = {
       { src: "/images/screenshot2.jpg", alt: { zh: "精选画面 02", en: "Featured still 02" } },
     ],
     secondaryText: {
-      zh: "当编码的门槛被 AI 消解，决定作品上限的便不再是实现手段，而是审美与判断。机器能够迅速穷尽功能的解法，却无法替人感知分寸，更无法代人做出取舍——克制什么、放大什么，恰恰构成了作品真正的性格。",
-      en: "Once AI dissolves the friction of implementation, the ceiling of a work is no longer set by code, but by taste and judgement. Machines can exhaust every technical path, yet they cannot sense proportion or make the decisive trade-offs — what to hold back and what to amplify is ultimately what gives a piece its character.",
+      zh: "工具让实现变快了，慢下来的是取舍：哪些留下，哪些删掉。同一件事 AI 能给出十个可行版本，选哪一个仍然由人决定。",
+      en: "Tools made the building fast; choosing is what is slow. AI can draft ten workable versions of the same screen — deciding which one stays is still a person's call.",
     },
   },
   works: {

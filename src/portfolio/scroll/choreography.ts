@@ -341,19 +341,16 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean) {
     { y: 0, x: 0, duration: settle, ease: "power2.out" },
     at.settle
   )
+    // The plate is a rectangle on the grid, so the settle beat is a scale and a
+    // reframe only: no tilt to unwind, no radius to open, no second copy behind
+    // it. Its column stays where the stylesheet put it.
     .fromTo(
       ".story-photo-mask",
-      { rotation: 18.17, width: "20vw", borderTopLeftRadius: "0vw", filter: "grayscale(40%)" },
-      { rotation: -3, width: "27vw", borderTopLeftRadius: "13vw", filter: "grayscale(0%)", duration: settle, ease: "power1.inOut" },
+      { scale: 0.94 },
+      { scale: 1, duration: settle, ease: "power2.out" },
       at.settle
     )
     .fromTo(".story-photo", { objectPosition: "50% 50%" }, { objectPosition: "50% 18%", duration: settle }, at.settle)
-    .fromTo(
-      ".story-photo-ghost",
-      { rotation: 0, x: 0, y: 0, autoAlpha: 0.55 },
-      { rotation: 9, x: "2.6vw", y: "2.2vw", autoAlpha: 0.35, duration: settle },
-      at.settle
-    )
     .fromTo(
       ".story-credit",
       { scale: 0.01, autoAlpha: 0, rotation: 18 },
@@ -361,7 +358,10 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean) {
       at.settle + 0.5
     )
     // Each language keeps its own reading measure and optical column position.
-    .fromTo(".story-copy", { x: 0 }, { x: () => -vw() * (scope.classList.contains("lang-zh") ? 0.48 : 0.5), duration: approach, ease: "power2.out" }, at.approach)
+    // The block already rests on its column (see `.story-copy` in the
+    // stylesheet); it arrives by travelling a share of its own width, so the
+    // grid owns the destination and the tween owns only the distance.
+    .fromTo(".story-copy", { xPercent: 118 }, { xPercent: 0, duration: approach, ease: "power2.out" }, at.approach)
     .fromTo(".copy-lead", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: approach * 0.6, ease: "power2.out" }, at.approach + approach * 0.2)
     .fromTo(".copy-body", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: approach * 0.6, ease: "power2.out" }, at.approach + approach * 0.4)
     .to(".story-layer", { x: () => -vw() * 1.08, duration: push, ease: "power1.inOut" }, at.push)
