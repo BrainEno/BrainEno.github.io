@@ -540,7 +540,7 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
         <div id="smooth-content">
           <main>
             <Hero lang={lang} content={content.hero} name={content.identity.name} />
-            <Journey lang={lang} content={content.intro} />
+            <Journey lang={lang} content={content.intro} name={content.identity.name} />
             <Works
               lang={lang}
               content={content.works}

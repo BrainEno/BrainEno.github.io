@@ -87,10 +87,11 @@ export const defaultContent: PortfolioContent = {
       screen: { top: 65.4, left: 42.62, width: 10.92, height: 11.98 },
     },
     items: [
-      // Five repositories with the highest 2026 commit counts on github.com/BrainEno
-      // (lyric-forge-ktv 569 · no-wave 543 · remix-partfolio 280 · ScribeForge 257 ·
-      // win7-book-management 218). `year` holds the repository start date, `credit`
-      // holds the stack shown after the separator.
+      // Every repository on github.com/BrainEno with more than 100 commits since
+      // 2026-01-01: lyric-forge-ktv 929 · no-wave 764 · ScribeForge 416 ·
+      // flutter-blog 338 · remix-partfolio 282 · win7-book-management 252.
+      // `year` holds the repository start date, `credit` holds the stack shown
+      // after the separator.
       {
         id: "lyric-forge-ktv",
         title: { zh: "lyric-forge-ktv", en: "lyric-forge-ktv" },
@@ -179,6 +180,32 @@ export const defaultContent: PortfolioContent = {
           {
             src: "/images/works/scribeforge.jpg",
             alt: { zh: "ScribeForge 写作界面", en: "ScribeForge writing view" },
+          },
+        ],
+      },
+      {
+        id: "flutter-blog",
+        title: { zh: "flutter-blog", en: "flutter-blog" },
+        year: "2025.01.17",
+        credit: { zh: "Flutter · Dart · 编辑式阅读", en: "Flutter · Dart · Editorial reading" },
+        image: {
+          src: "/images/works/flutter-blog.jpg",
+          // An illustrated ident rather than a screenshot: the repository has no
+          // public capture, and the site's own palette stands in until one exists.
+          alt: {
+            zh: "flutter-blog（No Wave 移动端）示意图",
+            en: "flutter-blog (No Wave mobile) — illustrated card",
+          },
+        },
+        url: "https://github.com/BrainEno/flutter-blog",
+        description: {
+          zh: "No Wave 的 Flutter 移动客户端：离线缓存阅读、本地草稿、点赞收藏、标签浏览与全文搜索，正文以 Markdown 呈现，数据来自自托管的 no-wave API；界面沿用纸色与墨色的编辑式排版，并跟随系统的深浅色与字号设置。",
+          en: "The Flutter client for No Wave: offline reading with a local cache, on-device drafts, likes and bookmarks, tag browsing and full-text search, Markdown bodies served by the self-hosted no-wave API — set in the same paper-and-ink editorial layout, and following the system theme and type scale.",
+        },
+        detailImages: [
+          {
+            src: "/images/works/flutter-blog.jpg",
+            alt: { zh: "flutter-blog 移动端示意图", en: "flutter-blog mobile card" },
           },
         ],
       },

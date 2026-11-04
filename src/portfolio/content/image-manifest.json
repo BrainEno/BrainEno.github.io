@@ -149,6 +149,17 @@
         }
       ]
     },
+    "/images/works/flutter-blog.jpg": {
+      "width": 1200,
+      "height": 878,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/works-flutter-blog-480.26757460.webp 480w, /images/opt/works-flutter-blog-800.26757460.webp 800w, /images/opt/works-flutter-blog-1200.26757460.webp 1200w"
+        }
+      ]
+    },
     "/images/works/lyric-forge-ktv.jpg": {
       "width": 1600,
       "height": 1000,

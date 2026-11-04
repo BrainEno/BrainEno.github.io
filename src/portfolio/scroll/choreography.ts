@@ -99,7 +99,6 @@ function screenLift(section: HTMLElement) {
 export function createHeroEntrance() {
   const tl = gsap.timeline({ paused: true, defaults: { ease: "expo.out", duration: 1.5 } });
   tl.from(".hero-word-text", { yPercent: 118, stagger: 0.12 }, 0)
-    .from(".hero-brand-text", { yPercent: 115, duration: 1.3 }, 0.1)
     .from(".hero-bar", { clipPath: "inset(100% 0% 0% 0%)", stagger: 0.12, duration: 1.7 }, 0.1)
     .from(".hero-photo-reveal", { clipPath: "inset(100% 0% 0% 0%)", duration: 1.7 }, 0)
     .from(".hero-photo-zoom", { scale: 1.32, duration: 2.2 }, 0)

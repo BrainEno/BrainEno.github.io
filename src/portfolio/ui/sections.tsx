@@ -28,8 +28,10 @@ export const Hero = memo(function Hero({ lang, content, name }: SectionProps<"he
   const zh = lang === "zh";
   return (
     <section id="intro" className="hero" aria-label={name}>
+      {/* The masthead already carries the name in the header, so the hero keeps
+          it for the document outline only. */}
+      <h1 className="sr-only">{name}</h1>
       <div className="hero-box">
-        <h1 className="hero-brand"><span className="hero-brand-text">{name}</span></h1>
         {content.headlines.map((headline, index) => (
           <div key={index} className={cx("hero-word", `hero-word-${index + 1}`, zh && "is-zh")}>
             <span className="hero-word-mask">
@@ -97,10 +99,30 @@ function splitLead(text: string): [string, string] {
   return [match[1].trim(), match[2].trim()];
 }
 
-export const Journey = memo(function Journey({ lang, content }: SectionProps<"intro">) {
+type JourneyProps = SectionProps<"intro"> & { name: string };
+
+export const Journey = memo(function Journey({ lang, content, name }: JourneyProps) {
   const zh = lang === "zh";
   const [lead, body] = splitLead(t(content.primaryText, lang));
   const heading = t(content.heading, lang);
+  // The lead is set as a two-line lockup — the name, then the role — which is
+  // what gives the block its hierarchy in both languages. The split is only
+  // attempted when the sentence really opens with the name (or, failing that,
+  // with a comma clause), so edited copy can never be cut mid-thought.
+  const leadParts = (() => {
+    if (lead.startsWith(name)) {
+      const tail = lead.slice(name.length);
+      const cut = name.length + (/^[，,]/.test(tail) ? 1 : 0);
+      const rest = lead.slice(cut).trim();
+      return rest ? ([lead.slice(0, cut).trim(), rest] as const) : null;
+    }
+    const comma = lead.search(/[，,]/);
+    if (comma > 0) {
+      const rest = lead.slice(comma + 1).trim();
+      return rest ? ([lead.slice(0, comma + 1), rest] as const) : null;
+    }
+    return null;
+  })();
   return (
     <section className="journey" aria-label={heading}>
       <div className="story-layer">
@@ -131,12 +153,14 @@ export const Journey = memo(function Journey({ lang, content }: SectionProps<"in
         <div className="story-copy">
           <div className="story-copy-inner">
             <p className={cx("copy copy-lead", zh && "is-zh")}>
-              {zh && lead.includes("，") ? (
+              {leadParts ? (
                 <>
-                  <span className="copy-lead-name">{lead.slice(0, lead.indexOf("，") + 1)}</span>
-                  <span className="copy-lead-role"><Words text={lead.slice(lead.indexOf("，") + 1)} /></span>
+                  <span className="copy-lead-name">{leadParts[0]}</span>
+                  <span className="copy-lead-role"><Words text={leadParts[1]} /></span>
                 </>
-              ) : <Words text={lead} />}
+              ) : (
+                <Words text={lead} />
+              )}
             </p>
             {body ? (
               <p className={cx("copy copy-body", zh && "is-zh")}>
