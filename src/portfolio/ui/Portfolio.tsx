@@ -67,8 +67,10 @@ const Header = memo(function Header({ name, lang, section, navigation, onLanguag
                 aria-pressed={lang === code}
                 onMouseDown={(event) => {
                   if (event.button !== 0) return;
+                  // Keep the pointer from selecting the label, but do not move
+                  // focus: a scripted focus after a click is what makes Chrome
+                  // paint the accent ring over the masthead as an orange box.
                   event.preventDefault();
-                  event.currentTarget.focus({ preventScroll: true });
                 }}
                 onClick={() => onLanguage(code)}
               >
@@ -243,6 +245,29 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
     document.title = t(content.identity.pageTitle, lang) || content.identity.name;
   }, [lang, content.identity]);
 
+  // Focus rings belong to keyboards only. Several controls here are focused
+  // from a pointer-down (the language switch, the index rows, the sheet
+  // navigation) so their own scroll handling wins; Chrome then treats the
+  // scripted focus as visible and paints the accent ring as an orange box over
+  // the page. The mode is tracked here and the stylesheet draws the ring only
+  // while `data-input="keys"`.
+  useEffect(() => {
+    const scope = scopeRef.current;
+    if (!scope) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Tab") scope.dataset.input = "keys";
+    };
+    const onPointer = () => {
+      scope.dataset.input = "pointer";
+    };
+    window.addEventListener("keydown", onKey, true);
+    window.addEventListener("pointerdown", onPointer, true);
+    return () => {
+      window.removeEventListener("keydown", onKey, true);
+      window.removeEventListener("pointerdown", onPointer, true);
+    };
+  }, []);
+
   const changeLanguage = useCallback((next: Language) => {
     setLangOverride(next);
     window.localStorage.setItem(LANG_KEY, next);
@@ -391,6 +416,13 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
   }, []);
 
   useEffect(() => {
+    // Belt and braces for the parse-time reset in `app/layout.tsx`: a browser
+    // can hand the restored offset back once the DOM is interactive, and the
+    // smoother would then adopt it as its starting position. Only re-assert it
+    // when that reset actually ran (never on a deep link or a back navigation).
+    if (document.documentElement.dataset.boot === "top" && window.scrollY > 0) {
+      window.scrollTo(0, 0);
+    }
     registerGsap();
     const smoother = createSmoother();
     const scope = scopeRef.current;
@@ -540,7 +572,7 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
         <div id="smooth-content">
           <main>
             <Hero lang={lang} content={content.hero} name={content.identity.name} />
-            <Journey lang={lang} content={content.intro} />
+            <Journey lang={lang} content={content.intro} name={content.identity.name} />
             <Works
               lang={lang}
               content={content.works}

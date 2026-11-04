@@ -99,7 +99,6 @@ function screenLift(section: HTMLElement) {
 export function createHeroEntrance() {
   const tl = gsap.timeline({ paused: true, defaults: { ease: "expo.out", duration: 1.5 } });
   tl.from(".hero-word-text", { yPercent: 118, stagger: 0.12 }, 0)
-    .from(".hero-brand-text", { yPercent: 115, duration: 1.3 }, 0.1)
     .from(".hero-bar", { clipPath: "inset(100% 0% 0% 0%)", stagger: 0.12, duration: 1.7 }, 0.1)
     .from(".hero-photo-reveal", { clipPath: "inset(100% 0% 0% 0%)", duration: 1.7 }, 0)
     .from(".hero-photo-zoom", { scale: 1.32, duration: 2.2 }, 0)
@@ -252,9 +251,13 @@ function heroScroll(desktop: boolean) {
       scrub: true,
     },
   })
-    .to(".hero-word-1", { x: desktop ? "-1.2vw" : -12, y: desktop ? "3.6vw" : 80 }, 0)
-    .to(".hero-word-2", { x: desktop ? "-1.2vw" : -12, y: desktop ? "3.6vw" : 80 }, 0.08)
-    .to(".hero-word-3", { x: desktop ? "-1.2vw" : -12, y: desktop ? "3.6vw" : 80 }, 0.16);
+    // The trio is one measured column now, so it drifts as one piece: a per-line
+    // stagger would break the shared left margin the type is built on.
+    .to(
+      [".hero-word-1", ".hero-word-2", ".hero-word-3"],
+      { x: desktop ? "-0.8vw" : -6, y: desktop ? "1vw" : 14 },
+      0,
+    );
 
   gsap.fromTo(
     ".hero-bar-image",
