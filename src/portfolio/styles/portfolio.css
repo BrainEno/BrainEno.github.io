@@ -434,13 +434,30 @@ body {
   height: 80vw;
 }
 
+.hero-brand {
+  position: absolute;
+  top: 8.5vw;
+  left: 0;
+  z-index: 3;
+  overflow: hidden;
+  font-size: 6.4vw;
+  line-height: 1.12;
+  letter-spacing: -0.055em;
+}
+
+.hero-brand-text {
+  display: block;
+}
+
 .hero-word {
   position: absolute;
-  z-index: 2;
+  z-index: 5;
   display: inline-block;
   width: max-content;
-  height: 18vw;
-  font-size: 8vw;
+  height: auto;
+  font-size: 5.1vw;
+  letter-spacing: -0.035em;
+  transform-origin: 0 50%;
   text-transform: uppercase;
   color: var(--ink);
   mix-blend-mode: difference;
@@ -448,7 +465,8 @@ body {
 }
 
 .hero-word.is-zh {
-  font-size: 11vw;
+  font-size: 7.2vw;
+  letter-spacing: 0.055em;
 }
 
 .hero-word-mask {
@@ -464,12 +482,12 @@ body {
   white-space: nowrap;
 }
 
-.hero-word-1 { top: 28vw; left: -8vw; transform: rotate(-71.35deg); }
-.hero-word-2 { top: 24vw; left: -2vw; transform: rotate(18.75deg); }
-.hero-word-3 { top: 46vw; left: 27vw; transform: rotate(18.75deg); }
-.hero-word-1.is-zh { top: 8vw; left: 4vw; transform: none; }
-.hero-word-2.is-zh { top: 31vw; left: 16vw; transform: none; }
-.hero-word-3.is-zh { top: 50vw; left: 28vw; transform: none; }
+.hero-word-1 { top: 61vw; left: 0; transform: rotate(-71.35deg); }
+.hero-word-2 { top: 27vw; left: 18vw; transform: rotate(18.75deg); }
+.hero-word-3 { top: 44vw; left: 17vw; transform: rotate(18.75deg); }
+.hero-word-1.is-zh { top: 25vw; left: 0; transform: none; }
+.hero-word-2.is-zh { top: 42vw; left: 6vw; transform: none; }
+.hero-word-3.is-zh { top: 59vw; left: 12vw; transform: none; }
 
 .hero-bar {
   position: absolute;
@@ -635,10 +653,14 @@ body {
   left: 100vw;
   display: flex;
   align-items: center;
-  width: min(44vw, 34em);
+  width: min(43vw, 720px);
   height: 100%;
-  padding-bottom: 4vh;
+  padding-bottom: 0;
   will-change: transform;
+}
+
+.lang-zh .story-copy {
+  width: min(39vw, 640px);
 }
 
 .copy {
@@ -656,66 +678,54 @@ body {
   text-align: justify;
 }
 
-/* Biography layout: one lead sentence set large, the body underneath at
-   reading size, closed by a hairline. Both are word-wrapped in `.copy-word`
-   spans the scroll choreography brightens in reading order. */
+/* Optical measures are intentionally different in the two languages. */
 .story-copy-inner {
   width: 100%;
 }
 
-.copy-lead {
-  font-size: clamp(24px, 2.35vw, 40px);
-  line-height: 1.22;
-  letter-spacing: -0.012em;
-  margin-bottom: 1.1em;
+.story-copy .copy-lead {
+  max-width: 19ch;
+  font-size: clamp(30px, 3.25vw, 54px);
+  line-height: 1.13;
+  letter-spacing: -0.045em;
+  margin-bottom: 0.9em;
   text-wrap: balance;
 }
 
-.copy-lead.is-zh {
-  font-size: clamp(22px, 2.15vw, 38px);
-  line-height: 1.45;
-  letter-spacing: 0.06em;
+.story-copy .copy-lead.is-zh {
+  max-width: none;
+  font-size: clamp(28px, 2.65vw, 44px);
+  line-height: 1.55;
+  letter-spacing: 0.035em;
   text-align: left;
-  margin-bottom: 1.3em;
+  margin-bottom: 1.15em;
 }
 
-.copy-body {
-  font-size: clamp(16px, 1.22vw, 21px);
-  line-height: 1.6;
+.copy-lead-name,
+.copy-lead-role {
+  display: block;
+}
+
+.story-copy .copy-body {
+  max-width: 47ch;
+  font-size: clamp(16px, 1.25vw, 20px);
+  line-height: 1.8;
+  letter-spacing: -0.006em;
   color: var(--muted-strong);
+  text-wrap: pretty;
 }
 
-.copy-body.is-zh {
-  font-size: clamp(16px, 1.18vw, 21px);
-  line-height: 1.85;
+.story-copy .copy-body.is-zh {
+  max-width: 28em;
+  font-size: clamp(16px, 1.24vw, 20px);
+  line-height: 2;
+  letter-spacing: 0.035em;
+  text-align: left;
+  line-break: strict;
 }
 
 .copy-word {
   display: inline;
-}
-
-/* Section folio: inside the copy column, above the lead sentence, in the same
-   register as the works heading. */
-.story-kicker {
-  display: flex;
-  align-items: center;
-  gap: 0.9em;
-  font-size: clamp(11px, 0.78vw, 13px);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted-strong);
-  margin-bottom: clamp(14px, 1.5vw, 26px);
-  opacity: 0;
-  visibility: hidden;
-}
-
-.story-kicker-index {
-  color: var(--accent);
-  font-variant-numeric: tabular-nums;
-}
-
-.story-kicker .is-zh {
-  letter-spacing: 0.3em;
 }
 
 .rail-caption {
@@ -784,7 +794,7 @@ body {
 
 .coda {
   position: absolute;
-  bottom: 10vw;
+  bottom: 18vh;
   left: 100vw;
   width: 90vw;
   will-change: transform;
@@ -793,7 +803,18 @@ body {
 .coda-text {
   position: relative;
   z-index: 1;
-  width: min(52vw, 38em);
+  width: min(48vw, 33em);
+  font-size: clamp(22px, 2.1vw, 34px);
+  line-height: 1.5;
+  letter-spacing: -0.025em;
+}
+
+.coda-text.is-zh {
+  width: min(46vw, 27em);
+  font-size: clamp(20px, 1.9vw, 30px);
+  line-height: 1.9;
+  letter-spacing: 0.03em;
+  text-align: left;
 }
 
 .coda-pic {
@@ -818,8 +839,8 @@ body {
 
 .coda-pic-2 {
   z-index: 0;
-  top: 5vw;
-  left: 12vw;
+  top: 8vw;
+  left: 69vw;
   width: 18.75vw;
   height: 13.54vw;
   opacity: 0.85;
@@ -830,6 +851,20 @@ body {
   position: relative;
   z-index: 1;
   background: var(--night);
+  /* Two device-independent pixels of shared sky cover fractional pin edges. */
+  margin-top: -2px;
+}
+
+.works::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--sky);
+  pointer-events: none;
+  z-index: 2;
 }
 
 /* The stage is the night the photograph sits in: the photo's own sky at the
@@ -1432,42 +1467,6 @@ body {
   pointer-events: none;
 }
 
-/* Folio, in the same register as the intro's "01". */
-.works-index {
-  margin-right: 1.1em;
-  color: var(--accent);
-  font-size: clamp(11px, 0.78vw, 13px);
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  font-variant-numeric: tabular-nums;
-  vertical-align: 0.55em;
-}
-
-.works-heading {
-  margin-bottom: 3vw;
-  overflow: hidden;
-  line-height: 1.15;
-}
-
-.works-heading-text {
-  display: inline-block;
-  font-size: clamp(22px, 2.3vw, 38px);
-  font-weight: 500;
-  letter-spacing: 0.01em;
-}
-
-.works-heading-text.is-zh {
-  letter-spacing: 0.12em;
-}
-
-.works-period {
-  margin-left: 0.3em;
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-weight: 400;
-  color: rgba(214, 226, 255, 0.62);
-}
-
 .work-rows {
   list-style: none;
 }
@@ -1475,12 +1474,24 @@ body {
 /* Index | title | the television's column | meta. Titles end before the set
    and the meta starts after it, so a hovered row never covers the channel
    change it triggers; the hairlines break around the set for the same reason. */
+/* The row's single control. It covers the row, so the whole line stays
+   clickable while the markup keeps a real button (and a real list). */
+.work-row-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.work-row-hit:focus-visible {
+  outline-offset: -2px;
+}
+
 .work-row {
   position: relative;
   display: grid;
   grid-template-columns: 3.4vw minmax(0, 34vw) 1fr auto;
   align-items: end;
-  padding: 1.25vw 0 1vw;
+  padding: 1.45vw 0 1.15vw;
   cursor: pointer;
   outline-offset: -2px;
 }
@@ -1525,44 +1536,61 @@ body {
 }
 
 .work-row-title {
+  --work-size: clamp(22px, 2.45vw, 44px);
   position: relative;
   display: block;
+  font-size: var(--work-size);
 }
 
 .work-row-name,
 .work-row-name-alt {
   display: block;
-  font-size: clamp(24px, 2.55vw, 48px);
-  line-height: 1;
-  padding-bottom: 0.06em;
-  letter-spacing: -0.02em;
+  font-family: var(--font-sans);
+  font-size: calc(var(--work-size) * var(--work-fit, 1));
+  font-weight: 400;
+  line-height: calc(var(--work-size) * var(--work-fit, 1) * 1.25);
+  padding: 0.06em 0;
+  letter-spacing: -0.025em;
   text-transform: uppercase;
   white-space: nowrap;
-  transition: transform 0.7s var(--ease-out);
+  transition: transform 0.58s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .work-row-name-alt {
   position: absolute;
   inset: 0;
   font-family: var(--font-serif);
-  font-style: italic;
+  font-style: normal;
   font-weight: 400;
-  font-size: clamp(25px, 2.7vw, 51px);
-  letter-spacing: -0.01em;
-  text-transform: none;
+  font-size: calc(var(--work-size) * var(--work-fit, 1) * var(--work-cap, 1.06));
   transform: translateY(105%);
 }
 
-.work-row.is-zh .work-row-name,
-.work-row.is-zh .work-row-name-alt {
-  line-height: 1.25;
+.work-row-ink {
+  display: inline-block;
+  transform-origin: 0 50%;
 }
 
-.work-row.is-active .work-row-name {
+.work-row-name-alt .work-row-ink {
+  transform: scaleX(var(--work-width, 1));
+}
+
+.work-row-title[data-script="cjk"] .work-row-name,
+.work-row-title[data-script="cjk"] .work-row-name-alt {
+  font-family: var(--font-cjk);
+}
+
+.work-row-title[data-script="cjk"] .work-row-name-alt {
+  font-weight: 500;
+}
+
+.work-row.is-active .work-row-name,
+.work-row:focus-within .work-row-name {
   transform: translateY(-105%);
 }
 
-.work-row.is-active .work-row-name-alt {
+.work-row.is-active .work-row-name-alt,
+.work-row:focus-within .work-row-name-alt {
   transform: translateY(0);
 }
 
@@ -1946,32 +1974,6 @@ body {
   min-height: 100vh;
   min-height: 100svh;
   padding: max(78px, 10svh) var(--gutter) clamp(16px, 2.4svh, 30px);
-}
-
-/* Running head: index, section and kicker on one hairline, like a folio. */
-.contact-topbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px 24px;
-  padding-bottom: clamp(12px, 1.1vw, 18px);
-  font-size: clamp(11px, 0.76vw, 13px);
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(12, 12, 12, 0.56);
-}
-
-.contact-topbar-index {
-  margin-right: 1.1em;
-  color: var(--accent);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.contact-topbar .is-zh {
-  letter-spacing: 0.22em;
 }
 
 /* Stage: the booth stands centre-sheet and the call sign runs behind it as
@@ -2417,12 +2419,13 @@ body {
     font-size: 11px;
   }
 
-  .story-copy {
+  .story-copy,
+  .lang-zh .story-copy {
     position: relative;
     left: auto;
     width: 100%;
     height: auto;
-    padding: 8vh var(--gutter) 0;
+    padding: 3vh var(--gutter) 0;
   }
 
   .story-copy-inner {
@@ -2434,9 +2437,12 @@ body {
     font-size: clamp(17px, 2.2vw, 22px);
   }
 
-  .copy-lead,
-  .copy-lead.is-zh {
-    font-size: clamp(22px, 3.4vw, 34px);
+  .story-copy .copy-lead {
+    font-size: clamp(30px, 4.5vw, 46px);
+  }
+
+  .story-copy .copy-lead.is-zh {
+    font-size: clamp(27px, 3.8vw, 38px);
   }
 
   .rail-stage {
@@ -2477,7 +2483,8 @@ body {
     padding: 4vh var(--gutter) 30vh;
   }
 
-  .coda-text {
+  .coda-text,
+  .coda-text.is-zh {
     width: 100%;
   }
 
@@ -2497,51 +2504,45 @@ body {
     width: 44vw;
     height: 32vw;
   }
-
-
-  .story-kicker {
-    position: relative;
-    top: auto;
-    left: auto;
-    order: -2;
-    margin-bottom: 2vh;
-  }
 }
 
 /* Tablets (landscape or portrait) sit between the two: the flow layout above
    with a two-column biography so the lines do not run the full width. */
 @media (min-width: 768px) and (max-width: 1023px), (min-width: 1024px) and (orientation: portrait) {
-  .story-visual {
+  .story-layer {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    column-gap: var(--gutter);
-    align-items: end;
+    grid-template-columns: 42% minmax(0, 1fr);
+    gap: 6%;
+    padding: 0 var(--gutter);
+    align-items: center;
   }
 
-  .story-kicker {
-    grid-column: 1 / -1;
+  .story-visual {
+    display: block;
+    padding: 0;
   }
 
   .story-photo-box {
     grid-column: 1;
-    height: min(96vw, 80svh);
+    height: min(61vw, 68svh);
   }
 
   .story-photo-mask,
   .story-photo-ghost {
-    width: min(42vw, 50svh);
-    height: min(58vw, 70svh);
-    left: 2vw;
+    width: 100%;
+    height: 100%;
+    left: 0;
   }
 
   .story-credit {
-    right: auto;
-    left: 46vw;
-    bottom: 6vw;
+    left: auto;
+    right: 0;
+    bottom: -2.6rem;
   }
 
-  .story-copy {
-    padding-top: 6vh;
+  .story-copy,
+  .lang-zh .story-copy {
+    padding: 0;
   }
 
   .story-copy-inner {
@@ -2604,21 +2605,26 @@ body {
     height: 150vw;
   }
 
-  .hero-word {
+  .hero-brand {
+    top: 0;
     font-size: 12vw;
-    height: 26vw;
+  }
+
+  .hero-word {
+    font-size: 8.4vw;
+    height: auto;
   }
 
   .hero-word.is-zh {
-    font-size: 16vw;
+    font-size: 11.4vw;
   }
 
-  .hero-word-1 { top: 54vw; left: -22vw; }
-  .hero-word-2 { top: 40vw; left: -4vw; }
-  .hero-word-3 { top: 92vw; left: 24vw; }
-  .hero-word-1.is-zh { top: 6vw; left: 0; }
-  .hero-word-2.is-zh { top: 54vw; left: 18vw; }
-  .hero-word-3.is-zh { top: 100vw; left: 40vw; }
+  .hero-word-1 { top: 116vw; left: -1vw; }
+  .hero-word-2 { top: 48vw; left: 14vw; }
+  .hero-word-3 { top: 89vw; left: 14vw; }
+  .hero-word-1.is-zh { top: 32vw; left: 0; }
+  .hero-word-2.is-zh { top: 69vw; left: 4vw; }
+  .hero-word-3.is-zh { top: 106vw; left: 8vw; }
 
   .hero-bar {
     width: 9vw;
@@ -2654,10 +2660,8 @@ body {
     padding-bottom: 0.5em;
   }
 
-  .work-row-name,
-  .work-row-name-alt {
-    font-size: 7.4vw;
-    white-space: normal;
+  .work-row-title {
+    --work-size: 6.8vw;
   }
 
   .work-row-meta {
@@ -2671,10 +2675,6 @@ body {
 
   .contact-inner {
     padding-top: 88px;
-  }
-
-  .contact-topbar {
-    font-size: 10px;
   }
 
   .contact-reel-word {
