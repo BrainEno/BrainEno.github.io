@@ -596,6 +596,96 @@ body {
   text-align: justify;
 }
 
+/* Biography layout: one lead sentence set large, the body underneath at
+   reading size, closed by a hairline. Both are word-wrapped in `.copy-word`
+   spans the scroll choreography brightens in reading order. */
+.story-copy-inner {
+  width: 100%;
+}
+
+.copy-lead {
+  font-size: clamp(24px, 2.35vw, 40px);
+  line-height: 1.22;
+  letter-spacing: -0.012em;
+  margin-bottom: 1.1em;
+  text-wrap: balance;
+}
+
+.copy-lead.is-zh {
+  font-size: clamp(22px, 2.15vw, 38px);
+  line-height: 1.45;
+  letter-spacing: 0.06em;
+  text-align: left;
+  margin-bottom: 1.3em;
+}
+
+.copy-body {
+  font-size: clamp(16px, 1.22vw, 21px);
+  line-height: 1.6;
+  color: var(--muted-strong);
+}
+
+.copy-body.is-zh {
+  font-size: clamp(16px, 1.18vw, 21px);
+  line-height: 1.85;
+}
+
+.copy-word {
+  display: inline;
+  will-change: opacity;
+}
+
+.story-copy-rule {
+  width: 100%;
+  height: 1px;
+  margin-top: 2.2em;
+  background: rgba(252, 252, 252, 0.22);
+  transform-origin: 0% 50%;
+}
+
+/* Section index above the title, in the same register as the works heading. */
+.story-kicker {
+  position: absolute;
+  z-index: 2;
+  top: 4.2vh;
+  left: 46vw;
+  display: flex;
+  align-items: center;
+  gap: 0.9em;
+  font-size: clamp(11px, 0.78vw, 13px);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-strong);
+  opacity: 0;
+  visibility: hidden;
+}
+
+.story-kicker-index {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.story-kicker .is-zh {
+  letter-spacing: 0.3em;
+}
+
+.rail-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1.9em;
+  display: flex;
+  justify-content: space-between;
+  font-size: clamp(10px, 0.72vw, 12px);
+  letter-spacing: 0.12em;
+  color: rgba(252, 252, 252, 0.5);
+  font-variant-numeric: tabular-nums;
+}
+
+.rail-caption span + span::before {
+  content: "/ ";
+}
+
 .rail-stage {
   position: absolute;
   inset: 0;
@@ -1328,6 +1418,281 @@ body {
   height: 130vh;
 }
 
+/* Theater ----------------------------------------------------------------
+   A clicked row pushes the camera into the set: the glass fills the right
+   half of the stage (top half when stacked), the room darkens, and the
+   project sheet comes up on the left. Geometry lives in scroll/theater.ts. */
+.works-hint {
+  margin: -2vw 0 2.4vw;
+  font-size: clamp(10px, 0.74vw, 12px);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(214, 226, 255, 0.42);
+}
+
+.works-hint.is-zh {
+  letter-spacing: 0.3em;
+}
+
+.works[data-tv-phase="theater"] .works-list {
+  pointer-events: none;
+}
+
+.works[data-tv-phase="theater"] .tv-box {
+  will-change: transform;
+}
+
+.works[data-tv-phase="theater"] .tv-seam,
+.works[data-tv-phase="theater"] .tv-osd-layer,
+.works[data-tv-phase="theater"] .tv-play-btn {
+  visibility: hidden;
+}
+
+.tv-theater-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 70% at 72% 50%, rgba(2, 6, 13, 0) 30%, rgba(2, 6, 13, 0.55) 100%),
+    linear-gradient(90deg, rgba(2, 6, 13, 0.92) 0%, rgba(2, 6, 13, 0.72) 42%, rgba(2, 6, 13, 0.18) 60%, rgba(2, 6, 13, 0.12) 100%);
+}
+
+.works[data-theater-layout="stack"] .tv-theater-veil {
+  background:
+    linear-gradient(180deg, rgba(2, 6, 13, 0.35) 0%, rgba(2, 6, 13, 0.1) 30%, rgba(2, 6, 13, 0.72) 55%, rgba(2, 6, 13, 0.96) 70%);
+}
+
+/* The enlarged glass: stills drift slowly so the frame never looks frozen. */
+.tv-active-rig[data-theater="true"] img.tv-cover {
+  animation: tv-drift 14s ease-in-out infinite alternate;
+}
+
+@keyframes tv-drift {
+  from { transform: scale(1.02) translate(0.6%, 0.4%); }
+  to { transform: scale(1.1) translate(-1%, -0.8%); }
+}
+
+.tv-sheet {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  padding: calc(var(--gutter) + 56px) var(--gutter) var(--gutter);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.works[data-tv-phase="theater"] .tv-sheet {
+  pointer-events: auto;
+}
+
+.tv-sheet-inner {
+  width: min(40vw, 34em);
+  color: var(--ink);
+}
+
+.tv-sheet-mask {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.08em;
+}
+
+.tv-sheet-reveal {
+  display: block;
+}
+
+.tv-sheet-top {
+  display: flex;
+  gap: 1.4em;
+  margin-bottom: 2.2vw;
+  font-size: clamp(11px, 0.78vw, 13px);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(214, 226, 255, 0.6);
+}
+
+.tv-sheet-index {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.tv-sheet-kicker.is-zh {
+  letter-spacing: 0.3em;
+}
+
+.tv-sheet-title {
+  margin-bottom: 1.1vw;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(34px, 4.6vw, 86px);
+  line-height: 0.98;
+  letter-spacing: -0.015em;
+  overflow-wrap: anywhere;
+}
+
+.tv-sheet-title .is-zh {
+  font-family: var(--font-cjk);
+  font-style: normal;
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+.tv-sheet-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3em 1.1em;
+  margin-bottom: 2vw;
+  list-style: none;
+  font-size: clamp(12px, 0.9vw, 15px);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(214, 226, 255, 0.72);
+}
+
+.tv-sheet-copy {
+  max-width: 30em;
+  font-size: clamp(15px, 1.12vw, 19px);
+  line-height: 1.58;
+  color: var(--muted-strong);
+  visibility: hidden;
+}
+
+.tv-sheet-copy.is-zh {
+  line-height: 1.85;
+  letter-spacing: 0.03em;
+}
+
+.tv-sheet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1em 1.6em;
+  margin-top: 1.8vw;
+  visibility: hidden;
+}
+
+.tv-sheet-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  padding-bottom: 0.2em;
+  border-bottom: 1px solid var(--ink);
+  font-size: clamp(13px, 0.95vw, 16px);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-decoration: none;
+  transition: color 0.3s, border-color 0.3s;
+}
+
+.tv-sheet-link:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.tv-sheet-note {
+  font-size: clamp(11px, 0.78vw, 13px);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(214, 226, 255, 0.42);
+}
+
+.tv-sheet-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6em;
+  margin-top: 3vw;
+  visibility: hidden;
+}
+
+.tv-sheet-btn {
+  appearance: none;
+  padding: 0.7em 1.1em;
+  border: 1px solid rgba(214, 226, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(2, 6, 13, 0.4);
+  font: inherit;
+  font-size: clamp(11px, 0.8vw, 13px);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: background 0.3s, border-color 0.3s, color 0.3s;
+}
+
+.tv-sheet-btn:hover,
+.tv-sheet-btn:focus-visible {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #02060d;
+  outline: none;
+}
+
+.tv-sheet-close {
+  margin-left: auto;
+}
+
+/* Stacked theater: glass on top, sheet in the lower half. */
+.works[data-theater-layout="stack"] .tv-sheet {
+  align-items: flex-end;
+  padding: 0 var(--gutter) max(var(--gutter), env(safe-area-inset-bottom, 0px));
+}
+
+.works[data-theater-layout="stack"] .tv-sheet-inner {
+  width: 100%;
+  max-width: 40em;
+  max-height: 44svh;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.works[data-theater-layout="stack"] .tv-sheet-inner::-webkit-scrollbar {
+  display: none;
+}
+
+.works[data-theater-layout="stack"] .tv-sheet-top {
+  margin-bottom: 10px;
+}
+
+.works[data-theater-layout="stack"] .tv-sheet-title {
+  margin-bottom: 8px;
+  font-size: clamp(30px, 8.5vw, 64px);
+}
+
+.works[data-theater-layout="stack"] .tv-sheet-meta {
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+
+.works[data-theater-layout="stack"] .tv-sheet-copy {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+  font-size: 15px;
+}
+
+.works[data-theater-layout="stack"] .tv-sheet-actions {
+  margin-top: 12px;
+}
+
+.works[data-theater-layout="stack"] .tv-sheet-nav {
+  margin-top: 16px;
+}
+
+.works[data-theater-layout="stack"] .tv-sheet-btn {
+  font-size: 11px;
+  padding: 0.6em 0.9em;
+}
+
 /* Contact ------------------------------------------------------------ */
 .contact {
   position: relative;
@@ -1764,6 +2129,215 @@ body {
   }
 }
 
+/* Intro, flow layout ------------------------------------------------
+   Whenever the pinned side-scroll has no room (phones, tablets in portrait,
+   short landscape viewports) the intro reads top to bottom. Mirrors
+   `JOURNEY_PINNED_QUERY` in scroll/choreography.ts — keep the two in step. */
+@media (max-width: 1023px), (max-height: 560px), (orientation: portrait) {
+  .journey {
+    height: auto;
+    overflow: visible;
+    padding: 12vh 0 0;
+  }
+
+  .story-layer,
+  .story-visual {
+    position: relative;
+    inset: auto;
+  }
+
+  .story-visual {
+    display: flex;
+    flex-direction: column;
+    padding: 0 var(--gutter);
+  }
+
+  .story-title {
+    position: relative;
+    top: auto;
+    left: auto;
+    order: -1;
+    margin-bottom: 6vh;
+  }
+
+  .story-title-text,
+  .story-title-text.is-zh {
+    font-size: clamp(56px, 16vw, 150px);
+  }
+
+  .story-photo-box {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: 100%;
+    height: min(118vw, 92svh);
+  }
+
+  .story-photo-mask,
+  .story-photo-ghost {
+    width: min(72vw, 56svh);
+    height: min(100vw, 78svh);
+    left: 8vw;
+  }
+
+  .story-photo-mask {
+    transform: rotate(-4deg);
+    filter: none;
+    border-top-left-radius: 34vw;
+    clip-path: inset(0% 0% 0% 0%);
+  }
+
+  .story-photo-ghost {
+    top: 4vw;
+    left: 14vw;
+    transform: rotate(6deg);
+    opacity: 0.35;
+  }
+
+  .story-credit {
+    top: auto;
+    bottom: 2vw;
+    left: auto;
+    right: 0;
+    opacity: 1;
+    visibility: visible;
+    font-size: 11px;
+  }
+
+  .story-copy {
+    position: relative;
+    left: auto;
+    width: 100%;
+    height: auto;
+    padding: 8vh var(--gutter) 0;
+  }
+
+  .story-copy-inner {
+    max-width: 38em;
+  }
+
+  .copy,
+  .copy.is-zh {
+    font-size: clamp(17px, 2.2vw, 22px);
+  }
+
+  .copy-lead,
+  .copy-lead.is-zh {
+    font-size: clamp(22px, 3.4vw, 34px);
+  }
+
+  .rail-stage {
+    position: relative;
+    inset: auto;
+    height: 100svh;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .rail {
+    height: auto;
+    padding: 0 var(--gutter);
+    gap: 16px;
+    transform: none;
+  }
+
+  .rail-item,
+  .rail-item:nth-child(even) {
+    width: min(78vw, 70svh);
+    height: min(58vw, 52svh);
+  }
+
+  .rail-item:nth-child(odd) { transform: translateY(-3vh); }
+  .rail-item:nth-child(even) { transform: translateY(3vh); }
+
+  .rail-image {
+    left: 0;
+    width: 100%;
+  }
+
+  .coda {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    width: 100%;
+    padding: 4vh var(--gutter) 30vh;
+  }
+
+  .coda-text {
+    width: 100%;
+  }
+
+  .coda-pic-1 {
+    top: auto;
+    bottom: 4vh;
+    left: auto;
+    right: var(--gutter);
+    width: 30vw;
+    height: 44vw;
+  }
+
+  .coda-pic-2 {
+    top: auto;
+    bottom: 8vh;
+    left: var(--gutter);
+    width: 44vw;
+    height: 32vw;
+  }
+
+
+  .story-kicker {
+    position: relative;
+    top: auto;
+    left: auto;
+    order: -2;
+    margin-bottom: 2vh;
+  }
+}
+
+/* Tablets (landscape or portrait) sit between the two: the flow layout above
+   with a two-column biography so the lines do not run the full width. */
+@media (min-width: 768px) and (max-width: 1023px), (min-width: 1024px) and (orientation: portrait) {
+  .story-visual {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: var(--gutter);
+    align-items: end;
+  }
+
+  .story-kicker,
+  .story-title {
+    grid-column: 1 / -1;
+  }
+
+  .story-photo-box {
+    grid-column: 1;
+    height: min(96vw, 80svh);
+  }
+
+  .story-photo-mask,
+  .story-photo-ghost {
+    width: min(42vw, 50svh);
+    height: min(58vw, 70svh);
+    left: 2vw;
+  }
+
+  .story-credit {
+    right: auto;
+    left: 46vw;
+    bottom: 6vw;
+  }
+
+  .story-copy {
+    padding-top: 6vh;
+  }
+
+  .story-copy-inner {
+    margin-left: auto;
+    max-width: 36em;
+  }
+}
+
 @media (max-width: 767px) {
   :root {
     --gutter: 20px;
@@ -1849,148 +2423,6 @@ body {
     height: 80vw;
   }
 
-  .journey {
-    height: auto;
-    overflow: visible;
-    padding: 12vh 0 0;
-  }
-
-  .story-layer,
-  .story-visual {
-    position: relative;
-    inset: auto;
-  }
-
-  .story-visual {
-    display: flex;
-    flex-direction: column;
-    padding: 0 var(--gutter);
-  }
-
-  .story-title {
-    position: relative;
-    top: auto;
-    left: auto;
-    order: -1;
-    margin-bottom: 6vh;
-  }
-
-  .story-title-text,
-  .story-title-text.is-zh {
-    font-size: 18vw;
-  }
-
-  .story-photo-box {
-    position: relative;
-    top: auto;
-    left: auto;
-    width: 100%;
-    height: 118vw;
-  }
-
-  .story-photo-mask,
-  .story-photo-ghost {
-    width: 72vw;
-    height: 100vw;
-    left: 8vw;
-  }
-
-  .story-photo-mask {
-    transform: rotate(-4deg);
-    filter: none;
-    border-top-left-radius: 34vw;
-    clip-path: inset(0% 0% 0% 0%);
-  }
-
-  .story-photo-ghost {
-    top: 4vw;
-    left: 14vw;
-    transform: rotate(6deg);
-    opacity: 0.35;
-  }
-
-  .story-credit {
-    top: auto;
-    bottom: 2vw;
-    left: auto;
-    right: 0;
-    opacity: 1;
-    visibility: visible;
-    font-size: 11px;
-  }
-
-  .story-copy {
-    position: relative;
-    left: auto;
-    width: 100%;
-    height: auto;
-    padding: 8vh var(--gutter) 0;
-  }
-
-  .copy,
-  .copy.is-zh {
-    font-size: 18px;
-  }
-
-  .rail-stage {
-    position: relative;
-    inset: auto;
-    height: 100svh;
-    display: flex;
-    align-items: center;
-    overflow: hidden;
-  }
-
-  .rail {
-    height: auto;
-    padding: 0 var(--gutter);
-    gap: 16px;
-    transform: none;
-  }
-
-  .rail-item,
-  .rail-item:nth-child(even) {
-    width: 78vw;
-    height: 58vw;
-  }
-
-  .rail-item:nth-child(odd) { transform: translateY(-3vh); }
-  .rail-item:nth-child(even) { transform: translateY(3vh); }
-
-  .rail-image {
-    left: 0;
-    width: 100%;
-  }
-
-  .coda {
-    position: relative;
-    left: auto;
-    bottom: auto;
-    width: 100%;
-    padding: 4vh var(--gutter) 30vh;
-  }
-
-  .coda-text {
-    width: 100%;
-  }
-
-  .coda-pic-1 {
-    top: auto;
-    bottom: 4vh;
-    left: auto;
-    right: var(--gutter);
-    width: 30vw;
-    height: 44vw;
-  }
-
-  .coda-pic-2 {
-    top: auto;
-    bottom: 8vh;
-    left: var(--gutter);
-    width: 44vw;
-    height: 32vw;
-  }
-
   .works-list {
     padding-bottom: 8vh;
   }
@@ -2050,6 +2482,14 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .tv-active-rig[data-theater="true"] img.tv-cover {
+    animation: none;
+  }
+
+  .copy-word {
+    opacity: 1 !important;
+  }
+
   /* The channel change is skipped entirely in JS; the snow layers never show. */
   .tv-static,
   .tv-roll,
