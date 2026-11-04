@@ -120,60 +120,140 @@ body {
 }
 
 /* Preloader ---------------------------------------------------------- */
+/* A CRT warming up: a phosphor beam rasters the wordmark, the guns slip on
+   lock, then a white raster rolls down with the letters punched out and the
+   camera dives through the stem of the "I". Timing lives in
+   scroll/choreography.ts#createLoader; the only value animated here is the
+   scan itself, through --scan. */
 .preloader {
   position: fixed;
   inset: 0;
   z-index: 2000;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: var(--gutter);
+  display: grid;
+  place-items: center;
   background: var(--stage);
   color: var(--ink);
 }
 
-.preloader-inner {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 2rem;
-  padding-bottom: 1.6vw;
+.preloader-stretch {
+  --scan: 0;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  padding: 0 var(--gutter);
 }
 
-.preloader-mask {
-  display: block;
-  overflow: hidden;
+.preloader-word {
+  position: relative;
+  display: grid;
+  place-items: center;
+  font-size: clamp(52px, 15.2vw, 296px);
+  font-weight: 700;
   line-height: 0.92;
-  padding-bottom: 0.04em;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.preloader-mask > * {
+.preloader-word > span {
+  grid-area: 1 / 1;
   display: block;
 }
 
-.preloader-name {
-  font-size: clamp(28px, 4.2vw, 72px);
-  text-transform: uppercase;
-  letter-spacing: -0.01em;
+.preloader-word-ghost {
+  color: rgba(252, 252, 252, 0.08);
+}
+
+/* Lit above the beam, dark glass below it: the clip edge *is* the scan. */
+.preloader-word-lit {
+  color: var(--ink);
+  clip-path: inset(0 0 calc((1 - var(--scan)) * 100%) 0);
+}
+
+.preloader-word-r,
+.preloader-word-c {
+  opacity: 0;
+  visibility: hidden;
+  mix-blend-mode: screen;
+}
+
+.preloader-word-r { color: #ff2d55; }
+.preloader-word-c { color: #16e0ff; }
+
+.preloader-beam {
+  position: absolute;
+  left: var(--gutter);
+  right: var(--gutter);
+  top: calc(var(--scan) * 100%);
+  height: 2px;
+  margin-top: -1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(252, 252, 252, 0.9) 12%,
+    #ffffff 50%,
+    rgba(252, 252, 252, 0.9) 88%,
+    transparent 100%
+  );
+  box-shadow: 0 0 18px rgba(226, 255, 246, 0.55), 0 0 42px rgba(140, 255, 220, 0.24);
+  transform-origin: 50% 50%;
+  pointer-events: none;
+}
+
+.preloader-wipe {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 3;
+  height: 2px;
+  background: #ffffff;
+  box-shadow: 0 0 24px rgba(255, 255, 255, 0.8);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .preloader-count {
-  font-size: clamp(64px, 14vw, 260px);
+  position: absolute;
+  right: var(--gutter);
+  bottom: var(--gutter);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: clamp(11px, 0.8vw, 13px);
+  letter-spacing: 0.16em;
+  color: rgba(252, 252, 252, 0.62);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.04em;
 }
 
-.preloader-bar {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.16);
+/* The flood, a sibling of the loader: white with the wordmark punched out —
+   under `screen` the black letters are transparent, so the hero shows through
+   them. Diving into the stem turns that hole into the next page. */
+.preloader-flood {
+  position: fixed;
+  inset: 0;
+  z-index: 2001;
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  clip-path: inset(0% 0% 100% 0%);
 }
 
-.preloader-bar-fill {
+.preloader-mark {
   display: block;
-  height: 100%;
-  background: var(--ink);
-  transform: scaleX(0);
-  transform-origin: 0 50%;
+  transform-origin: 50% 50%;
+  font-size: clamp(52px, 15.2vw, 296px);
+  font-weight: 700;
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #000000;
+}
+
+.preloader-mark .is-pivot {
+  display: inline-block;
 }
 
 /* Cursor ------------------------------------------------------------- */
@@ -477,26 +557,6 @@ body {
   will-change: transform;
 }
 
-.story-title {
-  position: absolute;
-  z-index: 1;
-  top: 7vh;
-  left: 46vw;
-  overflow: hidden;
-  padding-bottom: 0.06em;
-  line-height: 1;
-}
-
-.story-title-text {
-  display: block;
-  font-size: 8vw;
-  color: var(--ink);
-}
-
-.story-title-text.is-zh {
-  font-size: 7vw;
-}
-
 .story-photo-box {
   position: absolute;
   z-index: 5;
@@ -634,20 +694,9 @@ body {
   display: inline;
 }
 
-.story-copy-rule {
-  width: 100%;
-  height: 1px;
-  margin-top: 2.2em;
-  background: rgba(252, 252, 252, 0.22);
-  transform-origin: 0% 50%;
-}
-
-/* Section index above the title, in the same register as the works heading. */
+/* Section folio: inside the copy column, above the lead sentence, in the same
+   register as the works heading. */
 .story-kicker {
-  position: absolute;
-  z-index: 2;
-  top: 4.2vh;
-  left: 46vw;
   display: flex;
   align-items: center;
   gap: 0.9em;
@@ -655,6 +704,7 @@ body {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted-strong);
+  margin-bottom: clamp(14px, 1.5vw, 26px);
   opacity: 0;
   visibility: hidden;
 }
@@ -1088,47 +1138,167 @@ body {
   );
 }
 
-.tv-number-layer {
+/* The camera: everything inside the set scales about the middle of the
+   screen, so the dive in choreography.ts#createDive can push through the
+   glass until it covers the viewport. Lives inside `.tv-anchor`, which owns
+   the --screen-* geometry. */
+.tv-zoom {
+  position: absolute;
+  inset: 0;
+  transform-origin: var(--screen-cx) var(--screen-cy);
+  will-change: transform;
+}
+
+/* The message, drawn on the tube: `@BrainEno` in phosphor above the address,
+   which types itself out. Sized in container units (cqi), so the lines are
+   always inside the glass whatever the viewport. */
+.tv-msg-layer {
   position: absolute;
   top: var(--screen-top);
   left: var(--screen-left);
   width: var(--screen-width);
   height: var(--screen-height);
-  z-index: 3;
+  z-index: 4;
   overflow: hidden;
   border-radius: 10% / 11%;
   container-type: inline-size;
   pointer-events: none;
 }
 
-.tv-number {
+.tv-msg-rig {
   position: absolute;
   inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 6%;
-  color: rgb(248, 253, 242);
-  font-size: 6.6cqi;
-  font-weight: 600;
-  letter-spacing: 0.055em;
-  white-space: nowrap;
-  text-shadow:
-    0 1px 4px rgba(0, 0, 0, 0.72),
-    0 0 0.32em rgba(240, 252, 226, 0.62),
-    0 0 0.95em rgba(196, 250, 200, 0.34);
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 2.4cqi;
   opacity: 0;
   visibility: hidden;
 }
 
-.tv-whiteout {
+.tv-msg-raster {
   position: absolute;
   inset: 0;
-  z-index: 5;
+  background:
+    radial-gradient(ellipse at 50% 42%, rgba(10, 22, 18, 0.55) 0%, rgba(3, 7, 6, 0.88) 72%, rgba(1, 3, 3, 0.96) 100%),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0) 0 2px, rgba(0, 0, 0, 0.24) 2px 3px);
+  transform-origin: 50% 50%;
+}
+
+.tv-msg-flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 0.95) 0%, rgba(226, 255, 246, 0.5) 58%, transparent 100%);
+  opacity: 0;
+  visibility: hidden;
+}
+
+.tv-msg-handle {
+  position: relative;
+  z-index: 2;
+  margin: 0;
+  color: rgb(198, 255, 216);
+  font-size: 14cqi;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  text-shadow:
+    0 0 0.06em rgba(232, 255, 238, 0.9),
+    0 0 0.22em rgba(120, 255, 170, 0.55),
+    0 0 0.6em rgba(60, 230, 130, 0.3);
+}
+
+.tv-msg-mail {
+  position: relative;
+  z-index: 2;
+  margin: 0;
+  color: rgba(214, 255, 226, 0.92);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 5.6cqi;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  text-shadow:
+    0 0 0.08em rgba(210, 255, 226, 0.7),
+    0 0 0.4em rgba(70, 240, 140, 0.32);
+}
+
+.tv-msg-char {
+  opacity: 0;
+}
+
+.tv-msg-char.is-on {
+  opacity: 1;
+}
+
+/* Block caret, only while the address is being typed. */
+.tv-msg-mail[data-caret]::after {
+  content: "";
+  display: inline-block;
+  width: 0.46em;
+  height: 0.92em;
+  margin-left: 0.14em;
+  vertical-align: -0.1em;
+  background: currentColor;
+  animation: tv-caret 0.9s steps(1) infinite;
+}
+
+@keyframes tv-caret {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* Snow: the burst of static between channels at the start of the dive. */
+.tv-msg-static {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  opacity: 0;
+  visibility: hidden;
+  background:
+    repeating-conic-gradient(from 0deg at 50% 50%, rgba(255, 255, 255, 0.5) 0deg 1deg, rgba(0, 0, 0, 0.5) 1deg 2deg),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.34) 0 1px, rgba(0, 0, 0, 0.4) 1px 3px);
+  background-size: 3px 3px, 5px 5px;
+  filter: contrast(2.4) grayscale(1);
+  animation: tv-static 0.24s steps(2) infinite;
+}
+
+@keyframes tv-static {
+  0% { background-position: 0 0, 0 0; }
+  50% { background-position: 11px 7px, -4px 2px; }
+  100% { background-position: -6px 13px, 3px -5px; }
+}
+
+/* The contact page, white on the tube, before `#contact` itself climbs in. */
+.tv-msg-portal {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   background: var(--paper);
   opacity: 0;
   visibility: hidden;
+}
+
+/* Glass overlay: scanlines, vignette and glare over the sheet while it is
+   still a picture on the tube. Sized and positioned every frame by the dive;
+   it fades out as the camera passes through. */
+.tv-glass {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1200;
+  border-radius: 10% / 11%;
   pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.16) 0 1px, rgba(0, 0, 0, 0) 1px 3px),
+    radial-gradient(ellipse at 50% 46%, rgba(0, 0, 0, 0) 42%, rgba(0, 0, 0, 0.34) 100%),
+    linear-gradient(118deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 34%, rgba(255, 255, 255, 0) 72%, rgba(255, 255, 255, 0.09) 100%);
+  mix-blend-mode: soft-light;
 }
 
 /* Seam guard: the top of the stage is painted from the exact colour the
@@ -1260,6 +1430,17 @@ body {
 .works[data-tv-phase="phone"] .works-list,
 .works[data-tv-phase="exit"] .works-list {
   pointer-events: none;
+}
+
+/* Folio, in the same register as the intro's "01". */
+.works-index {
+  margin-right: 1.1em;
+  color: var(--accent);
+  font-size: clamp(11px, 0.78vw, 13px);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  font-variant-numeric: tabular-nums;
+  vertical-align: 0.55em;
 }
 
 .works-heading {
@@ -1407,32 +1588,13 @@ body {
 }
 
 .tv-phone-spacer {
-  height: 120vh;
-}
-
-.tv-exit-spacer {
-  /* The zoom + white is compressed into the first third of this distance so
-     the copy can start rising out of the bottom edge while the tube is still
-     burning out — there is no parked white frame to wait through. */
-  height: 130vh;
+  height: 90vh;
 }
 
 /* Theater ----------------------------------------------------------------
    A clicked row pushes the camera into the set: the glass fills the right
    half of the stage (top half when stacked), the room darkens, and the
    project sheet comes up on the left. Geometry lives in scroll/theater.ts. */
-.works-hint {
-  margin: -2vw 0 2.4vw;
-  font-size: clamp(10px, 0.74vw, 12px);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(214, 226, 255, 0.42);
-}
-
-.works-hint.is-zh {
-  letter-spacing: 0.3em;
-}
-
 .works[data-tv-phase="theater"] .works-list {
   pointer-events: none;
 }
@@ -1599,13 +1761,6 @@ body {
 .tv-sheet-link:hover {
   color: var(--accent);
   border-color: var(--accent);
-}
-
-.tv-sheet-note {
-  font-size: clamp(11px, 0.78vw, 13px);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: rgba(214, 226, 255, 0.42);
 }
 
 /* Prev / next / close. Mounted once per screening (outside the keyed project
@@ -1777,9 +1932,6 @@ body {
 .contact {
   position: relative;
   z-index: 2;
-  /* Pulled up under the television exit so the sheet is already rising while
-     the tube burns out; its white is faded in by the exit timeline (GSAP). */
-  margin-top: -56vh;
   /* Horizontal clip only: the bands and the booth's entrance travel outside
      the box without widening the document or creating a scroll container. */
   overflow-x: clip;
@@ -1804,7 +1956,6 @@ body {
   justify-content: space-between;
   gap: 8px 24px;
   padding-bottom: clamp(12px, 1.1vw, 18px);
-  border-bottom: 1px solid rgba(12, 12, 12, 0.14);
   font-size: clamp(11px, 0.76vw, 13px);
   font-weight: 500;
   letter-spacing: 0.14em;
@@ -1997,7 +2148,6 @@ body {
   justify-content: space-between;
   gap: 20px 4vw;
   padding: clamp(16px, 1.8vw, 28px) 0 clamp(18px, 2.2vw, 34px);
-  border-top: 1px solid rgba(12, 12, 12, 0.14);
 }
 
 .contact-cta-label {
@@ -2191,10 +2341,6 @@ body {
    takes more of the height, the bands stay about a third of it, and the
    address drops under its label. */
 @media (max-width: 1023px), (max-aspect-ratio: 11/10) {
-  .contact {
-    margin-top: -40vh;
-  }
-
   .contact-stage {
     --booth-h: min(50svh, 96vw);
   }
@@ -2230,19 +2376,6 @@ body {
     display: flex;
     flex-direction: column;
     padding: 0 var(--gutter);
-  }
-
-  .story-title {
-    position: relative;
-    top: auto;
-    left: auto;
-    order: -1;
-    margin-bottom: 6vh;
-  }
-
-  .story-title-text,
-  .story-title-text.is-zh {
-    font-size: clamp(56px, 16vw, 150px);
   }
 
   .story-photo-box {
@@ -2385,8 +2518,7 @@ body {
     align-items: end;
   }
 
-  .story-kicker,
-  .story-title {
+  .story-kicker {
     grid-column: 1 / -1;
   }
 
@@ -2535,8 +2667,7 @@ body {
     flex-wrap: wrap;
   }
 
-  .tv-phone-spacer { height: 90vh; }
-  .tv-exit-spacer { height: 96vh; }
+  .tv-phone-spacer { height: 75vh; }
 
   .contact-inner {
     padding-top: 88px;

@@ -104,13 +104,9 @@ export const Journey = memo(function Journey({ lang, content }: SectionProps<"in
     <section className="journey" aria-label={heading}>
       <div className="story-layer">
         <div className="story-visual">
-          <div className="story-kicker" aria-hidden="true">
-            <span className="story-kicker-index">01</span>
-            <span className={cx(zh && "is-zh")}>{heading}</span>
-          </div>
-          <div className="story-title">
-            <h2 className={cx("story-title-text", zh && "is-zh")}>{heading}</h2>
-          </div>
+          {/* The heading is carried by the folio below; the h2 stays for the
+              document outline and for screen readers. */}
+          <h2 className="sr-only">{heading}</h2>
           <div className="story-photo-box">
             <div className="story-photo-ghost" aria-hidden="true">
               <Img src={content.portrait.src} alt="" sizes="(max-width: 1023px) 72vw, 27vw" loading="lazy" hidden />
@@ -134,6 +130,10 @@ export const Journey = memo(function Journey({ lang, content }: SectionProps<"in
         </div>
         <div className="story-copy">
           <div className="story-copy-inner">
+            <div className="story-kicker" aria-hidden="true">
+              <span className="story-kicker-index">01</span>
+              <span className={cx(zh && "is-zh")}>{heading}</span>
+            </div>
             <p className={cx("copy copy-lead", zh && "is-zh")}>
               <Words text={lead} />
             </p>
@@ -142,7 +142,6 @@ export const Journey = memo(function Journey({ lang, content }: SectionProps<"in
                 <Words text={body} />
               </p>
             ) : null}
-            <div className="story-copy-rule" aria-hidden="true" />
           </div>
         </div>
       </div>
@@ -186,8 +185,36 @@ export const Journey = memo(function Journey({ lang, content }: SectionProps<"in
   );
 });
 
+/**
+ * The call sign, drawn on the television's own glass: `@BrainEno` in phosphor
+ * above the address, which types itself out behind a block caret. Positioned
+ * and clipped to the screen (`.tv-msg-layer` uses the same --screen-* geometry
+ * as the rest of the set), so both lines always sit inside the bezel of
+ * `tv-alpha.webp`; type sizes are container units (cqi) for the same reason.
+ */
+export const TvMessage = memo(function TvMessage({ email }: { email: string }) {
+  return (
+    <div className="tv-msg-layer" aria-hidden="true">
+      <div className="tv-msg-portal" />
+      <div className="tv-msg-rig">
+        <div className="tv-msg-raster" />
+        <div className="tv-msg-flash" />
+        <p className="tv-msg-handle">@BrainEno</p>
+        <p className="tv-msg-mail">
+          {Array.from(email).map((char, index) => (
+            <span key={index} className="tv-msg-char">
+              {char}
+            </span>
+          ))}
+        </p>
+      </div>
+      <div className="tv-msg-static" />
+    </div>
+  );
+});
+
 type WorksProps = SectionProps<"works"> & {
-  phone: string;
+  email: string;
   activeIndex: number;
   /** Index of the work opened in the theater, or -1 while browsing the index. */
   theaterIndex: number;
@@ -206,7 +233,7 @@ type WorksProps = SectionProps<"works"> & {
 export function Works({
   lang,
   content,
-  phone,
+  email,
   activeIndex,
   theaterIndex,
   sheetIndex,
@@ -235,7 +262,10 @@ export function Works({
     <section id="works" className="works" aria-label={t(content.heading, lang)}>
       <div className="tv-stage">
         <div className="tv-anchor" style={tvStyle}>
-          <div className="tv-box">
+          {/* The camera: `createDive` scales this wrapper about the middle of
+              the screen until the glass covers the viewport. */}
+          <div className="tv-zoom">
+            <div className="tv-box">
             {/* Base television photograph (`tv.webp`): rendered untouched whenever
                 no work is hovered and again once the works list scrolls past into
                 the `@BrainEno` zoom & opacity exit. */}
@@ -268,9 +298,7 @@ export function Works({
               label={(text) => t(text, lang)}
               autoplay={theaterOpen}
             />
-            <div className="tv-number-layer" aria-hidden="true">
-              <div className="tv-number">{phone}</div>
-            </div>
+            <TvMessage email={email} />
             {/* Channel number flashed in the tube's corner after each change. */}
             <div className="tv-osd-layer" aria-hidden="true">
               {active ? (
@@ -278,6 +306,7 @@ export function Works({
                   CH {String(activeIndex + 1).padStart(2, "0")}
                 </span>
               ) : null}
+            </div>
             </div>
           </div>
         </div>
@@ -340,11 +369,6 @@ export function Works({
                     <span>{zh ? "查看仓库" : "Open repository"}</span>
                     <span aria-hidden="true">↗</span>
                   </a>
-                  {!featured.video ? (
-                    <span className={cx("tv-sheet-note", zh && "is-zh")}>
-                      {zh ? "静帧预览 · 暂无演示视频" : "Still preview · no showreel yet"}
-                    </span>
-                  ) : null}
                 </div>
               </div>
               <nav className="tv-sheet-nav" aria-label={zh ? "项目切换" : "Project navigation"}>
@@ -385,18 +409,17 @@ export function Works({
             </div>
           ) : null}
         </div>
-        <div className="tv-whiteout" aria-hidden="true" />
       </div>
 
       <div className="works-list">
         <h2 className="works-heading">
+          <span className="works-index" aria-hidden="true">
+            02
+          </span>
           <span className={cx("works-heading-text", zh && "is-zh")}>
             {t(content.heading, lang)} <span className="works-period">{content.period}</span>
           </span>
         </h2>
-        <p className={cx("works-hint", zh && "is-zh")} aria-hidden="true">
-          {zh ? "悬停换台 · 点击进入放映" : "Hover to tune · click to screen"}
-        </p>
         <ol
           className="work-rows"
           onMouseLeave={(event) => {
@@ -458,8 +481,9 @@ export function Works({
           })}
         </ol>
       </div>
+      {/* The only spacer the set needs now: the exit runs over `#contact`'s
+          own climb, so there is no second pinned gap to scroll through. */}
       <div className="tv-phone-spacer" aria-hidden="true" />
-      <div className="tv-exit-spacer" aria-hidden="true" />
     </section>
   );
 }
@@ -514,9 +538,6 @@ export const Contact = memo(function Contact({ lang, content }: SectionProps<"co
           <span>
             <span className="contact-topbar-index">03</span>
             <span className={cx(zh && "is-zh")}>{zh ? "联系" : "Contact"}</span>
-          </span>
-          <span className={cx("contact-kicker-label", zh && "is-zh")}>
-            {zh ? "独立设计与工程合作" : "Design & Engineering Inquiries"}
           </span>
         </div>
 
