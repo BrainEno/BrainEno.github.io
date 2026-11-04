@@ -154,7 +154,7 @@ function heroScroll(desktop: boolean) {
   );
 }
 
-function journeyDesktop(scope: HTMLElement) {
+function journeyDesktop(scope: HTMLElement, reduce: boolean) {
   const stage = scope.querySelector<HTMLElement>(".journey");
   const rail = scope.querySelector<HTMLElement>(".rail");
   if (!stage || !rail) return;
@@ -251,8 +251,12 @@ function journeyDesktop(scope: HTMLElement) {
     .to(".coda-pic-2", { y: () => -vh() * 0.08, duration: outro }, at.outro)
     .to(".coda-text", { y: () => -vh() * 0.04, duration: outro }, at.outro);
 
-  lightWords(tl, ".story-copy .copy-word", at.hold1 - approach * 0.2, hold1 + approach * 0.2);
-  lightWords(tl, ".coda-text .copy-word", at.hold2 - coda * 0.3, hold2 + coda * 0.3);
+  // Reading light is motion: under `prefers-reduced-motion` the words are lit
+  // by CSS instead (see the `.copy-word` rule in the reduced-motion block).
+  if (!reduce) {
+    lightWords(tl, ".story-copy .copy-word", at.hold1 - approach * 0.2, hold1 + approach * 0.2);
+    lightWords(tl, ".coda-text .copy-word", at.hold2 - coda * 0.3, hold2 + coda * 0.3);
+  }
 
   tl
     // Black -> the photograph's night sky, from the gallery push to the coda.
@@ -267,7 +271,7 @@ function journeyDesktop(scope: HTMLElement) {
     );
 }
 
-function journeyFlow(scope: HTMLElement, desktop: boolean) {
+function journeyFlow(scope: HTMLElement, desktop: boolean, reduce: boolean) {
   // Same colour hand-over as desktop, spread over the section's own scroll.
   const journey = scope.querySelector<HTMLElement>(".journey");
   if (journey) {
@@ -319,7 +323,7 @@ function journeyFlow(scope: HTMLElement, desktop: boolean) {
       scrollTrigger: { trigger: el, start: "top 88%" },
     });
     const words = el.querySelectorAll(".copy-word");
-    if (!words.length) return;
+    if (!words.length || reduce) return;
     gsap.fromTo(
       words,
       { opacity: 0.28 },
@@ -621,8 +625,8 @@ export function setupChoreography(opts: ChoreographyOptions) {
     (context) => {
       const { desktop, journeyPinned, reduce } = context.conditions as Conditions;
       heroScroll(desktop);
-      if (journeyPinned) journeyDesktop(scope);
-      else journeyFlow(scope, desktop);
+      if (journeyPinned) journeyDesktop(scope, reduce);
+      else journeyFlow(scope, desktop, reduce);
       television(scope, opts, desktop);
       contact(scope, desktop, reduce);
       sectionTracking(opts);
