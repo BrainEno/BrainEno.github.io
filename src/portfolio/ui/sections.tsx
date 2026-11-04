@@ -46,9 +46,12 @@ export const Hero = memo(function Hero({ lang, content, name }: SectionProps<"he
         ))}
         {[1, 2].map((bar) => (
           <div key={bar} className={`hero-bar hero-bar-${bar}`} aria-hidden="true">
-            {/* A 6vw strip. `lazy` keeps Next from emitting a second
-                `<link rel=preload>` for the same picture at a different width —
-                the hero photo below is the one worth a round trip. */}
+            {/* A 6vw strip, still decorative (empty alt, no pointer semantics of
+                its own) — but explicitly opted into the ripple: a narrow crop is
+                exactly where the effect reads as water rather than a small warp.
+                `lazy` keeps Next from emitting a second `<link rel=preload>` for
+                the same picture at a different width — the hero photo below is
+                the one worth a round trip. */}
             <Img
               className="hero-bar-image"
               src={content.image.src}
@@ -57,6 +60,7 @@ export const Hero = memo(function Hero({ lang, content, name }: SectionProps<"he
               loading="lazy"
               draggable={false}
               hidden
+              water="strong"
             />
           </div>
         ))}

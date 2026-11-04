@@ -14,10 +14,15 @@ import { useEffect } from "react";
 /**
  * Pointer-driven ripple over content photographs.
  *
- * Interaction reference: the *idea* of a media hover that stretches locally with
- * pointer direction and speed rather than scaling the whole picture. No shader,
- * asset or markup from that reference is used — this is an independent
- * implementation of a small, decaying 2D wave.
+ * Interaction reference: the *idea* of a media hover where the image itself
+ * deforms — broadly, in the pointer's direction, with momentum — instead of the
+ * whole picture scaling. No shader, asset or markup from any reference site is
+ * used; this is an independent implementation of a decaying 2D wave with a
+ * wake trailing the pointer.
+ *
+ * Strength is per image, carried on the marker: `data-water="subtle"` (Hero
+ * photograph), `"strong"` (the narrow Hero strips) or `"true"` (everything
+ * else). See `ui/Img.tsx`.
  *
  * Ground rules, because this runs over a scroll-choreographed page:
  *
@@ -68,20 +73,54 @@ void main() {
     (vUv.x - uPointer.x) * uAspect,
     vUv.y - uPointer.y
   );
-  float distanceToPointer = length(delta);
-  float influence = 1.0 - smoothstep(0.0, 0.38, distanceToPointer);
-  vec2 direction = delta / max(distanceToPointer, 0.0001);
 
-  float wave = sin(distanceToPointer * 52.0 - uTime * 7.0);
-  float ripple = wave * influence * uStrength * 0.012;
+  float distanceToPointer = length(delta);
+  float influence =
+    1.0 - smoothstep(0.0, 0.68, distanceToPointer);
+
+  vec2 direction =
+    delta / max(distanceToPointer, 0.0001);
+
+  float wave =
+    sin(distanceToPointer * 36.0 - uTime * 5.4);
+
+  float ripple =
+    wave * influence * uStrength * 0.02;
 
   vec2 offset = direction * ripple;
-  offset += uVelocity * influence * uStrength * 0.012;
-  offset += vec2(-direction.y, direction.x)
-    * cos(distanceToPointer * 34.0 - uTime * 4.0)
+
+  /* Directional drag: a fast pointer pulls a wider area of the image,
+     while the decay in the controller keeps it from becoming elastic UI. */
+  offset +=
+    uVelocity * influence * uStrength * 0.022;
+
+  offset +=
+    vec2(-direction.y, direction.x)
+    * cos(distanceToPointer * 24.0 - uTime * 3.4)
     * influence
     * uStrength
-    * 0.003;
+    * 0.005;
+
+  /* A weaker, broader wake sits just behind the pointer. This is what makes
+     the motion read as a body of water rather than a small circular warp. */
+  vec2 wakePointer = uPointer - uVelocity * 0.045;
+  vec2 wakeDelta = vec2(
+    (vUv.x - wakePointer.x) * uAspect,
+    vUv.y - wakePointer.y
+  );
+  float wakeDistance = length(wakeDelta);
+  float wakeInfluence =
+    (1.0 - smoothstep(0.0, 0.8, wakeDistance))
+    * uStrength
+    * 0.35;
+  vec2 wakeDirection =
+    wakeDelta / max(wakeDistance, 0.0001);
+
+  offset +=
+    wakeDirection
+    * sin(wakeDistance * 28.0 - uTime * 4.0)
+    * wakeInfluence
+    * 0.014;
 
   vec2 uv = clamp(
     vUv + offset,
@@ -425,8 +464,13 @@ class WaterEngine {
     style.filter = css.filter;
     style.mixBlendMode = css.mixBlendMode;
     style.zIndex = css.zIndex;
+    // Hairline rules drawn on the picture (the coda plates carry a 1px inset
+    // outline) belong to its frame, so the overlay keeps them while it is up.
+    style.outline = css.outline;
+    style.outlineOffset = css.outlineOffset;
     // Cross-faded on entry/exit, and never more opaque than the picture it
-    // covers (a `.coda-pic-2 { opacity: .85 }` must keep reading as 85%).
+    // covers: whatever opacity the stylesheet or GSAP gives the image is the
+    // ceiling for its overlay too.
     style.opacity = String(
       clamp(session.fade * (Number.parseFloat(css.opacity) || 1), 0, 1),
     );
@@ -473,7 +517,12 @@ class WaterEngine {
       session.textureKey = textureKey;
     }
 
-    const amplitude = img.dataset.water === "subtle" ? 0.55 : 1;
+    const amplitude =
+      img.dataset.water === "subtle"
+        ? 0.7
+        : img.dataset.water === "strong"
+          ? 1.15
+          : 1;
 
     gl.viewport(0, 0, width, height);
     gl.useProgram(this.program!);
@@ -539,12 +588,12 @@ export default function WaterHover() {
       else if (now - session.lastMove > 80) {
         // Holding still: the ripple settles to a thin resting film instead of
         // looping at full amplitude.
-        session.targetStrength = 0.08;
+        session.targetStrength = 0.1;
       }
 
-      const fadeEase = 1 - Math.exp(-delta * (session.leaving ? 7 : 12));
-      const strengthEase = 1 - Math.exp(-delta * 9);
-      const velocityDecay = Math.exp(-delta * 4.5);
+      const fadeEase = 1 - Math.exp(-delta * (session.leaving ? 6 : 10));
+      const strengthEase = 1 - Math.exp(-delta * 8);
+      const velocityDecay = Math.exp(-delta * 3.4);
 
       session.fade += ((session.leaving ? 0 : 1) - session.fade) * fadeEase;
       session.strength += (session.targetStrength - session.strength) * strengthEase;
@@ -618,7 +667,7 @@ export default function WaterHover() {
           vx: 0,
           vy: 0,
           strength: 0,
-          targetStrength: 0.1,
+          targetStrength: 0.14,
           fade: 0,
           leaving: false,
           textureKey: "",
@@ -634,9 +683,12 @@ export default function WaterHover() {
       const dy = y - session.y;
       const speed = Math.hypot(dx, dy) / seconds;
 
-      session.vx = clamp(dx / seconds, -2, 2);
-      session.vy = clamp(dy / seconds, -2, 2);
-      session.targetStrength = Math.max(0.1, Math.min(1, speed / 3));
+      session.vx = clamp(dx / seconds, -2.4, 2.4);
+      session.vy = clamp(dy / seconds, -2.4, 2.4);
+      session.targetStrength = Math.max(
+        0.12,
+        Math.min(1, speed / 2.2),
+      );
       session.x = x;
       session.y = y;
       session.lastMove = now;

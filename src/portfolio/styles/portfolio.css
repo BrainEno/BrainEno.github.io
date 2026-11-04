@@ -442,40 +442,44 @@ body {
   height: 80vw;
 }
 
-/* The headline trio is one typographic statement, not three floating labels:
-   three sentences of identical size, flush to the left margin, stepped down a
-   14vw ladder, each closed with a full stop. The column's measure is the
-   photograph's own width, and every line's numeral is right-aligned to the
-   photograph's left edge - so the type reads as a rule measured against the
-   picture. `difference` keeps a tail that reaches the frame legible by
-   inverting it instead of clashing with it. */
+/* Editorial index: each numeral belongs to its own headline rather than
+   floating next to the photograph. The three rows step gently towards the
+   artwork; GSAP still moves the rows as one scroll-choreographed group. */
 .hero-word {
   position: absolute;
-  left: 0;
   z-index: 5;
+  display: grid;
+  grid-template-columns: 2.7em max-content;
+  align-items: start;
+  column-gap: clamp(12px, 1.1vw, 22px);
   width: max-content;
   height: auto;
-  font-size: clamp(26px, 5vw, 96px);
-  font-weight: 500;
-  letter-spacing: -0.035em;
-  transform-origin: 0 0;
+  font-family: var(--font-sans);
+  font-size: clamp(28px, 4.9vw, 92px);
+  font-weight: 400;
+  line-height: 0.94;
+  letter-spacing: -0.052em;
   text-transform: uppercase;
   color: var(--ink);
   mix-blend-mode: difference;
+  transform-origin: 0 0;
   will-change: transform;
 }
 
 .hero-word.is-zh {
-  font-size: clamp(24px, 5.6vw, 108px);
-  letter-spacing: 0.01em;
+  font-family: var(--font-cjk);
+  font-size: clamp(28px, 5.25vw, 100px);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.025em;
 }
 
 .hero-word-mask {
   display: block;
   overflow: hidden;
-  margin-top: 0.14em;
-  padding-bottom: 0.08em;
-  line-height: 1;
+  margin-top: 0;
+  padding-bottom: 0.1em;
+  line-height: inherit;
 }
 
 .hero-word-text {
@@ -483,23 +487,38 @@ body {
   white-space: nowrap;
 }
 
-/* The numeral stands on the photograph's edge (the frame starts at 49.2vw of
-   the column), a tick that ties every line back to the picture. */
+/* A hairline rule over the numeral: the index is now the first column of the
+   headline's own grid, so it can never drift away from the line it numbers. */
 .hero-word-index {
-  position: absolute;
-  top: 0;
-  left: 49.2vw;
-  transform: translate(-100%, -1.55em);
-  font-size: clamp(9px, 0.66vw, 12px);
-  font-weight: 500;
-  letter-spacing: 0.16em;
+  position: static;
+  min-width: 2.7em;
+  margin-top: 0.12em;
+  padding-top: 0.55em;
+  border-top: 1px solid rgba(252, 252, 252, 0.42);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: clamp(9px, 0.62vw, 11px);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.12em;
   font-variant-numeric: tabular-nums;
-  color: var(--muted-strong);
+  color: rgba(252, 252, 252, 0.58);
+  transform: none;
 }
 
-.hero-word-1 { top: 24vw; }
-.hero-word-2 { top: 38vw; }
-.hero-word-3 { top: 52vw; }
+.hero-word-1 {
+  top: 20vw;
+  left: 0;
+}
+
+.hero-word-2 {
+  top: 31.5vw;
+  left: 5vw;
+}
+
+.hero-word-3 {
+  top: 43vw;
+  left: 10vw;
+}
 
 .hero-bar {
   position: absolute;
@@ -604,6 +623,23 @@ canvas[data-water-canvas] {
   height: 100svh;
   overflow: hidden;
   background: var(--stage);
+}
+
+/* A solid, unmasked strip on the outgoing side of the hand-off. It covers
+   fractional pin/compositing gaps with the journey's current stage colour,
+   which is exactly --sky by the time the works stage arrives. */
+.journey::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 30;
+  height: 3px;
+  background: var(--stage);
+  pointer-events: none;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .story-layer,
@@ -860,29 +896,38 @@ canvas[data-water-canvas] {
 
 .coda {
   position: absolute;
-  bottom: 18vh;
+  top: 12vh;
+  bottom: auto;
   left: 100vw;
   width: 90vw;
+  height: 70vh;
   will-change: transform;
 }
 
 .coda-text {
-  position: relative;
-  z-index: 1;
-  width: min(48vw, 33em);
+  position: absolute;
+  z-index: 3;
+  top: 22vh;
+  left: 0;
+  width: min(42vw, 33em);
   font-size: clamp(22px, 2.1vw, 34px);
   line-height: 1.5;
   letter-spacing: -0.025em;
 }
 
 .coda-text.is-zh {
-  width: min(46vw, 27em);
+  width: min(40vw, 27em);
   font-size: clamp(20px, 1.9vw, 30px);
   line-height: 1.9;
   letter-spacing: 0.03em;
   text-align: left;
 }
 
+/* Two stills and the closing paragraph read as one composition: text on the
+   left, a tall plate at the upper right and a wider one overlapping it below.
+   The plates stay inside the safe area — nothing hangs off the bottom edge —
+   and the second one is fully opaque; the hierarchy comes from size and
+   placement, not from fading it out. */
 .coda-pic {
   position: absolute;
   display: block;
@@ -890,6 +935,8 @@ canvas[data-water-canvas] {
   object-fit: cover;
   object-position: center;
   overflow: hidden;
+  outline: 1px solid rgba(252, 252, 252, 0.14);
+  outline-offset: -1px;
   background: var(--stage);
   contain: layout paint;
   will-change: transform;
@@ -897,40 +944,36 @@ canvas[data-water-canvas] {
 
 .coda-pic-1 {
   z-index: 2;
-  top: -6vw;
-  left: 57.7vw;
-  width: 12.5vw;
-  height: 18.75vw;
+  top: 0;
+  left: 54vw;
+  width: 14vw;
+  height: 42vh;
+  opacity: 1;
 }
 
 .coda-pic-2 {
-  z-index: 0;
-  top: 8vw;
-  left: 69vw;
-  width: 18.75vw;
-  height: 13.54vw;
-  opacity: 0.85;
+  z-index: 1;
+  top: 27vh;
+  left: 65vw;
+  width: 24vw;
+  height: 31vh;
+  opacity: 1;
 }
 
 /* Works / Television ------------------------------------------------ */
 .works {
+  /* Cool meta palette for the television copy. Scoped to the works section so
+     the accent stays reserved for interaction elsewhere on the page. */
+  --works-meta: rgba(214, 226, 255, 0.52);
+  --works-meta-strong: rgba(214, 226, 255, 0.86);
+
   position: relative;
   z-index: 1;
   background: var(--night);
-  /* Two device-independent pixels of shared sky cover fractional pin edges. */
+  /* Two device-independent pixels of shared sky cover fractional pin edges.
+     The bright hairline itself is now guarded by two solid, unmasked strips
+     (`.journey::after` and `.tv-stage::before`), not by a painted band here. */
   margin-top: -2px;
-}
-
-.works::before {
-  content: "";
-  position: absolute;
-  top: -2px;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: var(--sky);
-  pointer-events: none;
-  z-index: 2;
 }
 
 /* Hand-over to the contact sheet. No painted apron here: the stage is pinned
@@ -950,7 +993,30 @@ canvas[data-water-canvas] {
   height: 100vh;
   height: 100svh;
   overflow: hidden;
-  background: linear-gradient(180deg, var(--sky) 0%, #001a54 10%, #02123a 19%, #040a17 31%, var(--night) 56%);
+  background:
+    linear-gradient(
+      180deg,
+      var(--sky) 0%,
+      #031334 32%,
+      var(--night) 72%
+    );
+}
+
+/* Incoming side of the same seam. Unlike .tv-seam this strip has no mask,
+   gradient, blend mode or opacity animation, so it cannot reopen a bright
+   hairline while the pinned stage is being rasterised. */
+.tv-stage::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 8;
+  height: 3px;
+  background: var(--sky);
+  pointer-events: none;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 /* Native framing: the whole photograph at its own ratio, exactly one stage
@@ -970,21 +1036,20 @@ canvas[data-water-canvas] {
 
 /* No permanent `will-change`: the phone beat now leans in ~2.4x and a
    pre-promoted layer is rasterised at 1x, which would land `@BrainEno`
-   blurred. The mask feathers the photo's sides and lower edge into the stage
-   (it scales with the box, so the exit zoom carries the feather away). */
+   blurred. The photograph keeps its native edges; only the lower edge
+   dissolves into the night stage, so the scene reads as a hard-edged set
+   standing in a dark room rather than a soft filter laid over a picture.
+   (The mask scales with the box, so the exit zoom carries it away.) */
 .tv-box {
   position: absolute;
   inset: 0;
   isolation: isolate;
   transform-origin: var(--screen-cx) var(--screen-cy);
+
   -webkit-mask-image:
-    linear-gradient(90deg, transparent 0%, #000 7%, #000 93%, transparent 100%),
     linear-gradient(180deg, #000 88%, transparent 100%);
-  -webkit-mask-composite: source-in;
   mask-image:
-    linear-gradient(90deg, transparent 0%, #000 7%, #000 93%, transparent 100%),
     linear-gradient(180deg, #000 88%, transparent 100%);
-  mask-composite: intersect;
 }
 
 .tv-frame {
@@ -1482,8 +1547,11 @@ canvas[data-water-canvas] {
   opacity: 0;
   visibility: hidden;
   background:
-    linear-gradient(90deg, rgba(1, 5, 14, 0.74) 0%, rgba(1, 5, 14, 0.36) 26%, rgba(1, 5, 14, 0) 40%, rgba(1, 5, 14, 0) 60%, rgba(1, 5, 14, 0.32) 74%, rgba(1, 5, 14, 0.7) 100%),
-    linear-gradient(0deg, rgba(1, 5, 14, 0.5) 0%, rgba(1, 5, 14, 0) 30%);
+    linear-gradient(
+      180deg,
+      rgba(1, 5, 14, 0.12) 0%,
+      rgba(1, 5, 14, 0.38) 100%
+    );
 }
 
 /* On-screen display: the channel number a real set flashes in the corner of
@@ -1591,7 +1659,7 @@ canvas[data-water-canvas] {
 }
 
 .work-row.is-active .work-row-index {
-  color: var(--accent);
+  color: var(--works-meta-strong);
 }
 
 .work-row-mask {
@@ -1767,32 +1835,44 @@ canvas[data-water-canvas] {
 
 .tv-sheet-top {
   display: flex;
-  gap: 1.4em;
+  align-items: center;
+  gap: 1.2em;
   margin-bottom: 2.2vw;
-  font-size: clamp(11px, 0.78vw, 13px);
-  letter-spacing: 0.14em;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: clamp(10px, 0.72vw, 12px);
+  line-height: 1.3;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(214, 226, 255, 0.6);
+  color: var(--works-meta);
 }
 
 .tv-sheet-index {
-  color: var(--accent);
+  color: var(--works-meta-strong);
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
 .tv-sheet-kicker.is-zh {
-  letter-spacing: 0.3em;
+  letter-spacing: 0.18em;
 }
 
+/* The project name is the same sans as the Hero and the works list: one type
+   voice across the page, no second visual centre from a serif italic. Breaking
+   only happens at natural word boundaries, never mid-token. */
 .tv-sheet-title {
-  margin-bottom: 1.1vw;
-  font-family: var(--font-serif);
-  font-style: italic;
+  max-width: 100%;
+  margin-bottom: 1.4vw;
+  font-family: var(--font-sans);
+  font-style: normal;
   font-weight: 400;
-  font-size: clamp(34px, 4.6vw, 86px);
-  line-height: 0.98;
-  letter-spacing: -0.015em;
-  overflow-wrap: anywhere;
+  font-size: clamp(34px, 3.9vw, 74px);
+  line-height: 0.96;
+  letter-spacing: -0.052em;
+  text-transform: none;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
+  color: var(--ink);
 }
 
 .tv-sheet-title .is-zh {
@@ -1800,18 +1880,25 @@ canvas[data-water-canvas] {
   font-style: normal;
   font-weight: 500;
   line-height: 1.15;
+  letter-spacing: 0;
 }
 
 .tv-sheet-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3em 1.1em;
+  gap: 0.35em 1.1em;
   margin-bottom: 2vw;
   list-style: none;
-  font-size: clamp(12px, 0.9vw, 15px);
-  letter-spacing: 0.06em;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: clamp(11px, 0.78vw, 13px);
+  line-height: 1.5;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: rgba(214, 226, 255, 0.72);
+  color: var(--works-meta);
+}
+
+.tv-sheet-meta .is-zh {
+  letter-spacing: 0.1em;
 }
 
 .tv-sheet-copy {
@@ -1851,8 +1938,8 @@ canvas[data-water-canvas] {
 }
 
 .tv-sheet-link:hover {
-  color: var(--accent);
-  border-color: var(--accent);
+  color: var(--works-meta-strong);
+  border-color: var(--works-meta-strong);
 }
 
 /* Prev / next / close. Mounted once per screening (outside the keyed project
@@ -1980,7 +2067,9 @@ canvas[data-water-canvas] {
 
 .works[data-theater-layout="stack"] .tv-sheet-title {
   margin-bottom: 8px;
-  font-size: clamp(30px, 8.5vw, 64px);
+  font-size: clamp(30px, 7.2vw, 58px);
+  line-height: 1;
+  letter-spacing: -0.045em;
 }
 
 .works[data-theater-layout="stack"] .tv-sheet-meta {
@@ -2552,33 +2641,42 @@ canvas[data-water-canvas] {
     width: 100%;
   }
 
+  /* The desktop coda is an absolutely positioned scene anchored to `top`;
+     in flow it must go back to being a stacked block, with its own space
+     reserved for the two plates that stay pinned to its lower edges. */
   .coda {
     position: relative;
-    left: auto;
+    top: auto;
     bottom: auto;
+    left: auto;
     width: 100%;
-    padding: 4vh var(--gutter) 30vh;
+    height: auto;
+    padding: 4vh var(--gutter) calc(44vw + 12vh);
   }
 
   .coda-text,
   .coda-text.is-zh {
+    position: relative;
+    top: auto;
+    left: auto;
     width: 100%;
   }
 
   .coda-pic-1 {
     top: auto;
-    bottom: 4vh;
-    left: auto;
     right: var(--gutter);
-    width: 30vw;
+    bottom: 7vh;
+    left: auto;
+    width: 32vw;
     height: 44vw;
   }
 
   .coda-pic-2 {
     top: auto;
-    bottom: 8vh;
+    right: auto;
+    bottom: 5vh;
     left: var(--gutter);
-    width: 44vw;
+    width: 46vw;
     height: 32vw;
   }
 }
@@ -2689,24 +2787,42 @@ canvas[data-water-canvas] {
     height: 150vw;
   }
 
-  /* The same ladder as the desktop, one column: the words stay left of the
-     frame (its edge sits at 50vw here), so the measure keeps ending on the
-     photograph instead of running over it. */
+  /* Same ladder, one column: the index column scales with the headline, so the
+     numeral stays beside its line instead of floating at the frame's edge. */
   .hero-word {
-    font-size: 5.9vw;
-    height: auto;
+    grid-template-columns: 2.4em max-content;
+    column-gap: 3vw;
+    font-size: 5.5vw;
+    line-height: 0.98;
+    letter-spacing: -0.045em;
   }
 
   .hero-word.is-zh {
-    font-size: 7.4vw;
+    font-size: 7vw;
+    line-height: 1.02;
+    letter-spacing: -0.02em;
   }
 
-  .hero-word-1 { top: 30vw; }
-  .hero-word-2 { top: 54vw; }
-  .hero-word-3 { top: 78vw; }
-
   .hero-word-index {
-    left: 48vw;
+    left: auto;
+    min-width: 2.4em;
+    padding-top: 0.45em;
+    font-size: 9px;
+  }
+
+  .hero-word-1 {
+    top: 28vw;
+    left: 0;
+  }
+
+  .hero-word-2 {
+    top: 46vw;
+    left: 4vw;
+  }
+
+  .hero-word-3 {
+    top: 64vw;
+    left: 8vw;
   }
 
   .hero-bar {

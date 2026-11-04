@@ -88,14 +88,23 @@ Hero、肖像、画廊、两张点缀图、电视封面、作品详情页的所�
 2. 不包 `<picture>`——`.story-photo-mask img`、`.tv-frame` 这类选择器，以及 flex 几何，都要求 `<img>` 自己就是那个盒子；
 3. 清单是提交进仓库的生成物，脚本按 mtime 增量跳过，几十毫秒就跑完。
 
-**指针水波**：`ui/Img.tsx` 只给非装饰的内容图挂一个 `data-water` 标记（Hero 主图是 `"subtle"`，
-强度约一半），由 `ui/WaterHover.tsx` 在全页复用**一个**惰性创建的 canvas/WebGL context，同一时刻
-只画一张图。它只在 `(hover: hover) and (pointer: fine)` 且未开启 `prefers-reduced-motion` 时运行；
-纹理取自该 `<img>` 已经加载好的 `currentSrc`（经离屏 2D canvas 按 `object-fit` / `object-position`
-裁好），图层每帧同步原图的 position、尺寸、margin、transform、圆角与裁切，所以能跟着 Hero 视差、
-画廊横向位移与 coda 漂移走。指针离开、页面滚动、标签页隐藏或卸载时 canvas 立即移除，空闲时没有 RAF。
-`hidden` 的装饰层（`.hero-bar-image`、`.tv-frame`、`.tv-frame-alpha`）以及电视内部的 `.tv-cover`、
-视频、CRT 层和电话亭 canvas 都不带标记——电视合成层不会叠第二套扭曲。
+**指针水波**：`ui/Img.tsx` 的内容图**默认**挂 `data-water`，装饰图（`hidden`）默认排除，但可以
+显式 opt-in。三档强度都在标记里：`"subtle"`（Hero 主图，约 0.7×）、`"strong"`（Hero 的两条窄裁切
+条图，约 1.15×）、`"true"`（肖像、画廊、coda、作品详情图）。`ui/WaterHover.tsx` 在全页复用**一个**
+惰性创建的 canvas/WebGL context，同一时刻只画一张图；shader 里除指针处的波纹外，还有一条跟随速度、
+位置略滞后于指针的 wake，让形变读起来像一片水面而不是一个小圆点。它只在
+`(hover: hover) and (pointer: fine)` 且未开启 `prefers-reduced-motion` 时运行；纹理取自该 `<img>`
+已经加载好的 `currentSrc`（经离屏 2D canvas 按 `object-fit` / `object-position` 裁好），图层每帧
+同步原图的 position、尺寸、margin、transform、圆角与裁切，所以能跟着 Hero 视差、画廊横向位移与 coda
+漂移走。指针离开、页面滚动、标签页隐藏或卸载时 canvas 立即移除，空闲时没有 RAF。
+`hidden` 的电视层（`.tv-frame`、`.tv-frame-alpha`）以及电视内部的 `.tv-cover`、视频、CRT 层和电话亭
+canvas 都不带标记——电视合成层不会叠第二套扭曲。
+
+**电视舞台**：`.tv-anchor` 保持照片原生比例与 `--screen-*` 坐标，`.tv-box` 只在下缘做羽化过渡，
+左右是硬边，两侧的背景由 `.tv-stage` 的纵向渐变（天空 → 夜）承担；作品列表出现时的 `.tv-scrim`
+只做一层轻的纵向压暗。intro 与 works 交接处的亮线由两条**无 mask、无混合模式**的 3px 色带兜住
+（`.journey::after` 用当前的 `--stage`，`.tv-stage::before` 用 `--sky`），不再依赖 `.works::before`
+的色带。
 
 **电视图的分层**：未选中作品时只显示完整的 `tv.webp`。选中作品时，项目画面和雪花
 铺在 `works.tv.screen` 矩形内，外扩覆盖 `tv-alpha.webp` 的透明开口；抠好的电视图放在
@@ -124,6 +133,18 @@ Hero、肖像、画廊、两张点缀图、电视封面、作品详情页的所�
 `--gutter` / `--grid-gap` 节奏），文案因此靠版面定位而不是先 `left: 100vw` 再按语言猜偏移；
 平板与手机仍是原来的纵向 flow，不强行保留 pin。肖像只剩一个矩形画框：没有有机圆角、没有重影层，
 入场也只保留矩形的 `clip-path` reveal。
+
+**Hero 字组**：`.hero-word` 自己是一个两列网格——第一列是 2.7em 的编号栏（带一条 hairline 规则），
+第二列是标题，所以编号永远是它那一行的第一列，不再靠 `left: 49.2vw` 飘到主图边缘；三行按
+`0 / 5vw / 10vw` 向右递进，形成与倾斜条图同向的阶梯。手机端把编号栏缩到 2.4em 并同步三行位置。
+入场（`.hero-word-text` 的 yPercent）与滚动位移（`.hero-word-*` 的 x/y）都作用在这套结构上，未改动。
+
+**coda 构图**：`.coda` 从 `top: 12vh` 起、高 70vh，文字在左侧 22vh 处，第一张竖图占右上（14vw × 42vh），
+第二张横图更大（24vw × 31vh）压在它下缘、完全不透明；两张图的 GSAP 落点改成 `y: 0`，几何由 CSS 决定，
+不再额外叠加 `-4vh / +3vh`。手机端复位成纵向 block，并用 `padding-bottom` 预留两张图的位置。
+
+**theater 排版**：项目名改用与 Hero / 作品列表同一套 sans（不再 serif italic），元信息用 works 区局部的
+冷灰蓝 `--works-meta` / `--works-meta-strong`，`--accent` 仍只服务于交互焦点等其它用途。
 
 **加载动画**（`ui/Portfolio.tsx#Preloader` + `choreography.ts#createLoader`）：名字像电视画面一样被扫描点亮
 （扫描线位置即加载进度，计数器随扫描线移动）→ 信号锁定时 RGB 枪错位 → 白色光栅自上而下翻转 →

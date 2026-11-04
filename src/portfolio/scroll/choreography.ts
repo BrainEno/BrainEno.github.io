@@ -375,8 +375,21 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean) {
     .to(".rail", { x: () => -(railWidth() - vw() * 0.62), duration: traverse }, at.traverse)
     .to(".rail", { x: () => -(railWidth() + vw() * 0.05), duration: coda, ease: "power1.in" }, at.coda)
     .fromTo(".coda", { x: 0 }, { x: () => -vw() * 0.95, duration: coda, ease: "power2.out" }, at.coda)
-    .fromTo(".coda-pic-1", { y: () => vh() * 0.7, rotation: 6 }, { y: () => -vh() * 0.04, rotation: 0, duration: coda * 0.9, ease: "power2.out" }, at.coda + 0.1)
-    .fromTo(".coda-pic-2", { y: () => vh() * 0.95, rotation: -5 }, { y: () => vh() * 0.03, rotation: 0, duration: coda * 0.85, ease: "power2.out" }, at.coda + 0.15)
+    // Both plates land exactly on the composition the stylesheet describes:
+    // the tween's end state is y: 0, so the CSS top/left/width/height is the
+    // final geometry and no per-viewport offset is baked in.
+    .fromTo(
+      ".coda-pic-1",
+      { y: () => vh() * 0.55, rotation: 3 },
+      { y: 0, rotation: 0, duration: coda * 0.9, ease: "power2.out" },
+      at.coda + 0.1,
+    )
+    .fromTo(
+      ".coda-pic-2",
+      { y: () => vh() * 0.75, rotation: -3 },
+      { y: 0, rotation: 0, duration: coda * 0.85, ease: "power2.out" },
+      at.coda + 0.15,
+    )
     .to(".coda-pic-1", { y: () => -vh() * 0.2, duration: outro }, at.outro)
     .to(".coda-pic-2", { y: () => -vh() * 0.08, duration: outro }, at.outro)
     .to(".coda-text", { y: () => -vh() * 0.04, duration: outro }, at.outro);

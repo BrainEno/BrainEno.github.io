@@ -51,10 +51,17 @@ type ImgProps = {
    * there is no wrapper, no canvas per image, and no extra request: the ripple
    * texture is read from the `<img>`'s own `currentSrc`.
    *
-   * Decorative/composited images opt out automatically through `hidden`.
-   * "subtle" is intended for the hero's primary photograph.
+   * Content images are in by default. `hidden` (decorative / composited)
+   * images are out by default, but may opt in explicitly — that is how the two
+   * cropped Hero strips get the effect without dragging the television frame,
+   * its alpha cutout or the CRT layers along with them:
+   *
+   * - omitted      → on, unless the image is `hidden`
+   * - `"subtle"`   → on, damped (the Hero's primary photograph)
+   * - `"strong"`   → on, amplified (the narrow Hero strips)
+   * - `false`      → always off
    */
-  water?: boolean | "subtle";
+  water?: boolean | "subtle" | "strong";
 };
 
 /** The WebP candidate list for a source, if one was generated. */
@@ -87,9 +94,19 @@ export function Img({
   width,
   height,
   hidden,
-  water = true,
+  water,
 }: ImgProps) {
   const srcSet = srcSetFor(src);
+  const waterMode =
+    water === undefined
+      ? hidden
+        ? undefined
+        : "true"
+      : water === true
+        ? "true"
+        : water === false
+          ? undefined
+          : water;
   return (
     // `next/image` needs an optimisation server or a loader service; this is a
     // pure static export, so the script above is how the responsive set is made.
@@ -109,13 +126,7 @@ export function Img({
       draggable={draggable}
       // The only contract with `WaterHover`: a marker on the real `<img>`.
       // Nothing is wrapped, so direct-child selectors keep working.
-      data-water={
-        !hidden && water
-          ? water === "subtle"
-            ? "subtle"
-            : "true"
-          : undefined
-      }
+      data-water={waterMode}
       width={width ?? intrinsicSize(src)?.width}
       height={height ?? intrinsicSize(src)?.height}
     />
