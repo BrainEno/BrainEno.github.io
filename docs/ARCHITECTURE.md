@@ -88,19 +88,23 @@ Hero、肖像、画廊、两张点缀图、电视封面、作品详情页的所�
 2. 不包 `<picture>`——`.story-photo-mask img`、`.tv-frame` 这类选择器，以及 flex 几何，都要求 `<img>` 自己就是那个盒子；
 3. 清单是提交进仓库的生成物，脚本按 mtime 增量跳过，几十毫秒就跑完。
 
-**指针水波**：`ui/Img.tsx` 只给非装饰的内容图挂一个 `data-water` 标记（Hero 主图是 `"subtle"`，
-强度约一半），由 `ui/WaterHover.tsx` 在全页复用**一个**惰性创建的 canvas/WebGL context，同一时刻
-只画一张图。它只在 `(hover: hover) and (pointer: fine)` 且未开启 `prefers-reduced-motion` 时运行；
-纹理取自该 `<img>` 已经加载好的 `currentSrc`（经离屏 2D canvas 按 `object-fit` / `object-position`
-裁好），图层每帧同步原图的 position、尺寸、margin、transform、圆角与裁切，所以能跟着 Hero 视差、
-画廊横向位移与 coda 漂移走。指针离开、页面滚动、标签页隐藏或卸载时 canvas 立即移除，空闲时没有 RAF。
-`hidden` 的装饰层（`.hero-bar-image`、`.tv-frame`、`.tv-frame-alpha`）以及电视内部的 `.tv-cover`、
-视频、CRT 层和电话亭 canvas 都不带标记——电视合成层不会叠第二套扭曲。
+**指针水波**：`ui/Img.tsx` 默认给非装饰图片挂 `data-water="true"`；`hidden` 图片默认排除，
+可用 `water="subtle"` / `water="strong"` 显式开启，`water={false}` 始终关闭。Hero 主图使用
+`"subtle"`（幅度 0.7），两条仍标记为装饰图的 `.hero-bar-image` 显式使用 `"strong"`（幅度 1.15）；
+默认档幅度为 1。`ui/WaterHover.tsx` 在全页复用**一个**惰性创建的 canvas/WebGL context，同一时刻
+只画一张图；方向拖动、较宽的波纹和较弱的后方 wake 共用衰减中的速度与强度，不替换原图，也不增加色差。
+它只在 `(hover: hover) and (pointer: fine)` 且未开启 `prefers-reduced-motion` 时运行；纹理取自该 `<img>`
+已经加载好的 `currentSrc`（经离屏 2D canvas 按 `object-fit` / `object-position` 裁好），图层每帧同步
+原图的 position、尺寸、margin、transform、圆角与裁切，所以能跟着 Hero 视差、画廊横向位移与 coda 漂移走。
+指针离开或页面滚动后，canvas 随波纹衰减移除；标签页隐藏或组件卸载时立即清理，空闲时没有 RAF。
+`.tv-frame`、`.tv-frame-alpha` 等电视图层、视频、CRT 层和电话亭 canvas 都不带标记——电视合成层不会叠第二套扭曲。
 
 **电视图的分层**：未选中作品时只显示完整的 `tv.webp`。选中作品时，项目画面和雪花
 铺在 `works.tv.screen` 矩形内，外扩覆盖 `tv-alpha.webp` 的透明开口；抠好的电视图放在
 画面上层，边缘由真实 alpha 决定，不再使用猜测的圆角或混合模式。整个预览层通过透明度
-切换，离开作品或进入联系方式时还原原图。透明图按原尺寸加载，避免缩放生成物损伤边缘。
+切换，离开作品或进入联系方式时还原原图。照片保持原生比例居中，左右不再做羽化遮罩；有余量的两侧是干净暗场，
+`.tv-box` 只保留必要的下缘遮罩。顶部 `.tv-seam` 继续负责较大范围的天空衔接，单独的 3px seam guard
+处理接缝；作品列表出现时的 scrim 改为轻量纵向渐暗。透明图按原尺寸加载，避免缩放生成物损伤边缘。
 鼠标悬停或键盘聚焦切换作品；触屏则跟随滚动选择。视频在选中时静音循环播放。
 
 ## 6. 转场与 Contact 区动效
@@ -124,6 +128,8 @@ Hero、肖像、画廊、两张点缀图、电视封面、作品详情页的所�
 `--gutter` / `--grid-gap` 节奏），文案因此靠版面定位而不是先 `left: 100vw` 再按语言猜偏移；
 平板与手机仍是原来的纵向 flow，不强行保留 pin。肖像只剩一个矩形画框：没有有机圆角、没有重影层，
 入场也只保留矩形的 `clip-path` reveal。
+
+Hero 的编号与标题组成同一行网格，三行略向右阶梯递进；coda 桌面构图从场景顶部起排，左侧为文字，右侧用一张竖图与一张较大的横图错位重叠。进入 flow 布局后，coda 显式清除桌面定位，并在文字下方预留图片安全区。
 
 **加载动画**（`ui/Portfolio.tsx#Preloader` + `choreography.ts#createLoader`）：名字像电视画面一样被扫描点亮
 （扫描线位置即加载进度，计数器随扫描线移动）→ 信号锁定时 RGB 枪错位 → 白色光栅自上而下翻转 →

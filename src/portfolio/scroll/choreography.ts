@@ -251,8 +251,8 @@ function heroScroll(desktop: boolean) {
       scrub: true,
     },
   })
-    // The trio is one measured column now, so it drifts as one piece: a per-line
-    // stagger would break the shared left margin the type is built on.
+    // The three rows keep their editorial staircase as one group; a per-line
+    // stagger would loosen the deliberate spacing between index and headline.
     .to(
       [".hero-word-1", ".hero-word-2", ".hero-word-3"],
       { x: desktop ? "-0.8vw" : -6, y: desktop ? "1vw" : 14 },
@@ -375,8 +375,28 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean) {
     .to(".rail", { x: () => -(railWidth() - vw() * 0.62), duration: traverse }, at.traverse)
     .to(".rail", { x: () => -(railWidth() + vw() * 0.05), duration: coda, ease: "power1.in" }, at.coda)
     .fromTo(".coda", { x: 0 }, { x: () => -vw() * 0.95, duration: coda, ease: "power2.out" }, at.coda)
-    .fromTo(".coda-pic-1", { y: () => vh() * 0.7, rotation: 6 }, { y: () => -vh() * 0.04, rotation: 0, duration: coda * 0.9, ease: "power2.out" }, at.coda + 0.1)
-    .fromTo(".coda-pic-2", { y: () => vh() * 0.95, rotation: -5 }, { y: () => vh() * 0.03, rotation: 0, duration: coda * 0.85, ease: "power2.out" }, at.coda + 0.15)
+    .fromTo(
+      ".coda-pic-1",
+      { y: () => vh() * 0.55, rotation: 3 },
+      {
+        y: 0,
+        rotation: 0,
+        duration: coda * 0.9,
+        ease: "power2.out",
+      },
+      at.coda + 0.1,
+    )
+    .fromTo(
+      ".coda-pic-2",
+      { y: () => vh() * 0.75, rotation: -3 },
+      {
+        y: 0,
+        rotation: 0,
+        duration: coda * 0.85,
+        ease: "power2.out",
+      },
+      at.coda + 0.15,
+    )
     .to(".coda-pic-1", { y: () => -vh() * 0.2, duration: outro }, at.outro)
     .to(".coda-pic-2", { y: () => -vh() * 0.08, duration: outro }, at.outro)
     .to(".coda-text", { y: () => -vh() * 0.04, duration: outro }, at.outro);
