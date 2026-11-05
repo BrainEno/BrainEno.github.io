@@ -98,10 +98,20 @@ function screenLift(section: HTMLElement) {
 
 export function createHeroEntrance() {
   const tl = gsap.timeline({ paused: true, defaults: { ease: "expo.out", duration: 1.5 } });
-  tl.from(".hero-word-text", { yPercent: 118, stagger: 0.12 }, 0)
-    .from(".hero-bar", { clipPath: "inset(100% 0% 0% 0%)", stagger: 0.12, duration: 1.7 }, 0.1)
-    .from(".hero-photo-reveal", { clipPath: "inset(100% 0% 0% 0%)", duration: 1.7 }, 0)
+  // One entrance, not two: the type column opens out of its own right edge
+  // (the axis it shares with the picture) while the picture is revealed from
+  // the bottom, so copy and media arrive on the same beat.
+  tl.from(".hero-photo-reveal", { clipPath: "inset(100% 0% 0% 0%)", duration: 1.7 }, 0)
     .from(".hero-photo-zoom", { scale: 1.32, duration: 2.2 }, 0)
+    .fromTo(
+      ".hero-word",
+      { clipPath: "inset(0% 0% 0% 100%)" },
+      { clipPath: "inset(0% 0% 0% 0%)", stagger: 0.12, duration: 1.35 },
+      0.15
+    )
+    .from(".hero-word-text", { xPercent: 24, stagger: 0.12, duration: 1.5 }, 0.15)
+    .from(".hero-word-index", { autoAlpha: 0, x: -10, stagger: 0.12, duration: 0.8 }, 0.55)
+    .from(".hero-bar", { clipPath: "inset(100% 0% 0% 0%)", stagger: 0.12, duration: 1.7 }, 0.1)
     .from(".header-item", { yPercent: 120, autoAlpha: 0, stagger: 0.06, duration: 1.1 }, 0.45);
   return tl;
 }
@@ -251,13 +261,10 @@ function heroScroll(desktop: boolean) {
       scrub: true,
     },
   })
-    // The three rows keep their editorial staircase as one group; a per-line
-    // stagger would loosen the deliberate spacing between index and headline.
-    .to(
-      [".hero-word-1", ".hero-word-2", ".hero-word-3"],
-      { x: desktop ? "-0.8vw" : -6, y: desktop ? "1vw" : 14 },
-      0,
-    );
+    // The type column is locked to the picture's left edge, so the scroll only
+    // gives it a small counter-parallax; a per-line horizontal shift would break
+    // the shared axis and split the three titles apart.
+    .to(".hero-type", { x: 0, y: desktop ? "2vw" : 12 }, 0);
 
   gsap.fromTo(
     ".hero-bar-image",
@@ -375,30 +382,38 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean) {
     .to(".rail", { x: () => -(railWidth() - vw() * 0.62), duration: traverse }, at.traverse)
     .to(".rail", { x: () => -(railWidth() + vw() * 0.05), duration: coda, ease: "power1.in" }, at.coda)
     .fromTo(".coda", { x: 0 }, { x: () => -vw() * 0.95, duration: coda, ease: "power2.out" }, at.coda)
+    // Main still wipes in from the left, the narrower portrait is revealed from
+    // below a beat later: two different entrances for two different weights.
     .fromTo(
       ".coda-pic-1",
-      { y: () => vh() * 0.55, rotation: 3 },
+      {
+        y: () => vh() * 0.16,
+        clipPath: "inset(0% 100% 0% 0%)",
+      },
       {
         y: 0,
-        rotation: 0,
+        clipPath: "inset(0% 0% 0% 0%)",
         duration: coda * 0.9,
         ease: "power2.out",
       },
-      at.coda + 0.1,
+      at.coda + 0.08
     )
     .fromTo(
       ".coda-pic-2",
-      { y: () => vh() * 0.75, rotation: -3 },
+      {
+        y: () => vh() * 0.24,
+        clipPath: "inset(100% 0% 0% 0%)",
+      },
       {
         y: 0,
-        rotation: 0,
+        clipPath: "inset(0% 0% 0% 0%)",
         duration: coda * 0.85,
         ease: "power2.out",
       },
-      at.coda + 0.15,
+      at.coda + 0.18
     )
-    .to(".coda-pic-1", { y: () => -vh() * 0.2, duration: outro }, at.outro)
-    .to(".coda-pic-2", { y: () => -vh() * 0.08, duration: outro }, at.outro)
+    .to(".coda-pic-1", { y: () => -vh() * 0.12, duration: outro }, at.outro)
+    .to(".coda-pic-2", { y: () => -vh() * 0.22, duration: outro }, at.outro)
     .to(".coda-text", { y: () => -vh() * 0.04, duration: outro }, at.outro);
 
   // Reading light is motion: under `prefers-reduced-motion` the words are lit
@@ -419,6 +434,20 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean) {
       { "--stage": cssColor(scope, "--sky", "#001c5c"), duration: total - at.push, ease: "sine.inOut" },
       at.push
     );
+
+  // The seam bridge (`.works::before`) reads `--handoff` off the scoped root and
+  // is tweened on the same beat as `--stage`, so the strip is the same colour as
+  // the section above it in every scrub frame — not just at the end.
+  tl.fromTo(
+    scope,
+    { "--handoff": cssColor(scope, "--stage", "#000000") },
+    {
+      "--handoff": cssColor(scope, "--sky", "#001c5c"),
+      duration: total - at.push,
+      ease: "sine.inOut",
+    },
+    at.push
+  );
 }
 
 function journeyFlow(scope: HTMLElement, desktop: boolean, reduce: boolean) {
@@ -430,6 +459,17 @@ function journeyFlow(scope: HTMLElement, desktop: boolean, reduce: boolean) {
       { "--stage": cssColor(scope, "--stage", "#000000") },
       {
         "--stage": cssColor(scope, "--sky", "#001c5c"),
+        ease: "sine.inOut",
+        scrollTrigger: { trigger: journey, start: "top 40%", end: "bottom bottom", scrub: true },
+      }
+    );
+
+    // Same shared colour for the one seam strip, on the same trigger.
+    gsap.fromTo(
+      scope,
+      { "--handoff": cssColor(scope, "--stage", "#000000") },
+      {
+        "--handoff": cssColor(scope, "--sky", "#001c5c"),
         ease: "sine.inOut",
         scrollTrigger: { trigger: journey, start: "top 40%", end: "bottom bottom", scrub: true },
       }
@@ -733,7 +773,6 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
       scrollTrigger: { trigger: ".tv-stage", start: "top bottom", end: "top top", scrub: 0.4 },
     })
     .fromTo(".tv-tune", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.28 }, 0.1)
-    .fromTo(".tv-tune-bar", { yPercent: -120 }, { yPercent: 640, duration: 0.78, ease: "power1.inOut" }, 0.1)
     .to(".tv-tune", { autoAlpha: 0, duration: 0.28, ease: "power2.in" }, 0.68)
     .fromTo(".tv-anchor", { scale: 1.06, transformOrigin: "50% 0%" }, { scale: 1, duration: 1, ease: "power2.out" }, 0);
 

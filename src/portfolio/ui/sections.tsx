@@ -32,18 +32,24 @@ export const Hero = memo(function Hero({ lang, content, name }: SectionProps<"he
           it for the document outline only. */}
       <h1 className="sr-only">{name}</h1>
       <div className="hero-box">
-        {content.headlines.map((headline, index) => (
-          <div key={index} className={cx("hero-word", `hero-word-${index + 1}`, zh && "is-zh")}>
-            {/* The index shares a grid row with its headline, so the number
-                reads as part of the title rather than a label on the photo. */}
-            <span className="hero-word-index" aria-hidden="true">
-              {String(index + 1).padStart(2, "0")}
-            </span>
-            <span className="hero-word-mask">
-              <span className="hero-word-text">{t(headline, lang)}</span>
-            </span>
-          </div>
-        ))}
+        {/* One type column, not three floating lines: its right border sits on
+            the photograph's left edge (both derived from the same box), so the
+            index reads as an editorial captioning column and the titles open
+            out towards the artwork. */}
+        <div className="hero-type">
+          {content.headlines.map((headline, index) => (
+            <div key={index} className={cx("hero-word", `hero-word-${index + 1}`, zh && "is-zh")}>
+              {/* The index shares a grid row with its headline, so the number
+                  reads as part of the title rather than a label on the photo. */}
+              <span className="hero-word-index" aria-hidden="true">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <span className="hero-word-mask">
+                <span className="hero-word-text">{t(headline, lang)}</span>
+              </span>
+            </div>
+          ))}
+        </div>
         {[1, 2].map((bar) => (
           <div key={bar} className={`hero-bar hero-bar-${bar}`} aria-hidden="true">
             {/* A 6vw strip. `lazy` keeps Next from emitting a second
@@ -215,19 +221,28 @@ export const Journey = memo(function Journey({ lang, content, name }: JourneyPro
       </div>
 
       <div className="coda">
-        {content.accentImages.map((image, index) => (
-          <Img
-            key={`${image.src}-${index}`}
-            className={`coda-pic coda-pic-${index + 1}`}
-            src={image.src}
-            alt={t(image.alt, lang)}
-            sizes="(max-width: 1023px) 44vw, 19vw"
-            loading="lazy"
-          />
-        ))}
         <p className={cx("copy coda-text", zh && "is-zh")}>
           <Words text={t(content.secondaryText, lang)} />
         </p>
+
+        {/* Two stills with a clear size hierarchy that overlap locally, rather
+            than two equal pictures set side by side. */}
+        <div className="coda-media">
+          {content.accentImages.map((image, index) => (
+            <Img
+              key={`${image.src}-${index}`}
+              className={`coda-pic coda-pic-${index + 1}`}
+              src={image.src}
+              alt={t(image.alt, lang)}
+              sizes={
+                index === 0
+                  ? "(max-width: 1023px) 78vw, 42vw"
+                  : "(max-width: 1023px) 42vw, 20vw"
+              }
+              loading="lazy"
+            />
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -362,7 +377,6 @@ export function Works({
         <div className="tv-scrim" aria-hidden="true" />
         <div className="tv-tune" aria-hidden="true">
           <span className="tv-tune-noise" />
-          <span className="tv-tune-bar" />
         </div>
         {/* Theater: the room darkens around the set while a project plays. */}
         <div className="tv-theater-veil" aria-hidden="true" />
@@ -413,10 +427,18 @@ export function Works({
                 </ul>
                 <p className={cx("tv-sheet-fade tv-sheet-copy", zh && "is-zh")}>{t(featured.description, lang)}</p>
                 <div className="tv-sheet-fade tv-sheet-actions">
-                  <a href={featured.url} target="_blank" rel="noreferrer" className="tv-sheet-link" data-cursor="link">
-                    <span>{zh ? "查看仓库" : "Open repository"}</span>
-                    <span aria-hidden="true">↗</span>
-                  </a>
+                  {featured.isPrivate ? (
+                    <p className="tv-sheet-access">
+                      {zh
+                        ? "私有项目 · 源码暂不公开，本页仅展示项目说明与预览。"
+                        : "Private project · Source is not public; this page presents project notes and previews only."}
+                    </p>
+                  ) : featured.url ? (
+                    <a href={featured.url} target="_blank" rel="noreferrer" className="tv-sheet-link" data-cursor="link">
+                      <span>{zh ? "查看仓库" : "Open repository"}</span>
+                      <span aria-hidden="true">↗</span>
+                    </a>
+                  ) : null}
                 </div>
               </div>
               <nav
@@ -516,7 +538,10 @@ export function Works({
                   }}
                   onClick={() => onOpen(index)}
                 >
-                  <span className="sr-only">{title}</span>
+                  <span className="sr-only">
+                    {title}
+                    {work.isPrivate ? (zh ? "，私有项目" : ", private project") : ""}
+                  </span>
                 </button>
                 <span className="work-row-line" aria-hidden="true" />
                 <span className="work-row-index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
@@ -527,6 +552,18 @@ export function Works({
                   <span className="work-row-mask"><span>{work.year}</span></span>
                   <span className="work-row-mask" aria-hidden="true"><span>/</span></span>
                   <span className="work-row-mask"><span>{t(work.credit, lang)}</span></span>
+                  {work.isPrivate ? (
+                    <>
+                      <span className="work-row-mask" aria-hidden="true">
+                        <span>/</span>
+                      </span>
+                      <span className="work-row-mask">
+                        <span className="work-row-access">
+                          {zh ? "私有项目" : "Private"}
+                        </span>
+                      </span>
+                    </>
+                  ) : null}
                 </span>
               </li>
             );

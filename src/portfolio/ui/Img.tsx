@@ -115,7 +115,9 @@ export function Img({
       loading={priority ? "eager" : loading}
       fetchPriority={priority ? "high" : undefined}
       decoding={decoding}
-      draggable={draggable}
+      // A rippled picture needs the full pointer drag; the browser's native
+      // image ghost would swallow it and interrupt the ripple.
+      draggable={waterMode ? false : draggable}
       // The only contract with `WaterHover`: a marker on the real `<img>`.
       // Nothing is wrapped, so direct-child selectors keep working.
       data-water={waterMode}

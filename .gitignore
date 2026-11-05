@@ -24,3 +24,6 @@ next-env.d.ts
 .wrangler/
 *.tsbuildinfo
 .DS_Store
+
+# Local high-resolution source media; never deploy or commit.
+.media-originals/

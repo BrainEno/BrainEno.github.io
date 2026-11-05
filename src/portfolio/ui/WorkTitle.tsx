@@ -2,7 +2,13 @@
 
 import { useEffect, useRef } from "react";
 
-/** Match cap height and advance width before rolling between the two faces. */
+/**
+ * Match cap height and advance width before rolling between the two weights.
+ *
+ * Both faces are the same sans (400 → 500) — the swap is a weight change, not a
+ * change of typeface — so the measurement only has to line the incoming line up
+ * with the outgoing one.
+ */
 export function WorkTitle({ text }: { text: string }) {
   const ref = useRef<HTMLSpanElement>(null);
   const cjk = /[\u3400-\u9fff]/.test(text);

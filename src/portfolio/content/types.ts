@@ -46,6 +46,8 @@ export type Work = {
   video?: Video;
   /** Repository / live project link (data only — the index layout is unchanged). */
   url: string;
+  /** Private works remain visible, but do not expose a misleading repository link. */
+  isPrivate?: boolean;
   /** Long-form project description, used by detail views and backups. */
   description: LocalizedText;
   /** Extra stills for the project detail view / backup bundle. */

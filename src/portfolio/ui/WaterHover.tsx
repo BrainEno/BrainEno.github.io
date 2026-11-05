@@ -70,60 +70,81 @@ void main() {
   );
 
   float distanceToPointer = length(delta);
-  float influence =
-    1.0 - smoothstep(0.0, 0.68, distanceToPointer);
+  vec2 direction = delta / max(distanceToPointer, 0.0001);
 
-  vec2 direction =
-    delta / max(distanceToPointer, 0.0001);
+  float influence =
+    1.0 - smoothstep(0.0, 0.86, distanceToPointer);
 
   float wave =
-    sin(distanceToPointer * 36.0 - uTime * 5.4);
+    sin(distanceToPointer * 32.0 - uTime * 5.0);
 
-  float ripple =
-    wave * influence * uStrength * 0.02;
+  vec2 physicalVelocity = vec2(
+    uVelocity.x * uAspect,
+    uVelocity.y
+  );
 
-  vec2 offset = direction * ripple;
+  vec2 physicalOffset =
+    direction * wave * influence * uStrength * 0.021;
 
-  /* Directional drag: a fast pointer pulls a wider area of the image,
-     while the decay in the controller keeps it from becoming elastic UI. */
-  offset +=
-    uVelocity * influence * uStrength * 0.022;
+  physicalOffset +=
+    physicalVelocity * influence * uStrength * 0.027;
 
-  offset +=
+  physicalOffset +=
     vec2(-direction.y, direction.x)
-    * cos(distanceToPointer * 24.0 - uTime * 3.4)
+    * cos(distanceToPointer * 23.0 - uTime * 3.2)
     * influence
     * uStrength
     * 0.005;
 
-  /* A weaker, broader wake sits just behind the pointer. This is what makes
-     the motion read as a body of water rather than a small circular warp. */
-  vec2 wakePointer = uPointer - uVelocity * 0.045;
-  vec2 wakeDelta = vec2(
-    (vUv.x - wakePointer.x) * uAspect,
-    vUv.y - wakePointer.y
-  );
-  float wakeDistance = length(wakeDelta);
+  // A directional, elliptical wake behind the pointer. It is disabled at
+  // near-zero speed so a stationary hover never invents a drag direction.
+  float speed = length(physicalVelocity);
+  vec2 travel = physicalVelocity / max(speed, 0.0001);
+  vec2 tangent = vec2(-travel.y, travel.x);
+
+  float along = dot(delta, travel);
+  float across = dot(delta, tangent);
+  float behind = max(0.0, -along);
+
+  float longitudinal =
+    1.0 - smoothstep(0.0, 0.96, behind);
+  float lateral =
+    1.0 - smoothstep(0.0, 0.44, abs(across));
+  float wakeGate =
+    smoothstep(0.03, 0.32, speed);
+
   float wakeInfluence =
-    (1.0 - smoothstep(0.0, 0.8, wakeDistance))
-    * uStrength
-    * 0.35;
-  vec2 wakeDirection =
-    wakeDelta / max(wakeDistance, 0.0001);
+    smoothstep(0.0, 0.1, behind)
+    * longitudinal
+    * lateral
+    * wakeGate
+    * uStrength;
 
-  offset +=
-    wakeDirection
-    * sin(wakeDistance * 28.0 - uTime * 4.0)
-    * wakeInfluence
-    * 0.014;
+  float wake =
+    sin(behind * 30.0 - uTime * 4.2 + across * 7.0);
 
-  vec2 uv = clamp(
-    vUv + offset,
-    vec2(0.001),
-    vec2(0.999)
+  physicalOffset +=
+    tangent * wake * wakeInfluence * 0.016;
+
+  physicalOffset +=
+    travel * behind * wakeInfluence * 0.014;
+
+  vec2 offset = vec2(
+    physicalOffset.x / max(uAspect, 0.0001),
+    physicalOffset.y
   );
 
-  gl_FragColor = texture2D(uTexture, uv);
+  offset = clamp(offset, vec2(-0.12), vec2(0.12));
+
+  // Mirroring avoids the flat streak produced by clamping every out-of-range
+  // sample to the same edge pixel.
+  vec2 uv =
+    1.0 - abs(mod(vUv + offset, 2.0) - 1.0);
+
+  gl_FragColor = texture2D(
+    uTexture,
+    clamp(uv, vec2(0.001), vec2(0.999))
+  );
 }
 `;
 
@@ -138,6 +159,8 @@ type Session = {
   targetStrength: number;
   fade: number;
   leaving: boolean;
+  /** True between `pointerdown` and `pointerup` on the picture's own box. */
+  dragging: boolean;
   textureKey: string;
 };
 
@@ -508,9 +531,9 @@ class WaterEngine {
 
     const amplitude =
       img.dataset.water === "subtle"
-        ? 0.7
+        ? 0.65
         : img.dataset.water === "strong"
-          ? 1.15
+          ? 1.25
           : 1;
 
     gl.viewport(0, 0, width, height);
@@ -573,17 +596,18 @@ export default function WaterHover() {
       const delta = Math.min(0.05, Math.max(0.001, (now - previous) / 1000));
       previous = now;
 
-      if (session.leaving) session.targetStrength = 0;
-      else if (now - session.lastMove > 80) {
-        // Holding still: the ripple settles to a thin resting film instead of
-        // looping at full amplitude.
-        session.targetStrength = 0.1;
+      if (session.leaving) {
+        session.targetStrength = 0;
+      } else if (now - session.lastMove > 90) {
+        // Held but motionless keeps a trace of the deformation; an ordinary
+        // resting hover settles completely.
+        session.targetStrength = session.dragging ? 0.16 : 0;
       }
 
       const fadeEase =
         1 - Math.exp(-delta * (session.leaving ? 6 : 10));
-      const strengthEase = 1 - Math.exp(-delta * 8);
-      const velocityDecay = Math.exp(-delta * 3.4);
+      const strengthEase = 1 - Math.exp(-delta * 6);
+      const velocityDecay = Math.exp(-delta * 2.6);
 
       session.fade += ((session.leaving ? 0 : 1) - session.fade) * fadeEase;
       session.strength += (session.targetStrength - session.strength) * strengthEase;
@@ -610,17 +634,20 @@ export default function WaterHover() {
       raf = requestAnimationFrame(tick);
     };
 
+    /** The rippled picture under the pointer, if any. */
+    const eventImage = (target: EventTarget | null) =>
+      target instanceof HTMLImageElement &&
+      target.matches("img[data-water]")
+        ? target
+        : null;
+
     const onPointerMove = (event: PointerEvent) => {
       if (!finePointer.matches || reducedMotion.matches || document.hidden) {
         release();
         return;
       }
 
-      const target = event.target;
-      const img =
-        target instanceof HTMLImageElement && target.matches("img[data-water]")
-          ? target
-          : null;
+      const img = eventImage(event.target);
 
       if (!img || !img.complete || !img.naturalWidth || !img.naturalHeight) {
         release();
@@ -660,6 +687,7 @@ export default function WaterHover() {
           targetStrength: 0.14,
           fade: 0,
           leaving: false,
+          dragging: false,
           textureKey: "",
         };
         previous = now;
@@ -676,8 +704,8 @@ export default function WaterHover() {
       session.vx = clamp(dx / seconds, -2.4, 2.4);
       session.vy = clamp(dy / seconds, -2.4, 2.4);
       session.targetStrength = Math.max(
-        0.12,
-        Math.min(1, speed / 2.2),
+        session.dragging ? 0.34 : 0.12,
+        Math.min(1, speed / 2.0)
       );
       session.x = x;
       session.y = y;
@@ -686,8 +714,46 @@ export default function WaterHover() {
     };
 
     const onPointerOut = (event: PointerEvent) => {
-      // Leaving the document entirely never produces a new `pointermove`.
-      if (!event.relatedTarget) release();
+      // Leaving the document entirely never produces a new `pointermove`; leaving
+      // the picture itself ends the session (the original `<img>` stays on screen
+      // throughout, so there is nothing to cross-fade).
+      if (!event.relatedTarget || (active && event.target === active.img)) {
+        release();
+      }
+    };
+
+    /**
+     * A press on a rippled picture is a drag, not a hover: the ripple keeps a
+     * real amplitude while the pointer moves and decays once it stops, instead of
+     * settling to a still film the moment the pointer pauses.
+     */
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.button !== 0 || !finePointer.matches || reducedMotion.matches) {
+        return;
+      }
+
+      const img = eventImage(event.target);
+      if (!img) return;
+
+      // A press without a preceding move still starts a ripple on the picture.
+      onPointerMove(event);
+
+      if (active?.img === img) {
+        active.dragging = true;
+        active.targetStrength = Math.max(active.targetStrength, 0.34);
+      }
+    };
+
+    const onPointerUp = (event: PointerEvent) => {
+      if (!active) return;
+
+      active.dragging = false;
+
+      if (eventImage(event.target) !== active.img) {
+        release();
+      } else {
+        active.targetStrength = 0.12;
+      }
     };
 
     const onPreferenceChange = () => {
@@ -706,6 +772,14 @@ export default function WaterHover() {
       capture: true,
       passive: true,
     });
+    window.addEventListener("pointerdown", onPointerDown, {
+      capture: true,
+      passive: true,
+    });
+    window.addEventListener("pointerup", onPointerUp, {
+      capture: true,
+      passive: true,
+    });
     document.addEventListener("pointercancel", release, { passive: true });
     // The photograph's own box is scrolling away from the pointer: let it go
     // instead of dragging a stale texture across the page.
@@ -719,6 +793,8 @@ export default function WaterHover() {
       removeActive();
       window.removeEventListener("pointermove", onPointerMove, true);
       document.removeEventListener("pointerout", onPointerOut, true);
+      window.removeEventListener("pointerdown", onPointerDown, true);
+      window.removeEventListener("pointerup", onPointerUp, true);
       document.removeEventListener("pointercancel", release);
       window.removeEventListener("scroll", release, true);
       window.removeEventListener("blur", removeActive);

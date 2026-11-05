@@ -67,12 +67,12 @@ export const defaultContent: PortfolioContent = {
       { src: "/images/screenshot2.jpg", alt: { zh: "精选画面 02", en: "Featured still 02" } },
     ],
     secondaryText: {
-      zh: "我偏好能在本地运行、让使用者掌握数据的工具。这里收录一些项目、界面和实验，代码与后续更新放在 GitHub。",
-      en: "I prefer tools that can run locally and leave data with the people using them. This site collects selected projects, interfaces and experiments, with code and updates on GitHub.",
+      zh: "我偏好能在本地运行、让使用者掌握数据的工具。这里收录一些项目、界面和实验；公开仓库与后续更新放在 GitHub，私有项目仅展示介绍与预览。",
+      en: "I prefer tools that can run locally and leave data with the people using them. This site collects selected projects, interfaces and experiments; public repositories and updates live on GitHub, while private projects are presented through notes and previews.",
     },
   },
   works: {
-    heading: { zh: "开源作品", en: "Open Source" },
+    heading: { zh: "精选作品", en: "Selected Works" },
     period: "2026",
     tv: {
       src: "/images/tv2.webp",
@@ -87,11 +87,10 @@ export const defaultContent: PortfolioContent = {
       screen: { top: 65.4, left: 42.62, width: 10.92, height: 11.98 },
     },
     items: [
-      // Every repository on github.com/BrainEno with more than 100 commits since
-      // 2026-01-01: lyric-forge-ktv 929 · no-wave 764 · ScribeForge 416 ·
-      // flutter-blog 338 · remix-partfolio 282 · win7-book-management 252.
-      // `year` holds the repository start date, `credit` holds the stack shown
-      // after the separator.
+      // The index mixes public repositories with private projects, which stay
+      // listed (marked `isPrivate`) but never link to a repository the visitor
+      // cannot open. `year` holds the repository start date, `credit` holds the
+      // stack shown after the separator.
       {
         id: "lyric-forge-ktv",
         title: { zh: "lyric-forge-ktv", en: "lyric-forge-ktv" },
@@ -109,6 +108,7 @@ export const defaultContent: PortfolioContent = {
         //   poster: "/images/works/lyric-forge-ktv-poster.jpg",
         // },
         url: "https://github.com/BrainEno/lyric-forge-ktv",
+        isPrivate: false,
         description: {
           zh: "本地优先的 KTV 编排与伴唱工具：集逐字时间轴打轴、伴奏音轨对齐与离线曲库管理于一体，单机即可流畅开唱，零服务端依赖。",
           en: "A local-first KTV authoring and playback studio: syllable-level lyric timing, backing-track sync, and an offline songbook running entirely on a single device with zero server dependency.",
@@ -117,6 +117,41 @@ export const defaultContent: PortfolioContent = {
           {
             src: "/images/works/lyric-forge-ktv.jpg",
             alt: { zh: "lyric-forge-ktv 界面预览", en: "lyric-forge-ktv interface" },
+          },
+        ],
+      },
+      {
+        id: "sureshot-archive",
+        title: { zh: "SureShot Archive", en: "SureShot Archive" },
+        year: "2026",
+        credit: {
+          zh: "Astro · Three.js · Notion · SQLite",
+          en: "Astro · Three.js · Notion · SQLite",
+        },
+        image: {
+          src: "/images/works/sureshot-archive.jpg",
+          alt: {
+            zh: "SureShot Archive 项目预览",
+            en: "SureShot Archive project preview",
+          },
+        },
+        video: {
+          src: "/videos/sureshot-archive-video.mp4",
+          poster: "/images/works/sureshot-archive.jpg",
+        },
+        url: "https://sureshot-arch.netlify.app/zh-cn/",
+        isPrivate: true,
+        description: {
+          zh: "一个把 Notion 文章发布为中英双语网站的内容系统。访客从霓虹、丝绒窗帘与大理石雕像构成的红房间进入文章、主题、归档和搜索；后台负责 Notion 同步、文章缓存与站点设置。项目使用 Astro、Three.js、GSAP 和 SQLite，支持 Node SSR 与静态快照部署。",
+          en: "A bilingual publishing system that turns Notion articles into a website. A red room of neon, velvet curtains and a marble statue leads into articles, topics, archive and search, while the admin handles Notion sync, article caching and site settings. Built with Astro, Three.js, GSAP and SQLite, with Node SSR and static snapshot deployments.",
+        },
+        detailImages: [
+          {
+            src: "/images/works/sureshot-archive-detail.jpg",
+            alt: {
+              zh: "SureShot Archive 项目画面 02",
+              en: "SureShot Archive project frame 02",
+            },
           },
         ],
       },
@@ -130,6 +165,7 @@ export const defaultContent: PortfolioContent = {
           alt: { zh: "no-wave 视觉预览", en: "no-wave repository" },
         },
         url: "https://github.com/BrainEno/no-wave",
+        isPrivate: false,
         description: {
           zh: "基于 pnpm Workspace 构建的全栈 TypeScript 应用：前后端共享领域模型与端到端类型契约，内建严格的静态检查、自动化测试与增量构建流水线。",
           en: "A full-stack TypeScript application structured as a pnpm monorepo: shared domain models and end-to-end type contracts across client and API, backed by strict verification and incremental builds.",
@@ -151,6 +187,7 @@ export const defaultContent: PortfolioContent = {
           alt: { zh: "remix-partfolio 仓库预览", en: "remix-partfolio repository" },
         },
         url: "https://github.com/BrainEno/remix-partfolio",
+        isPrivate: false,
         description: {
           zh: "本站的前身与动效原型：以 GSAP ScrollSmoother 编排长卷式滚动叙事与复古电视机作品索引，探索内容数据与复杂视差动效的彻底解耦。",
           en: "The motion prototype behind this site: scroll-driven storytelling orchestrated with GSAP ScrollSmoother, a vintage CRT index, and static-first delivery with content cleanly decoupled from choreography.",
@@ -172,6 +209,7 @@ export const defaultContent: PortfolioContent = {
           alt: { zh: "ScribeForge 仓库预览", en: "ScribeForge repository" },
         },
         url: "https://github.com/BrainEno/ScribeForge",
+        isPrivate: false,
         description: {
           zh: "面向深度长文创作的 AI 写作台：Python 后端统筹知识检索与上下文生成编排，Flutter 桌面端提供沉浸式离线草稿与实时排版预览。",
           en: "An AI workbench built for long-form writing: a Python backend orchestrates retrieval and context-aware generation while a native Flutter client delivers offline drafting and live typographic preview.",
@@ -198,6 +236,7 @@ export const defaultContent: PortfolioContent = {
           },
         },
         url: "https://github.com/BrainEno/flutter-blog",
+        isPrivate: false,
         description: {
           zh: "No Wave 的 Flutter 移动客户端：离线缓存阅读、本地草稿、点赞收藏、标签浏览与全文搜索，正文以 Markdown 呈现，数据来自自托管的 no-wave API；界面沿用纸色与墨色的编辑式排版，并跟随系统的深浅色与字号设置。",
           en: "The Flutter client for No Wave: offline reading with a local cache, on-device drafts, likes and bookmarks, tag browsing and full-text search, Markdown bodies served by the self-hosted no-wave API — set in the same paper-and-ink editorial layout, and following the system theme and type scale.",
@@ -219,6 +258,7 @@ export const defaultContent: PortfolioContent = {
           alt: { zh: "win7-book-management 仓库预览", en: "win7-book-management repository" },
         },
         url: "https://github.com/BrainEno/win7-book-management",
+        isPrivate: false,
         description: {
           zh: "专为老旧 Windows 7 环境打造的轻量级图书管理软件：单包免依赖部署，内置本地数据库检索、借阅台账与批量导入导出，在低配硬件上依然迅捷稳定。",
           en: "A lightweight desktop library manager engineered for legacy Windows 7 hardware: dependency-free installation, instant local cataloguing, and bulk import/export that stays snappy on ageing machines.",
@@ -229,6 +269,32 @@ export const defaultContent: PortfolioContent = {
             alt: { zh: "win7-book-management 主界面", en: "win7-book-management main view" },
           },
         ],
+      },
+      {
+        id: "book-management-system",
+        title: {
+          zh: "book-management-system",
+          en: "book-management-system",
+        },
+        year: "—",
+        credit: {
+          zh: "项目资料整理中",
+          en: "Project notes in progress",
+        },
+        image: {
+          src: "/images/works/book-management-system-placeholder.svg",
+          alt: {
+            zh: "book-management-system 占位预览",
+            en: "book-management-system placeholder preview",
+          },
+        },
+        url: "https://github.com/BrainEno/book-management-system",
+        isPrivate: true,
+        description: {
+          zh: "一个图书管理项目。当前仅展示占位预览；功能、界面与技术栈说明将在核对项目源码后补充。",
+          en: "A book management project. A placeholder preview is shown for now; features, interface notes and the technology stack will be added after the project source has been reviewed.",
+        },
+        detailImages: [],
       },
     ],
   },
