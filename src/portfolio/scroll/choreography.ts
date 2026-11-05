@@ -108,24 +108,32 @@ export function createHeroEntrance() {
     0
   )
     .from(".hero-photo-zoom", { scale: 1.32, duration: 2.2 }, 0)
+    // Each row opens from the shared right-hand axis and settles from a
+    // slightly fanned angle. The parent owns the permanent -7deg/-5deg tilt;
+    // these row transforms must all finish at rotation 0.
     .fromTo(
       ".hero-word",
-      { clipPath: "inset(0% 0% 0% 100%)" },
+      {
+        clipPath: "inset(0% 0% 0% 100%)",
+        rotation: 4,
+        transformOrigin: "100% 50%",
+      },
       {
         clipPath: "inset(0% 0% 0% 0%)",
-        stagger: 0.12,
+        rotation: 0,
+        stagger: 0.1,
         duration: 1.35,
       },
       0.15
     )
     .from(
       ".hero-word-text",
-      { xPercent: 24, stagger: 0.12, duration: 1.5 },
+      { xPercent: 18, stagger: 0.1, duration: 1.5 },
       0.15
     )
     .from(
       ".hero-word-index",
-      { autoAlpha: 0, x: -10, stagger: 0.12, duration: 0.8 },
+      { autoAlpha: 0, x: -8, stagger: 0.1, duration: 0.75 },
       0.55
     )
     .from(
