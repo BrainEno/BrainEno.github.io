@@ -45,6 +45,7 @@ body {
 
 .pf {
   --stage: #000;
+  --handoff: var(--stage);
   --accent: #e55139;
   position: relative;
   font-family: var(--font-sans);
@@ -442,80 +443,71 @@ body {
   height: 80vw;
 }
 
-/* Editorial index: each numeral belongs to its own headline rather than
-   floating next to the photograph. The three rows step gently towards the
-   artwork; GSAP still moves the rows as one scroll-choreographed group. */
-.hero-word {
+.hero-type {
   position: absolute;
   z-index: 5;
-  display: grid;
-  grid-template-columns: 2.7em max-content;
-  align-items: start;
-  column-gap: clamp(12px, 1.1vw, 22px);
-  width: max-content;
-  height: auto;
-  font-family: var(--font-sans);
-  font-size: clamp(28px, 4.9vw, 92px);
-  font-weight: 400;
-  line-height: 0.94;
-  letter-spacing: -0.052em;
-  text-transform: uppercase;
-  color: var(--ink);
+  top: 21vw;
+  left: 0;
+  box-sizing: border-box;
+  width: 49.2vw;
+  padding-right: 2vw;
+  border-right: 1px solid rgba(252, 252, 252, 0.28);
   mix-blend-mode: difference;
-  transform-origin: 0 0;
-  will-change: transform;
+}
+
+.hero-word {
+  position: relative;
+  display: grid;
+  grid-template-columns: clamp(24px, 2.4vw, 40px) minmax(0, 1fr);
+  align-items: start;
+  column-gap: 1.2vw;
+  width: 100%;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: clamp(24px, 4.7vw, 84px);
+  font-weight: 500;
+  line-height: 0.94;
+  letter-spacing: -0.065em;
+  white-space: nowrap;
+}
+
+.hero-word + .hero-word {
+  margin-top: 2.8vw;
 }
 
 .hero-word.is-zh {
   font-family: var(--font-cjk);
-  font-size: clamp(28px, 5.25vw, 100px);
+  font-size: clamp(28px, 5vw, 88px);
   font-weight: 500;
   line-height: 1;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.045em;
 }
 
 .hero-word-mask {
+  grid-column: 2;
+  justify-self: end;
   display: block;
+  max-width: 100%;
   overflow: hidden;
-  margin-top: 0;
-  padding-bottom: 0.1em;
-  line-height: inherit;
 }
 
 .hero-word-text {
   display: block;
-  white-space: nowrap;
+  text-align: right;
 }
 
 .hero-word-index {
-  position: static;
-  min-width: 2.7em;
-  margin-top: 0.12em;
-  padding-top: 0.55em;
-  border-top: 1px solid rgba(252, 252, 252, 0.42);
-  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  font-size: clamp(9px, 0.62vw, 11px);
-  font-weight: 400;
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  padding-top: 0.45em;
+  font-family: var(--font-sans);
+  font-size: clamp(9px, 0.65vw, 12px);
+  font-weight: 500;
   line-height: 1;
   letter-spacing: 0.12em;
+  text-align: left;
   font-variant-numeric: tabular-nums;
-  color: rgba(252, 252, 252, 0.58);
-  transform: none;
-}
-
-.hero-word-1 {
-  top: 20vw;
-  left: 0;
-}
-
-.hero-word-2 {
-  top: 31.5vw;
-  left: 5vw;
-}
-
-.hero-word-3 {
-  top: 43vw;
-  left: 10vw;
 }
 
 .hero-bar {
@@ -621,23 +613,6 @@ canvas[data-water-canvas] {
   height: 100svh;
   overflow: hidden;
   background: var(--stage);
-}
-
-/* A solid, unmasked strip on the outgoing side of the hand-off. It covers
-   fractional pin/compositing gaps with the journey's current stage colour,
-   which is exactly --sky by the time the works stage arrives. */
-.journey::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 30;
-  height: 3px;
-  background: var(--stage);
-  pointer-events: none;
-  transform: translateZ(0);
-  backface-visibility: hidden;
 }
 
 .story-layer,
@@ -894,31 +869,39 @@ canvas[data-water-canvas] {
 
 .coda {
   position: absolute;
-  top: 12vh;
-  bottom: auto;
+  top: 8vh;
   left: 100vw;
+  display: grid;
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+  align-items: center;
+  gap: 4vw;
   width: 90vw;
-  height: 70vh;
+  height: 82vh;
   will-change: transform;
 }
 
 .coda-text {
-  position: absolute;
+  position: relative;
   z-index: 3;
-  top: 22vh;
-  left: 0;
-  width: min(42vw, 33em);
+  width: 100%;
+  max-width: 34em;
   font-size: clamp(22px, 2.1vw, 34px);
   line-height: 1.5;
   letter-spacing: -0.025em;
 }
 
 .coda-text.is-zh {
-  width: min(40vw, 27em);
+  width: 100%;
   font-size: clamp(20px, 1.9vw, 30px);
   line-height: 1.9;
   letter-spacing: 0.03em;
   text-align: left;
+}
+
+.coda-media {
+  position: relative;
+  width: 100%;
+  height: min(68vh, 48vw);
 }
 
 .coda-pic {
@@ -935,33 +918,48 @@ canvas[data-water-canvas] {
   will-change: transform;
 }
 
+/* The landscape lead sets the media group's baseline. */
 .coda-pic-1 {
-  z-index: 2;
+  z-index: 1;
   top: 0;
-  left: 54vw;
-  width: 14vw;
-  height: 42vh;
-  opacity: 1;
+  left: 0;
+  width: 82%;
+  height: 72%;
 }
 
+/* The narrower portrait overlaps the lead's lower-right corner. */
 .coda-pic-2 {
-  z-index: 1;
-  top: 27vh;
-  left: 65vw;
-  width: 24vw;
-  height: 31vh;
-  opacity: 1;
+  z-index: 2;
+  right: 0;
+  bottom: 0;
+  width: 38%;
+  height: 58%;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.22);
 }
 
 /* Works / Television ------------------------------------------------ */
 .works {
-  --works-meta: rgba(214, 226, 255, 0.52);
-  --works-meta-strong: rgba(214, 226, 255, 0.86);
+  --works-meta: rgba(252, 252, 252, 0.54);
+  --works-meta-strong: rgba(252, 252, 252, 0.86);
 
   position: relative;
   z-index: 1;
   background: var(--night);
   margin-top: -2px;
+}
+
+.works::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  right: 0;
+  left: 0;
+  z-index: 10;
+  height: 6px;
+  background: var(--handoff);
+  pointer-events: none;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 /* The stage is a centered, native-ratio photograph against a clean dark field.
@@ -979,23 +977,6 @@ canvas[data-water-canvas] {
       #031334 32%,
       var(--night) 72%
     );
-}
-
-/* Incoming side of the same seam. Unlike .tv-seam this strip has no mask,
-   gradient, blend mode or opacity animation, so it cannot reopen a bright
-   hairline while the pinned stage is being rasterised. */
-.tv-stage::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  z-index: 8;
-  height: 3px;
-  background: var(--sky);
-  pointer-events: none;
-  transform: translateZ(0);
-  backface-visibility: hidden;
 }
 
 /* Native framing: the whole photograph at its own ratio, exactly one stage
@@ -1205,33 +1186,33 @@ canvas[data-water-canvas] {
   -webkit-mask-image:
     linear-gradient(
       90deg,
-      transparent calc(var(--screen-left) - 1.05%),
-      #000 calc(var(--screen-left) - 0.55%),
-      #000 calc(var(--screen-left) + var(--screen-width) + 0.55%),
-      transparent calc(var(--screen-left) + var(--screen-width) + 1.05%)
+      transparent calc(var(--screen-left) - 0.45%),
+      #000 calc(var(--screen-left) - 0.2%),
+      #000 calc(var(--screen-left) + var(--screen-width) + 0.2%),
+      transparent calc(var(--screen-left) + var(--screen-width) + 0.45%)
     ),
     linear-gradient(
       180deg,
-      transparent calc(var(--screen-top) - 1.45%),
-      #000 calc(var(--screen-top) - 0.7%),
-      #000 calc(var(--screen-top) + var(--screen-height) + 0.7%),
-      transparent calc(var(--screen-top) + var(--screen-height) + 1.55%)
+      transparent calc(var(--screen-top) - 0.45%),
+      #000 calc(var(--screen-top) - 0.2%),
+      #000 calc(var(--screen-top) + var(--screen-height) + 0.2%),
+      transparent calc(var(--screen-top) + var(--screen-height) + 0.45%)
     );
   -webkit-mask-composite: source-in;
   mask-image:
     linear-gradient(
       90deg,
-      transparent calc(var(--screen-left) - 1.05%),
-      #000 calc(var(--screen-left) - 0.55%),
-      #000 calc(var(--screen-left) + var(--screen-width) + 0.55%),
-      transparent calc(var(--screen-left) + var(--screen-width) + 1.05%)
+      transparent calc(var(--screen-left) - 0.45%),
+      #000 calc(var(--screen-left) - 0.2%),
+      #000 calc(var(--screen-left) + var(--screen-width) + 0.2%),
+      transparent calc(var(--screen-left) + var(--screen-width) + 0.45%)
     ),
     linear-gradient(
       180deg,
-      transparent calc(var(--screen-top) - 1.45%),
-      #000 calc(var(--screen-top) - 0.7%),
-      #000 calc(var(--screen-top) + var(--screen-height) + 0.7%),
-      transparent calc(var(--screen-top) + var(--screen-height) + 1.55%)
+      transparent calc(var(--screen-top) - 0.45%),
+      #000 calc(var(--screen-top) - 0.2%),
+      #000 calc(var(--screen-top) + var(--screen-height) + 0.2%),
+      transparent calc(var(--screen-top) + var(--screen-height) + 0.45%)
     );
   mask-composite: intersect;
 }
@@ -1487,24 +1468,11 @@ canvas[data-water-canvas] {
 .tv-tune-noise {
   position: absolute;
   inset: -48px;
-  background:
-    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0 1px, transparent 1px 3px),
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
-  background-size: auto, 220px 220px;
-  mix-blend-mode: screen;
-  opacity: 0.62;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 220px 220px;
+  mix-blend-mode: soft-light;
+  opacity: 0.34;
   animation: tv-tune-static 0.32s steps(4) infinite;
-}
-
-.tv-tune-bar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 16%;
-  background: linear-gradient(180deg, rgba(186, 210, 255, 0) 0%, rgba(186, 210, 255, 0.2) 42%, rgba(255, 255, 255, 0.42) 50%, rgba(186, 210, 255, 0.2) 58%, rgba(186, 210, 255, 0) 100%);
-  mix-blend-mode: screen;
-  will-change: transform;
 }
 
 @keyframes tv-tune-static {
@@ -1632,7 +1600,7 @@ canvas[data-water-canvas] {
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.1em;
-  color: rgba(214, 226, 255, 0.46);
+  color: var(--works-meta);
   transition: color 0.4s;
 }
 
@@ -1656,11 +1624,12 @@ canvas[data-water-canvas] {
 .work-row-name-alt {
   display: block;
   font-family: var(--font-sans);
+  font-style: normal;
   font-size: calc(var(--work-size) * var(--work-fit, 1));
   font-weight: 400;
   line-height: calc(var(--work-size) * var(--work-fit, 1) * 1.25);
   padding: 0.06em 0;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.03em;
   text-transform: uppercase;
   white-space: nowrap;
   transition: transform 0.58s cubic-bezier(0.22, 1, 0.36, 1);
@@ -1669,9 +1638,8 @@ canvas[data-water-canvas] {
 .work-row-name-alt {
   position: absolute;
   inset: 0;
-  font-family: var(--font-serif);
-  font-style: normal;
-  font-weight: 400;
+  font-family: var(--font-sans);
+  font-weight: 500;
   font-size: calc(var(--work-size) * var(--work-fit, 1) * var(--work-cap, 1.06));
   transform: translateY(105%);
 }
@@ -1710,7 +1678,7 @@ canvas[data-water-canvas] {
   justify-content: flex-end;
   gap: 0.7em;
   font-size: clamp(12px, 0.86vw, 15px);
-  color: rgba(214, 226, 255, 0.6);
+  color: var(--works-meta);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding-bottom: 0.5vw;
@@ -1719,6 +1687,11 @@ canvas[data-water-canvas] {
 
 .work-row-meta > .work-row-mask > span {
   display: block;
+}
+
+.work-row-access {
+  color: var(--works-meta-strong);
+  font-weight: 500;
 }
 
 .work-row.is-active .work-row-meta {
@@ -1839,7 +1812,7 @@ canvas[data-water-canvas] {
   margin-bottom: 1.4vw;
   font-family: var(--font-sans);
   font-style: normal;
-  font-weight: 400;
+  font-weight: 500;
   font-size: clamp(34px, 3.9vw, 74px);
   line-height: 0.96;
   letter-spacing: -0.052em;
@@ -1896,6 +1869,16 @@ canvas[data-water-canvas] {
   gap: 1em 1.6em;
   margin-top: 1.8vw;
   visibility: hidden;
+}
+
+.tv-sheet-access {
+  max-width: 32em;
+  margin: 0;
+  padding-top: 1em;
+  border-top: 1px solid var(--rule-night);
+  color: var(--works-meta-strong);
+  font-size: clamp(12px, 0.86vw, 15px);
+  line-height: 1.65;
 }
 
 .tv-sheet-link {
@@ -2619,37 +2602,33 @@ canvas[data-water-canvas] {
   .coda {
     position: relative;
     top: auto;
-    bottom: auto;
     left: auto;
+    display: block;
     width: 100%;
     height: auto;
-    padding: 4vh var(--gutter) calc(44vw + 12vh);
+    padding: 6vh var(--gutter) 10vh;
   }
 
   .coda-text,
   .coda-text.is-zh {
     position: relative;
-    top: auto;
-    left: auto;
     width: 100%;
+    max-width: 38em;
+    margin-bottom: 5vh;
+  }
+
+  .coda-media {
+    height: clamp(360px, 72vw, 680px);
   }
 
   .coda-pic-1 {
-    top: auto;
-    right: var(--gutter);
-    bottom: 7vh;
-    left: auto;
-    width: 32vw;
-    height: 44vw;
+    width: 78%;
+    height: 64%;
   }
 
   .coda-pic-2 {
-    top: auto;
-    right: auto;
-    bottom: 5vh;
-    left: var(--gutter);
-    width: 46vw;
-    height: 32vw;
+    width: 42%;
+    height: 54%;
   }
 }
 
@@ -2759,42 +2738,36 @@ canvas[data-water-canvas] {
     height: 150vw;
   }
 
-  /* Keep each index in the headline grid on narrow viewports too; only the
-     row offsets and type scale change here. */
+  .hero-type {
+    top: 28vw;
+    /* The mobile hero box sits inside two 20px gutters. Its photo begins at
+       100% + 6vw - 56vw, so this keeps the rail on that real left edge. */
+    width: calc(100% - 50vw);
+    padding-right: 1vw;
+  }
+
   .hero-word {
-    grid-template-columns: 2.4em max-content;
-    column-gap: 3vw;
-    font-size: 5.5vw;
-    line-height: 0.98;
-    letter-spacing: -0.045em;
+    grid-template-columns: 16px minmax(0, 1fr);
+    column-gap: 1vw;
+    font-size: 4.25vw;
+    line-height: 1;
+    letter-spacing: -0.05em;
+  }
+
+  .hero-word + .hero-word {
+    margin-top: 7vw;
   }
 
   .hero-word.is-zh {
-    font-size: 7vw;
-    line-height: 1.02;
-    letter-spacing: -0.02em;
+    font-size: 6.4vw;
+    line-height: 1.04;
+    letter-spacing: -0.025em;
   }
 
   .hero-word-index {
-    left: auto;
-    min-width: 2.4em;
+    min-width: 0;
     padding-top: 0.45em;
     font-size: 9px;
-  }
-
-  .hero-word-1 {
-    top: 28vw;
-    left: 0;
-  }
-
-  .hero-word-2 {
-    top: 46vw;
-    left: 4vw;
-  }
-
-  .hero-word-3 {
-    top: 64vw;
-    left: 8vw;
   }
 
   .hero-bar {

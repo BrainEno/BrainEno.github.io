@@ -115,7 +115,9 @@ export function Img({
       loading={priority ? "eager" : loading}
       fetchPriority={priority ? "high" : undefined}
       decoding={decoding}
-      draggable={draggable}
+      // Water images need the complete pointer drag, not the browser's native
+      // image drag and its ghost bitmap.
+      draggable={waterMode ? false : draggable}
       // The only contract with `WaterHover`: a marker on the real `<img>`.
       // Nothing is wrapped, so direct-child selectors keep working.
       data-water={waterMode}

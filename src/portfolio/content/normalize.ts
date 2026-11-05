@@ -51,6 +51,10 @@ function coerce(template: Json, input: Json, path: string): Json {
     return typeof n === "number" && Number.isFinite(n) ? n : template;
   }
 
+  if (typeof template === "boolean") {
+    return typeof input === "boolean" ? input : template;
+  }
+
   if (typeof template === "string") {
     if (typeof input !== "string") return template;
     if (path === "identity.defaultLanguage") return input === "en" ? "en" : "zh";
