@@ -193,6 +193,28 @@
         }
       ]
     },
+    "/images/works/sureshot-archive-detail.jpg": {
+      "width": 1280,
+      "height": 638,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/works-sureshot-archive-detail-480.91fc6fe7.webp 480w, /images/opt/works-sureshot-archive-detail-800.91fc6fe7.webp 800w, /images/opt/works-sureshot-archive-detail-1200.91fc6fe7.webp 1200w"
+        }
+      ]
+    },
+    "/images/works/sureshot-archive.jpg": {
+      "width": 1280,
+      "height": 638,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/works-sureshot-archive-480.df0f4466.webp 480w, /images/opt/works-sureshot-archive-800.df0f4466.webp 800w, /images/opt/works-sureshot-archive-1200.df0f4466.webp 1200w"
+        }
+      ]
+    },
     "/images/works/win7-book-management.jpg": {
       "width": 1600,
       "height": 1000,

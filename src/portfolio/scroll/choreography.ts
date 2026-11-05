@@ -97,12 +97,52 @@ function screenLift(section: HTMLElement) {
 }
 
 export function createHeroEntrance() {
-  const tl = gsap.timeline({ paused: true, defaults: { ease: "expo.out", duration: 1.5 } });
-  tl.from(".hero-word-text", { yPercent: 118, stagger: 0.12 }, 0)
-    .from(".hero-bar", { clipPath: "inset(100% 0% 0% 0%)", stagger: 0.12, duration: 1.7 }, 0.1)
-    .from(".hero-photo-reveal", { clipPath: "inset(100% 0% 0% 0%)", duration: 1.7 }, 0)
+  const tl = gsap.timeline({
+    paused: true,
+    defaults: { ease: "expo.out", duration: 1.5 },
+  });
+
+  tl.from(
+    ".hero-photo-reveal",
+    { clipPath: "inset(100% 0% 0% 0%)", duration: 1.7 },
+    0
+  )
     .from(".hero-photo-zoom", { scale: 1.32, duration: 2.2 }, 0)
-    .from(".header-item", { yPercent: 120, autoAlpha: 0, stagger: 0.06, duration: 1.1 }, 0.45);
+    .fromTo(
+      ".hero-word",
+      { clipPath: "inset(0% 0% 0% 100%)" },
+      {
+        clipPath: "inset(0% 0% 0% 0%)",
+        stagger: 0.12,
+        duration: 1.35,
+      },
+      0.15
+    )
+    .from(
+      ".hero-word-text",
+      { xPercent: 24, stagger: 0.12, duration: 1.5 },
+      0.15
+    )
+    .from(
+      ".hero-word-index",
+      { autoAlpha: 0, x: -10, stagger: 0.12, duration: 0.8 },
+      0.55
+    )
+    .from(
+      ".hero-bar",
+      {
+        clipPath: "inset(100% 0% 0% 0%)",
+        stagger: 0.12,
+        duration: 1.7,
+      },
+      0.1
+    )
+    .from(
+      ".header-item",
+      { yPercent: 120, autoAlpha: 0, stagger: 0.06, duration: 1.1 },
+      0.45
+    );
+
   return tl;
 }
 
@@ -242,22 +282,19 @@ export type ChoreographyOptions = {
 };
 
 function heroScroll(desktop: boolean) {
-  gsap.timeline({
-    defaults: { ease: "none" },
-    scrollTrigger: {
-      trigger: ".hero-box",
-      start: desktop ? "top 8%" : "top top",
-      end: desktop ? "bottom 28%" : "bottom 40%",
-      scrub: true,
-    },
-  })
-    // The three rows keep their editorial staircase as one group; a per-line
-    // stagger would loosen the deliberate spacing between index and headline.
-    .to(
-      [".hero-word-1", ".hero-word-2", ".hero-word-3"],
-      { x: desktop ? "-0.8vw" : -6, y: desktop ? "1vw" : 14 },
-      0,
-    );
+  gsap
+    .timeline({
+      defaults: { ease: "none" },
+      scrollTrigger: {
+        trigger: ".hero-box",
+        start: desktop ? "top 8%" : "top top",
+        end: desktop ? "bottom 28%" : "bottom 40%",
+        scrub: true,
+      },
+    })
+    // The type rail's right axis stays locked to the photograph's left edge;
+    // the whole group only counter-travels vertically.
+    .to(".hero-type", { x: 0, y: desktop ? "2vw" : 12 }, 0);
 
   gsap.fromTo(
     ".hero-bar-image",
@@ -377,28 +414,34 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean) {
     .fromTo(".coda", { x: 0 }, { x: () => -vw() * 0.95, duration: coda, ease: "power2.out" }, at.coda)
     .fromTo(
       ".coda-pic-1",
-      { y: () => vh() * 0.55, rotation: 3 },
+      {
+        y: () => vh() * 0.16,
+        clipPath: "inset(0% 100% 0% 0%)",
+      },
       {
         y: 0,
-        rotation: 0,
+        clipPath: "inset(0% 0% 0% 0%)",
         duration: coda * 0.9,
         ease: "power2.out",
       },
-      at.coda + 0.1,
+      at.coda + 0.08
     )
     .fromTo(
       ".coda-pic-2",
-      { y: () => vh() * 0.75, rotation: -3 },
+      {
+        y: () => vh() * 0.24,
+        clipPath: "inset(100% 0% 0% 0%)",
+      },
       {
         y: 0,
-        rotation: 0,
+        clipPath: "inset(0% 0% 0% 0%)",
         duration: coda * 0.85,
         ease: "power2.out",
       },
-      at.coda + 0.15,
+      at.coda + 0.18
     )
-    .to(".coda-pic-1", { y: () => -vh() * 0.2, duration: outro }, at.outro)
-    .to(".coda-pic-2", { y: () => -vh() * 0.08, duration: outro }, at.outro)
+    .to(".coda-pic-1", { y: () => -vh() * 0.12, duration: outro }, at.outro)
+    .to(".coda-pic-2", { y: () => -vh() * 0.22, duration: outro }, at.outro)
     .to(".coda-text", { y: () => -vh() * 0.04, duration: outro }, at.outro);
 
   // Reading light is motion: under `prefers-reduced-motion` the words are lit
@@ -418,6 +461,16 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean) {
       { "--stage": cssColor(scope, "--stage", "#000000") },
       { "--stage": cssColor(scope, "--sky", "#001c5c"), duration: total - at.push, ease: "sine.inOut" },
       at.push
+    )
+    .fromTo(
+      scope,
+      { "--handoff": cssColor(scope, "--stage", "#000000") },
+      {
+        "--handoff": cssColor(scope, "--sky", "#001c5c"),
+        duration: total - at.push,
+        ease: "sine.inOut",
+      },
+      at.push
     );
 }
 
@@ -432,6 +485,20 @@ function journeyFlow(scope: HTMLElement, desktop: boolean, reduce: boolean) {
         "--stage": cssColor(scope, "--sky", "#001c5c"),
         ease: "sine.inOut",
         scrollTrigger: { trigger: journey, start: "top 40%", end: "bottom bottom", scrub: true },
+      }
+    );
+    gsap.fromTo(
+      scope,
+      { "--handoff": cssColor(scope, "--stage", "#000000") },
+      {
+        "--handoff": cssColor(scope, "--sky", "#001c5c"),
+        ease: "sine.inOut",
+        scrollTrigger: {
+          trigger: journey,
+          start: "top 40%",
+          end: "bottom bottom",
+          scrub: true,
+        },
       }
     );
   }
@@ -733,7 +800,6 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
       scrollTrigger: { trigger: ".tv-stage", start: "top bottom", end: "top top", scrub: 0.4 },
     })
     .fromTo(".tv-tune", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.28 }, 0.1)
-    .fromTo(".tv-tune-bar", { yPercent: -120 }, { yPercent: 640, duration: 0.78, ease: "power1.inOut" }, 0.1)
     .to(".tv-tune", { autoAlpha: 0, duration: 0.28, ease: "power2.in" }, 0.68)
     .fromTo(".tv-anchor", { scale: 1.06, transformOrigin: "50% 0%" }, { scale: 1, duration: 1, ease: "power2.out" }, 0);
 

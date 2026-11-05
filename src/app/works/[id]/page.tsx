@@ -83,8 +83,21 @@ export default async function WorkPage({ params }: Params) {
         <h1 className="wd-title">{pickText(work.title, lang)}</h1>
       </header>
       <p className="wd-text">{pickText(work.description, lang)}</p>
-      {work.url ? (
-        <a className="wd-link" href={work.url} target="_blank" rel="noreferrer noopener">{work.url.replace(/^https?:\/\//, "")} ↗</a>
+      {work.isPrivate ? (
+        <p className="wd-access">
+          {lang === "zh"
+            ? "私有项目，源码暂不公开；本页仅展示项目说明与预览。"
+            : "Private project. The source is not public; this page contains project notes and previews only."}
+        </p>
+      ) : work.url ? (
+        <a
+          className="wd-link"
+          href={work.url}
+          target="_blank"
+          rel="noreferrer noopener"
+        >
+          {work.url.replace(/^https?:\/\//, "")} ↗
+        </a>
       ) : null}
       <div className="wd-grid">
         {images.map((image, index) => (
