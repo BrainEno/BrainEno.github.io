@@ -5,6 +5,8 @@ const VARIABLE_LISTS = new Set(["intro.gallery", "works.items", "works.items[].d
 
 /** Item template for variable lists whose default array is empty. */
 const LIST_TEMPLATES: Record<string, Json> = {
+  // Missing visibility metadata must never inherit a public item's link state.
+  "works.items": { repositoryStatus: "unverified" },
   "works.items[].detailImages": { src: "", alt: { zh: "", en: "" } },
 };
 const MAX_LIST = 40;
@@ -54,6 +56,9 @@ function coerce(template: Json, input: Json, path: string): Json {
   if (typeof template === "string") {
     if (typeof input !== "string") return template;
     if (path === "identity.defaultLanguage") return input === "en" ? "en" : "zh";
+    if (path === "works.items[].repositoryStatus") {
+      return ["public", "private", "unverified"].includes(input) ? input : template;
+    }
     return input.slice(0, 6000);
   }
 
@@ -85,7 +90,12 @@ export function normalizeContent(input: Json): PortfolioContent {
     let id = slugify(work.id) || `work-${index + 1}`;
     while (seen.has(id)) id = `${id}-${index + 1}`;
     seen.add(id);
-    return { ...work, id };
+    const normalized = { ...work, id };
+    if (normalized.repositoryStatus !== "public") {
+      // Do not ship a private or unverified repository URL to the client at all.
+      delete normalized.url;
+    }
+    return normalized;
   });
   return content;
 }

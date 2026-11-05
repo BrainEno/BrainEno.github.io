@@ -19,8 +19,9 @@
 .wd-back, .wd-link { color: #fcfcfc; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,.3); transition: color .3s, border-color .3s; }
 .wd-back:hover, .wd-link:hover { color: #e55139; border-color: #e55139; }
 .wd-head { margin: 12svh 0 4svh; }
-.wd-meta { margin: 0 0 1.2em; color: #898989; letter-spacing: .06em; font-size: 13px; text-transform: uppercase; }
-.wd-title { margin: 0; font-family: var(--font-serif); font-weight: 400; font-size: clamp(2.6rem, 9vw, 8rem); line-height: .95; letter-spacing: -.02em; word-break: break-word; }
+.wd-meta { margin: 0 0 1.2em; color: #a3a3a3; letter-spacing: .06em; font-size: 13px; text-transform: uppercase; }
+.wd-title { margin: 0; font-family: var(--font-sans); font-weight: 500; font-size: clamp(2.6rem, 9vw, 8rem); line-height: .95; letter-spacing: -.045em; overflow-wrap: anywhere; word-break: normal; hyphens: none; }
+.wd-private, .wd-repo-note { display: inline-block; margin: 0 0 8svh; padding-top: .5em; border-top: 1px solid rgba(255,255,255,.24); color: rgba(255,255,255,.68); letter-spacing: .04em; font-size: 14px; }
 .wd-text { max-width: 44em; margin: 0 0 2em; font-size: clamp(1rem, 1.4vw, 1.25rem); line-height: 1.7; color: #d6d6d6; }
 .wd-link { display: inline-block; margin-bottom: 8svh; }
 .wd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: 2vw; }

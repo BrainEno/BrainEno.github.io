@@ -32,18 +32,20 @@ export const Hero = memo(function Hero({ lang, content, name }: SectionProps<"he
           it for the document outline only. */}
       <h1 className="sr-only">{name}</h1>
       <div className="hero-box">
-        {content.headlines.map((headline, index) => (
-          <div key={index} className={cx("hero-word", `hero-word-${index + 1}`, zh && "is-zh")}>
-            {/* The index shares a grid row with its headline, so the number
-                reads as part of the title rather than a label on the photo. */}
-            <span className="hero-word-index" aria-hidden="true">
-              {String(index + 1).padStart(2, "0")}
-            </span>
-            <span className="hero-word-mask">
-              <span className="hero-word-text">{t(headline, lang)}</span>
-            </span>
-          </div>
-        ))}
+        <div className="hero-type">
+          {content.headlines.map((headline, index) => (
+            <div key={index} className={cx("hero-word", `hero-word-${index + 1}`, zh && "is-zh")}>
+              {/* The index shares a grid row with its headline, so the number
+                  reads as part of the title rather than a label on the photo. */}
+              <span className="hero-word-index" aria-hidden="true">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <span className="hero-word-mask">
+                <span className="hero-word-text">{t(headline, lang)}</span>
+              </span>
+            </div>
+          ))}
+        </div>
         {[1, 2].map((bar) => (
           <div key={bar} className={`hero-bar hero-bar-${bar}`} aria-hidden="true">
             {/* A 6vw strip. `lazy` keeps Next from emitting a second
@@ -215,19 +217,21 @@ export const Journey = memo(function Journey({ lang, content, name }: JourneyPro
       </div>
 
       <div className="coda">
-        {content.accentImages.map((image, index) => (
-          <Img
-            key={`${image.src}-${index}`}
-            className={`coda-pic coda-pic-${index + 1}`}
-            src={image.src}
-            alt={t(image.alt, lang)}
-            sizes="(max-width: 1023px) 44vw, 19vw"
-            loading="lazy"
-          />
-        ))}
         <p className={cx("copy coda-text", zh && "is-zh")}>
           <Words text={t(content.secondaryText, lang)} />
         </p>
+        <div className="coda-media">
+          {content.accentImages.map((image, index) => (
+            <Img
+              key={`${image.src}-${index}`}
+              className={`coda-pic coda-pic-${index + 1}`}
+              src={image.src}
+              alt={t(image.alt, lang)}
+              sizes={index === 0 ? "(max-width: 1023px) 92vw, 42vw" : "(max-width: 1023px) 42vw, 18vw"}
+              loading="lazy"
+            />
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -362,7 +366,6 @@ export function Works({
         <div className="tv-scrim" aria-hidden="true" />
         <div className="tv-tune" aria-hidden="true">
           <span className="tv-tune-noise" />
-          <span className="tv-tune-bar" />
         </div>
         {/* Theater: the room darkens around the set while a project plays. */}
         <div className="tv-theater-veil" aria-hidden="true" />
@@ -413,10 +416,20 @@ export function Works({
                 </ul>
                 <p className={cx("tv-sheet-fade tv-sheet-copy", zh && "is-zh")}>{t(featured.description, lang)}</p>
                 <div className="tv-sheet-fade tv-sheet-actions">
-                  <a href={featured.url} target="_blank" rel="noreferrer" className="tv-sheet-link" data-cursor="link">
-                    <span>{zh ? "查看仓库" : "Open repository"}</span>
-                    <span aria-hidden="true">↗</span>
-                  </a>
+                  {featured.repositoryStatus === "private" ? (
+                    <p className="tv-sheet-repo-note">
+                      {zh ? "私有项目，仓库链接不公开。" : "Private project — repository access is restricted."}
+                    </p>
+                  ) : featured.repositoryStatus === "unverified" ? (
+                    <p className="tv-sheet-repo-note">
+                      {zh ? "仓库可见性尚未确认，暂不提供链接。" : "Repository visibility is unverified; no link is shown."}
+                    </p>
+                  ) : featured.repositoryStatus === "public" && featured.url ? (
+                    <a href={featured.url} target="_blank" rel="noreferrer" className="tv-sheet-link" data-cursor="link">
+                      <span>{zh ? "查看仓库" : "Open repository"}</span>
+                      <span aria-hidden="true">↗</span>
+                    </a>
+                  ) : null}
                 </div>
               </div>
               <nav
@@ -527,6 +540,16 @@ export function Works({
                   <span className="work-row-mask"><span>{work.year}</span></span>
                   <span className="work-row-mask" aria-hidden="true"><span>/</span></span>
                   <span className="work-row-mask"><span>{t(work.credit, lang)}</span></span>
+                  {work.repositoryStatus !== "public" ? (
+                    <>
+                      <span className="work-row-mask" aria-hidden="true"><span>/</span></span>
+                      <span className="work-row-mask"><span>
+                        {work.repositoryStatus === "private"
+                          ? (zh ? "私有项目" : "Private project")
+                          : (zh ? "仓库状态待核验" : "Repository status unverified")}
+                      </span></span>
+                    </>
+                  ) : null}
                 </span>
               </li>
             );

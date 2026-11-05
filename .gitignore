@@ -16,6 +16,7 @@ next-env.d.ts
 !.env.example
 
 # tooling / caches
+.media-originals/
 .export-stage/
 .qa/
 .qa-tmp/

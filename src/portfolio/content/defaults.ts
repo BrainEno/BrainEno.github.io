@@ -67,12 +67,12 @@ export const defaultContent: PortfolioContent = {
       { src: "/images/screenshot2.jpg", alt: { zh: "精选画面 02", en: "Featured still 02" } },
     ],
     secondaryText: {
-      zh: "我偏好能在本地运行、让使用者掌握数据的工具。这里收录一些项目、界面和实验，代码与后续更新放在 GitHub。",
-      en: "I prefer tools that can run locally and leave data with the people using them. This site collects selected projects, interfaces and experiments, with code and updates on GitHub.",
+      zh: "我偏好能在本地运行、让使用者掌握数据的工具。这里收录精选项目、界面与实验；公开仓库提供链接，私有项目会明确标注。",
+      en: "I prefer tools that can run locally and leave data with the people using them. This page gathers selected projects and experiments; public repositories are linked, while private work is clearly labeled.",
     },
   },
   works: {
-    heading: { zh: "开源作品", en: "Open Source" },
+    heading: { zh: "精选项目", en: "Selected Projects" },
     period: "2026",
     tv: {
       src: "/images/tv2.webp",
@@ -87,13 +87,11 @@ export const defaultContent: PortfolioContent = {
       screen: { top: 65.4, left: 42.62, width: 10.92, height: 11.98 },
     },
     items: [
-      // Every repository on github.com/BrainEno with more than 100 commits since
-      // 2026-01-01: lyric-forge-ktv 929 · no-wave 764 · ScribeForge 416 ·
-      // flutter-blog 338 · remix-partfolio 282 · win7-book-management 252.
-      // `year` holds the repository start date, `credit` holds the stack shown
-      // after the separator.
+      // Repository visibility is explicit; unknown states fail closed. The new
+      // book-management-system entry is separate from win7-book-management.
       {
         id: "lyric-forge-ktv",
+        repositoryStatus: "public",
         title: { zh: "lyric-forge-ktv", en: "lyric-forge-ktv" },
         year: "2026.04.22",
         credit: { zh: "Flutter · Dart · 本地优先", en: "Flutter · Dart · Local-first" },
@@ -122,6 +120,7 @@ export const defaultContent: PortfolioContent = {
       },
       {
         id: "no-wave",
+        repositoryStatus: "public",
         title: { zh: "no-wave", en: "no-wave" },
         year: "2026.10.24",
         credit: { zh: "TypeScript · pnpm · 全栈架构", en: "TypeScript · pnpm · Full-Stack" },
@@ -142,7 +141,44 @@ export const defaultContent: PortfolioContent = {
         ],
       },
       {
+        id: "sureshot-archive",
+        repositoryStatus: "unverified",
+        title: { zh: "SureShot Archive", en: "SureShot Archive" },
+        year: "—",
+        credit: { zh: "Astro · Three.js · GSAP · SQLite", en: "Astro · Three.js · GSAP · SQLite" },
+        image: {
+          src: "/images/works/sureshot-archive-poster.jpg",
+          alt: {
+            zh: "SureShot Archive 双语网站的红色房间",
+            en: "The red room in the bilingual SureShot Archive site",
+          },
+        },
+        video: {
+          src: "/videos/sureshot-archive-video.mp4",
+          poster: "/images/works/sureshot-archive-poster.jpg",
+        },
+        description: {
+          zh: "双语网站采用红色房间视觉，使用 Astro、Three.js、GSAP 与 SQLite。",
+          en: "A bilingual site with a red-room visual, built using Astro, Three.js, GSAP and SQLite.",
+        },
+        detailImages: [
+          {
+            src: "/images/works/sureshot-archive-detail-01.jpg",
+            alt: { zh: "SureShot Archive 红色房间画面 01", en: "SureShot Archive red-room view 01" },
+          },
+          {
+            src: "/images/works/sureshot-archive-detail-02.jpg",
+            alt: { zh: "SureShot Archive 红色房间画面 02", en: "SureShot Archive red-room view 02" },
+          },
+          {
+            src: "/images/works/sureshot-archive-detail-03.jpg",
+            alt: { zh: "SureShot Archive 红色房间画面 03", en: "SureShot Archive red-room view 03" },
+          },
+        ],
+      },
+      {
         id: "remix-partfolio",
+        repositoryStatus: "public",
         title: { zh: "remix-partfolio", en: "remix-partfolio" },
         year: "2022.11.11",
         credit: { zh: "React Router · GSAP · 滚动叙事", en: "React Router · GSAP · Scroll Craft" },
@@ -164,6 +200,7 @@ export const defaultContent: PortfolioContent = {
       },
       {
         id: "scribeforge",
+        repositoryStatus: "public",
         title: { zh: "ScribeForge", en: "ScribeForge" },
         year: "2026.10.02",
         credit: { zh: "Python · Flutter · AI 写作", en: "Python · Flutter · AI Editorial" },
@@ -185,6 +222,7 @@ export const defaultContent: PortfolioContent = {
       },
       {
         id: "flutter-blog",
+        repositoryStatus: "public",
         title: { zh: "flutter-blog", en: "flutter-blog" },
         year: "2025.01.17",
         credit: { zh: "Flutter · Dart · 编辑式阅读", en: "Flutter · Dart · Editorial reading" },
@@ -211,6 +249,7 @@ export const defaultContent: PortfolioContent = {
       },
       {
         id: "win7-book-management",
+        repositoryStatus: "public",
         title: { zh: "win7-book-management", en: "win7-book-management" },
         year: "2026.09.29",
         credit: { zh: "C# · .NET · 桌面软件", en: "C# · .NET · Desktop Suite" },
@@ -229,6 +268,22 @@ export const defaultContent: PortfolioContent = {
             alt: { zh: "win7-book-management 主界面", en: "win7-book-management main view" },
           },
         ],
+      },
+      {
+        id: "book-management-system",
+        repositoryStatus: "private",
+        title: { zh: "Book Management System", en: "Book Management System" },
+        year: "—",
+        credit: { zh: "详情待核对", en: "Details unverified" },
+        image: {
+          src: "/images/works/book-management-system-placeholder.svg",
+          alt: { zh: "book-management-system 项目占位图", en: "book-management-system project placeholder" },
+        },
+        description: {
+          zh: "此项目与列表中的 win7-book-management 是两个不同仓库。详情待核对：当前无法读取本项目源码或 README，因此暂不列出技术栈、功能或版本信息。",
+          en: "This is a separate repository from win7-book-management. Its source and README could not be inspected, so no stack, features or release details are claimed.",
+        },
+        detailImages: [],
       },
     ],
   },

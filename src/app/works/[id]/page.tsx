@@ -83,7 +83,15 @@ export default async function WorkPage({ params }: Params) {
         <h1 className="wd-title">{pickText(work.title, lang)}</h1>
       </header>
       <p className="wd-text">{pickText(work.description, lang)}</p>
-      {work.url ? (
+      {work.repositoryStatus === "private" ? (
+        <p className="wd-private">
+          {lang === "zh" ? "私有项目，仓库链接不公开。" : "Private project — repository access is restricted."}
+        </p>
+      ) : work.repositoryStatus === "unverified" ? (
+        <p className="wd-repo-note">
+          {lang === "zh" ? "仓库可见性尚未确认，暂不提供链接。" : "Repository visibility is unverified; no link is shown."}
+        </p>
+      ) : work.repositoryStatus === "public" && work.url ? (
         <a className="wd-link" href={work.url} target="_blank" rel="noreferrer noopener">{work.url.replace(/^https?:\/\//, "")} ↗</a>
       ) : null}
       <div className="wd-grid">

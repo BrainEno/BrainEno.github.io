@@ -193,6 +193,50 @@
         }
       ]
     },
+    "/images/works/sureshot-archive-detail-01.jpg": {
+      "width": 1280,
+      "height": 638,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/works-sureshot-archive-detail-01-480.9cbbb8dd.webp 480w, /images/opt/works-sureshot-archive-detail-01-800.9cbbb8dd.webp 800w, /images/opt/works-sureshot-archive-detail-01-1200.9cbbb8dd.webp 1200w"
+        }
+      ]
+    },
+    "/images/works/sureshot-archive-detail-02.jpg": {
+      "width": 1280,
+      "height": 638,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/works-sureshot-archive-detail-02-480.4ff856de.webp 480w, /images/opt/works-sureshot-archive-detail-02-800.4ff856de.webp 800w, /images/opt/works-sureshot-archive-detail-02-1200.4ff856de.webp 1200w"
+        }
+      ]
+    },
+    "/images/works/sureshot-archive-detail-03.jpg": {
+      "width": 1280,
+      "height": 638,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/works-sureshot-archive-detail-03-480.14ea73ff.webp 480w, /images/opt/works-sureshot-archive-detail-03-800.14ea73ff.webp 800w, /images/opt/works-sureshot-archive-detail-03-1200.14ea73ff.webp 1200w"
+        }
+      ]
+    },
+    "/images/works/sureshot-archive-poster.jpg": {
+      "width": 1280,
+      "height": 638,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/works-sureshot-archive-poster-480.d970e5cd.webp 480w, /images/opt/works-sureshot-archive-poster-800.d970e5cd.webp 800w, /images/opt/works-sureshot-archive-poster-1200.d970e5cd.webp 1200w"
+        }
+      ]
+    },
     "/images/works/win7-book-management.jpg": {
       "width": 1600,
       "height": 1000,

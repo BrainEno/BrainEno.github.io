@@ -44,8 +44,10 @@ export type Work = {
    * the user clicks to play. `preload="metadata"` — never auto-plays.
    */
   video?: Video;
-  /** Repository / live project link (data only — the index layout is unchanged). */
-  url: string;
+  /** Repository / live project link; omitted for private or unverified repositories. */
+  url?: string;
+  /** Fail-closed repository visibility; unknown states never expose a link. */
+  repositoryStatus?: "public" | "private" | "unverified";
   /** Long-form project description, used by detail views and backups. */
   description: LocalizedText;
   /** Extra stills for the project detail view / backup bundle. */

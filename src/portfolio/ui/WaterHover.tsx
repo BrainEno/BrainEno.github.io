@@ -23,8 +23,8 @@ import { useEffect } from "react";
  *
  * - **The `<img>` is never replaced or hidden.** A canvas is inserted *after*
  *   it for as long as the pointer is inside it; the original photo stays right
- *   underneath. No WebGL, a failed decode, a lost context or a refused texture
- *   all end in "the page looks exactly like it did".
+ *   underneath. If WebGL is unavailable, the image decode fails, the context
+ *   is lost or the texture upload is refused, the page looks exactly as before.
  * - **One canvas, one context, one image at a time.** Nothing is allocated per
  *   picture, and there is no permanent canvas in the document. Once the pointer
  *   leaves (or the page scrolls, or the tab hides) the canvas is removed and the
@@ -64,65 +64,48 @@ uniform float uStrength;
 uniform float uAspect;
 
 void main() {
+  /* Measure distance in the image's physical aspect, not a square UV space. */
   vec2 delta = vec2(
     (vUv.x - uPointer.x) * uAspect,
     vUv.y - uPointer.y
   );
-
   float distanceToPointer = length(delta);
-  float influence =
-    1.0 - smoothstep(0.0, 0.68, distanceToPointer);
+  float influence = 1.0 - smoothstep(0.0, 0.86, distanceToPointer);
+  vec2 direction = delta / max(distanceToPointer, 0.0001);
+  vec2 perpendicular = vec2(-direction.y, direction.x);
 
-  vec2 direction =
-    delta / max(distanceToPointer, 0.0001);
-
-  float wave =
-    sin(distanceToPointer * 36.0 - uTime * 5.4);
-
-  float ripple =
-    wave * influence * uStrength * 0.02;
-
-  vec2 offset = direction * ripple;
-
-  /* Directional drag: a fast pointer pulls a wider area of the image,
-     while the decay in the controller keeps it from becoming elastic UI. */
-  offset +=
-    uVelocity * influence * uStrength * 0.022;
-
-  offset +=
-    vec2(-direction.y, direction.x)
+  float wave = sin(distanceToPointer * 36.0 - uTime * 5.4);
+  vec2 physicalOffset = direction * wave * influence * uStrength * 0.02;
+  physicalOffset += perpendicular
     * cos(distanceToPointer * 24.0 - uTime * 3.4)
     * influence
     * uStrength
     * 0.005;
 
-  /* A weaker, broader wake sits just behind the pointer. This is what makes
-     the motion read as a body of water rather than a small circular warp. */
-  vec2 wakePointer = uPointer - uVelocity * 0.045;
-  vec2 wakeDelta = vec2(
-    (vUv.x - wakePointer.x) * uAspect,
-    vUv.y - wakePointer.y
-  );
-  float wakeDistance = length(wakeDelta);
-  float wakeInfluence =
-    (1.0 - smoothstep(0.0, 0.8, wakeDistance))
-    * uStrength
-    * 0.35;
-  vec2 wakeDirection =
-    wakeDelta / max(wakeDistance, 0.0001);
-
-  offset +=
-    wakeDirection
-    * sin(wakeDistance * 28.0 - uTime * 4.0)
+  /* The wake follows the recent path behind the pointer, not ahead of it. */
+  vec2 physicalVelocity = vec2(uVelocity.x * uAspect, uVelocity.y);
+  float speed = length(physicalVelocity);
+  vec2 travel = physicalVelocity / max(speed, 0.0001);
+  float along = dot(delta, travel);
+  float across = abs(delta.x * travel.y - delta.y * travel.x);
+  float behind = max(0.0, -along);
+  float wakeGate = smoothstep(0.05, 0.45, speed);
+  float wakeShape =
+    smoothstep(0.01, 0.12, behind)
+    * (1.0 - smoothstep(0.2, 0.96, behind))
+    * (1.0 - smoothstep(0.02, 0.3, across));
+  float wakeInfluence = wakeShape * wakeGate * uStrength;
+  float wakePhase = sin(behind * 32.0 - uTime * 4.0);
+  physicalOffset += travel * wakePhase * wakeInfluence * 0.012;
+  physicalOffset += vec2(-travel.y, travel.x)
+    * cos(behind * 24.0 - uTime * 3.4)
     * wakeInfluence
-    * 0.014;
+    * 0.004;
 
-  vec2 uv = clamp(
-    vUv + offset,
-    vec2(0.001),
-    vec2(0.999)
-  );
-
+  /* Convert the aspect-correct offset back to UVs, then mirror at the edges. */
+  vec2 offset = vec2(physicalOffset.x / max(uAspect, 0.0001), physicalOffset.y);
+  vec2 wrapped = mod(vUv + offset, 2.0);
+  vec2 uv = 1.0 - abs(wrapped - 1.0);
   gl_FragColor = texture2D(uTexture, uv);
 }
 `;
@@ -136,6 +119,7 @@ type Session = {
   vy: number;
   strength: number;
   targetStrength: number;
+  dragging: boolean;
   fade: number;
   leaving: boolean;
   textureKey: string;
@@ -574,10 +558,10 @@ export default function WaterHover() {
       previous = now;
 
       if (session.leaving) session.targetStrength = 0;
-      else if (now - session.lastMove > 80) {
-        // Holding still: the ripple settles to a thin resting film instead of
-        // looping at full amplitude.
-        session.targetStrength = 0.1;
+      else if (now - session.lastMove > 90) {
+        // Holding still: the ripple settles fully instead of looping at any
+        // nonzero resting strength.
+        session.targetStrength = 0;
       }
 
       const fadeEase =
@@ -610,17 +594,20 @@ export default function WaterHover() {
       raf = requestAnimationFrame(tick);
     };
 
+    const eventImage = (event: Event) => {
+      const target = event.target;
+      return target instanceof HTMLImageElement && target.matches("img[data-water]")
+        ? target
+        : null;
+    };
+
     const onPointerMove = (event: PointerEvent) => {
       if (!finePointer.matches || reducedMotion.matches || document.hidden) {
         release();
         return;
       }
 
-      const target = event.target;
-      const img =
-        target instanceof HTMLImageElement && target.matches("img[data-water]")
-          ? target
-          : null;
+      const img = eventImage(event);
 
       if (!img || !img.complete || !img.naturalWidth || !img.naturalHeight) {
         release();
@@ -658,6 +645,7 @@ export default function WaterHover() {
           vy: 0,
           strength: 0,
           targetStrength: 0.14,
+          dragging: false,
           fade: 0,
           leaving: false,
           textureKey: "",
@@ -676,7 +664,7 @@ export default function WaterHover() {
       session.vx = clamp(dx / seconds, -2.4, 2.4);
       session.vy = clamp(dy / seconds, -2.4, 2.4);
       session.targetStrength = Math.max(
-        0.12,
+        session.dragging ? 0.34 : 0.12,
         Math.min(1, speed / 2.2),
       );
       session.x = x;
@@ -685,9 +673,38 @@ export default function WaterHover() {
       session.leaving = false;
     };
 
+    const onPointerDown = (event: PointerEvent) => {
+      if (!finePointer.matches || reducedMotion.matches || event.button !== 0) return;
+      const img = eventImage(event);
+      if (!img) return;
+
+      onPointerMove(event);
+      if (!active || active.img !== img || active.leaving) return;
+      active.dragging = true;
+      active.lastMove = performance.now();
+      active.targetStrength = Math.max(active.targetStrength, 0.34);
+    };
+
+    const onPointerUp = (event: PointerEvent) => {
+      if (!active) return;
+      if (eventImage(event) !== active.img) {
+        active.dragging = false;
+        release();
+        return;
+      }
+      active.dragging = false;
+      active.targetStrength = Math.min(active.targetStrength, 0.12);
+      active.lastMove = performance.now();
+    };
+
     const onPointerOut = (event: PointerEvent) => {
-      // Leaving the document entirely never produces a new `pointermove`.
-      if (!event.relatedTarget) release();
+      // The img can be left for another element without leaving the document.
+      if ((active && event.target === active.img) || !event.relatedTarget) release();
+    };
+
+    const onPointerCancel = () => {
+      if (active) active.dragging = false;
+      release();
     };
 
     const onPreferenceChange = () => {
@@ -702,11 +719,19 @@ export default function WaterHover() {
       capture: true,
       passive: true,
     });
+    window.addEventListener("pointerdown", onPointerDown, {
+      capture: true,
+      passive: true,
+    });
+    window.addEventListener("pointerup", onPointerUp, {
+      capture: true,
+      passive: true,
+    });
     document.addEventListener("pointerout", onPointerOut, {
       capture: true,
       passive: true,
     });
-    document.addEventListener("pointercancel", release, { passive: true });
+    document.addEventListener("pointercancel", onPointerCancel, { passive: true });
     // The photograph's own box is scrolling away from the pointer: let it go
     // instead of dragging a stale texture across the page.
     window.addEventListener("scroll", release, { capture: true, passive: true });
@@ -718,8 +743,10 @@ export default function WaterHover() {
     return () => {
       removeActive();
       window.removeEventListener("pointermove", onPointerMove, true);
+      window.removeEventListener("pointerdown", onPointerDown, true);
+      window.removeEventListener("pointerup", onPointerUp, true);
       document.removeEventListener("pointerout", onPointerOut, true);
-      document.removeEventListener("pointercancel", release);
+      document.removeEventListener("pointercancel", onPointerCancel);
       window.removeEventListener("scroll", release, true);
       window.removeEventListener("blur", removeActive);
       document.removeEventListener("visibilitychange", onVisibilityChange);

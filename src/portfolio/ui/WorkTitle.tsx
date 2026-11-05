@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-/** Match cap height and advance width before rolling between the two faces. */
+/** Match cap height and advance width across the two sans weights before rolling between them. */
 export function WorkTitle({ text }: { text: string }) {
   const ref = useRef<HTMLSpanElement>(null);
   const cjk = /[\u3400-\u9fff]/.test(text);

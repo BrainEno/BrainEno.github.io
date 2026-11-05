@@ -45,6 +45,7 @@ body {
 
 .pf {
   --stage: #000;
+  --handoff: var(--stage);
   --accent: #e55139;
   position: relative;
   font-family: var(--font-sans);
@@ -442,33 +443,41 @@ body {
   height: 80vw;
 }
 
-/* Editorial index: each numeral belongs to its own headline rather than
-   floating next to the photograph. The three rows step gently towards the
-   artwork; GSAP still moves the rows as one scroll-choreographed group. */
-.hero-word {
+/* One aligned editorial column: its right edge is the portrait's left axis. */
+.hero-type {
   position: absolute;
   z-index: 5;
+  top: 20vw;
+  left: 0;
+  width: 49.2vw;
+  display: flex;
+  flex-direction: column;
+  gap: 5.5vw;
+  mix-blend-mode: difference;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.hero-word {
+  position: relative;
   display: grid;
-  grid-template-columns: 2.7em max-content;
+  grid-template-columns: 2.7em minmax(0, 1fr);
   align-items: start;
   column-gap: clamp(12px, 1.1vw, 22px);
-  width: max-content;
-  height: auto;
+  width: 100%;
+  height: 6vw;
   font-family: var(--font-sans);
-  font-size: clamp(28px, 4.9vw, 92px);
+  font-size: clamp(20px, 4vw, 78px);
   font-weight: 400;
   line-height: 0.94;
   letter-spacing: -0.052em;
   text-transform: uppercase;
   color: var(--ink);
-  mix-blend-mode: difference;
-  transform-origin: 0 0;
-  will-change: transform;
 }
 
 .hero-word.is-zh {
   font-family: var(--font-cjk);
-  font-size: clamp(28px, 5.25vw, 100px);
+  font-size: clamp(24px, 4.5vw, 82px);
   font-weight: 500;
   line-height: 1;
   letter-spacing: -0.025em;
@@ -501,21 +510,6 @@ body {
   font-variant-numeric: tabular-nums;
   color: rgba(252, 252, 252, 0.58);
   transform: none;
-}
-
-.hero-word-1 {
-  top: 20vw;
-  left: 0;
-}
-
-.hero-word-2 {
-  top: 31.5vw;
-  left: 5vw;
-}
-
-.hero-word-3 {
-  top: 43vw;
-  left: 10vw;
 }
 
 .hero-bar {
@@ -621,23 +615,6 @@ canvas[data-water-canvas] {
   height: 100svh;
   overflow: hidden;
   background: var(--stage);
-}
-
-/* A solid, unmasked strip on the outgoing side of the hand-off. It covers
-   fractional pin/compositing gaps with the journey's current stage colour,
-   which is exactly --sky by the time the works stage arrives. */
-.journey::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 30;
-  height: 3px;
-  background: var(--stage);
-  pointer-events: none;
-  transform: translateZ(0);
-  backface-visibility: hidden;
 }
 
 .story-layer,
@@ -894,31 +871,39 @@ canvas[data-water-canvas] {
 
 .coda {
   position: absolute;
-  top: 12vh;
+  top: 8vh;
   bottom: auto;
   left: 100vw;
+  display: grid;
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+  align-items: center;
+  gap: 4vw;
   width: 90vw;
-  height: 70vh;
+  height: 82vh;
   will-change: transform;
 }
 
 .coda-text {
-  position: absolute;
+  position: relative;
   z-index: 3;
-  top: 22vh;
-  left: 0;
-  width: min(42vw, 33em);
+  width: auto;
   font-size: clamp(22px, 2.1vw, 34px);
   line-height: 1.5;
   letter-spacing: -0.025em;
 }
 
 .coda-text.is-zh {
-  width: min(40vw, 27em);
+  width: auto;
   font-size: clamp(20px, 1.9vw, 30px);
   line-height: 1.9;
   letter-spacing: 0.03em;
   text-align: left;
+}
+
+.coda-media {
+  position: relative;
+  width: 100%;
+  height: min(68vh, 48vw);
 }
 
 .coda-pic {
@@ -938,30 +923,43 @@ canvas[data-water-canvas] {
 .coda-pic-1 {
   z-index: 2;
   top: 0;
-  left: 54vw;
-  width: 14vw;
-  height: 42vh;
-  opacity: 1;
+  left: 0;
+  width: 82%;
+  height: 72%;
 }
 
 .coda-pic-2 {
-  z-index: 1;
-  top: 27vh;
-  left: 65vw;
-  width: 24vw;
-  height: 31vh;
-  opacity: 1;
+  z-index: 3;
+  right: 0;
+  bottom: 0;
+  width: 38%;
+  height: 58%;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38);
 }
 
 /* Works / Television ------------------------------------------------ */
 .works {
-  --works-meta: rgba(214, 226, 255, 0.52);
-  --works-meta-strong: rgba(214, 226, 255, 0.86);
+  --works-meta: rgba(255, 255, 255, 0.56);
+  --works-meta-strong: rgba(255, 255, 255, 0.88);
 
   position: relative;
   z-index: 1;
   background: var(--night);
   margin-top: -2px;
+}
+
+/* One four-pixel bridge spans the actual section hand-off. Its color is
+   scrubbed alongside the journey stage so compositing never opens a seam. */
+.works::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  right: 0;
+  left: 0;
+  z-index: 5;
+  height: 4px;
+  background: var(--handoff);
+  pointer-events: none;
 }
 
 /* The stage is a centered, native-ratio photograph against a clean dark field.
@@ -979,23 +977,6 @@ canvas[data-water-canvas] {
       #031334 32%,
       var(--night) 72%
     );
-}
-
-/* Incoming side of the same seam. Unlike .tv-seam this strip has no mask,
-   gradient, blend mode or opacity animation, so it cannot reopen a bright
-   hairline while the pinned stage is being rasterised. */
-.tv-stage::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  z-index: 8;
-  height: 3px;
-  background: var(--sky);
-  pointer-events: none;
-  transform: translateZ(0);
-  backface-visibility: hidden;
 }
 
 /* Native framing: the whole photograph at its own ratio, exactly one stage
@@ -1205,33 +1186,33 @@ canvas[data-water-canvas] {
   -webkit-mask-image:
     linear-gradient(
       90deg,
-      transparent calc(var(--screen-left) - 1.05%),
-      #000 calc(var(--screen-left) - 0.55%),
-      #000 calc(var(--screen-left) + var(--screen-width) + 0.55%),
-      transparent calc(var(--screen-left) + var(--screen-width) + 1.05%)
+      transparent calc(var(--screen-left) - 0.20%),
+      #000 calc(var(--screen-left) - 0.10%),
+      #000 calc(var(--screen-left) + var(--screen-width) + 0.10%),
+      transparent calc(var(--screen-left) + var(--screen-width) + 0.20%)
     ),
     linear-gradient(
       180deg,
-      transparent calc(var(--screen-top) - 1.45%),
-      #000 calc(var(--screen-top) - 0.7%),
-      #000 calc(var(--screen-top) + var(--screen-height) + 0.7%),
-      transparent calc(var(--screen-top) + var(--screen-height) + 1.55%)
+      transparent calc(var(--screen-top) - 0.25%),
+      #000 calc(var(--screen-top) - 0.15%),
+      #000 calc(var(--screen-top) + var(--screen-height) + 0.15%),
+      transparent calc(var(--screen-top) + var(--screen-height) + 0.25%)
     );
   -webkit-mask-composite: source-in;
   mask-image:
     linear-gradient(
       90deg,
-      transparent calc(var(--screen-left) - 1.05%),
-      #000 calc(var(--screen-left) - 0.55%),
-      #000 calc(var(--screen-left) + var(--screen-width) + 0.55%),
-      transparent calc(var(--screen-left) + var(--screen-width) + 1.05%)
+      transparent calc(var(--screen-left) - 0.20%),
+      #000 calc(var(--screen-left) - 0.10%),
+      #000 calc(var(--screen-left) + var(--screen-width) + 0.10%),
+      transparent calc(var(--screen-left) + var(--screen-width) + 0.20%)
     ),
     linear-gradient(
       180deg,
-      transparent calc(var(--screen-top) - 1.45%),
-      #000 calc(var(--screen-top) - 0.7%),
-      #000 calc(var(--screen-top) + var(--screen-height) + 0.7%),
-      transparent calc(var(--screen-top) + var(--screen-height) + 1.55%)
+      transparent calc(var(--screen-top) - 0.25%),
+      #000 calc(var(--screen-top) - 0.15%),
+      #000 calc(var(--screen-top) + var(--screen-height) + 0.15%),
+      transparent calc(var(--screen-top) + var(--screen-height) + 0.25%)
     );
   mask-composite: intersect;
 }
@@ -1469,9 +1450,9 @@ canvas[data-water-canvas] {
   mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.55) 42%, transparent 100%);
 }
 
-/* Channel change into the scene: static, scanlines and a rolling sync bar
-   ride the incoming frame while the works stage rises out of the journey's
-   blue. Feathered at the top so the shared sky edge never shows a seam. */
+/* Channel change into the scene: a restrained static texture rides the
+   incoming frame while the works stage rises out of the journey's blue.
+   Feathered at the top so the shared sky edge never shows a seam. */
 .tv-tune {
   position: absolute;
   inset: 0;
@@ -1487,24 +1468,11 @@ canvas[data-water-canvas] {
 .tv-tune-noise {
   position: absolute;
   inset: -48px;
-  background:
-    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0 1px, transparent 1px 3px),
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
-  background-size: auto, 220px 220px;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 220px 220px;
   mix-blend-mode: screen;
-  opacity: 0.62;
+  opacity: 0.14;
   animation: tv-tune-static 0.32s steps(4) infinite;
-}
-
-.tv-tune-bar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 16%;
-  background: linear-gradient(180deg, rgba(186, 210, 255, 0) 0%, rgba(186, 210, 255, 0.2) 42%, rgba(255, 255, 255, 0.42) 50%, rgba(186, 210, 255, 0.2) 58%, rgba(186, 210, 255, 0) 100%);
-  mix-blend-mode: screen;
-  will-change: transform;
 }
 
 @keyframes tv-tune-static {
@@ -1632,7 +1600,7 @@ canvas[data-water-canvas] {
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.1em;
-  color: rgba(214, 226, 255, 0.46);
+  color: rgba(255, 255, 255, 0.46);
   transition: color 0.4s;
 }
 
@@ -1669,9 +1637,9 @@ canvas[data-water-canvas] {
 .work-row-name-alt {
   position: absolute;
   inset: 0;
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-style: normal;
-  font-weight: 400;
+  font-weight: 500;
   font-size: calc(var(--work-size) * var(--work-fit, 1) * var(--work-cap, 1.06));
   transform: translateY(105%);
 }
@@ -1710,7 +1678,7 @@ canvas[data-water-canvas] {
   justify-content: flex-end;
   gap: 0.7em;
   font-size: clamp(12px, 0.86vw, 15px);
-  color: rgba(214, 226, 255, 0.6);
+  color: rgba(255, 255, 255, 0.62);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding-bottom: 0.5vw;
@@ -1839,7 +1807,7 @@ canvas[data-water-canvas] {
   margin-bottom: 1.4vw;
   font-family: var(--font-sans);
   font-style: normal;
-  font-weight: 400;
+  font-weight: 500;
   font-size: clamp(34px, 3.9vw, 74px);
   line-height: 0.96;
   letter-spacing: -0.052em;
@@ -1915,6 +1883,16 @@ canvas[data-water-canvas] {
 .tv-sheet-link:hover {
   color: var(--works-meta-strong);
   border-color: var(--works-meta-strong);
+}
+
+.tv-sheet-repo-note {
+  max-width: 32em;
+  margin: 0;
+  padding-top: 0.45em;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: clamp(13px, 0.95vw, 16px);
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.68);
 }
 
 /* Prev / next / close. Mounted once per screening (outside the keyed project
@@ -2621,35 +2599,22 @@ canvas[data-water-canvas] {
     top: auto;
     bottom: auto;
     left: auto;
+    display: block;
     width: 100%;
     height: auto;
-    padding: 4vh var(--gutter) calc(44vw + 12vh);
+    padding: 4vh var(--gutter) 8vh;
   }
 
   .coda-text,
   .coda-text.is-zh {
     position: relative;
-    top: auto;
-    left: auto;
     width: 100%;
+    margin-bottom: 5vh;
   }
 
-  .coda-pic-1 {
-    top: auto;
-    right: var(--gutter);
-    bottom: 7vh;
-    left: auto;
-    width: 32vw;
-    height: 44vw;
-  }
-
-  .coda-pic-2 {
-    top: auto;
-    right: auto;
-    bottom: 5vh;
-    left: var(--gutter);
-    width: 46vw;
-    height: 32vw;
+  .coda-media {
+    width: 100%;
+    height: clamp(280px, 64vw, 640px);
   }
 }
 
@@ -2755,46 +2720,35 @@ canvas[data-water-canvas] {
   }
 
   .hero-box {
-    width: 100%;
+    width: calc(100% + var(--gutter));
     height: 150vw;
   }
 
-  /* Keep each index in the headline grid on narrow viewports too; only the
-     row offsets and type scale change here. */
+  .hero-type {
+    top: 28vw;
+    width: calc(50vw - var(--gutter));
+    gap: 10.8vw;
+  }
+
   .hero-word {
-    grid-template-columns: 2.4em max-content;
-    column-gap: 3vw;
-    font-size: 5.5vw;
+    grid-template-columns: 2em minmax(0, 1fr);
+    column-gap: 2vw;
+    height: 7.2vw;
+    font-size: clamp(12px, 3.4vw, 26px);
     line-height: 0.98;
     letter-spacing: -0.045em;
   }
 
   .hero-word.is-zh {
-    font-size: 7vw;
+    font-size: clamp(18px, 5.2vw, 32px);
     line-height: 1.02;
     letter-spacing: -0.02em;
   }
 
   .hero-word-index {
-    left: auto;
-    min-width: 2.4em;
+    min-width: 2em;
     padding-top: 0.45em;
     font-size: 9px;
-  }
-
-  .hero-word-1 {
-    top: 28vw;
-    left: 0;
-  }
-
-  .hero-word-2 {
-    top: 46vw;
-    left: 4vw;
-  }
-
-  .hero-word-3 {
-    top: 64vw;
-    left: 8vw;
   }
 
   .hero-bar {
