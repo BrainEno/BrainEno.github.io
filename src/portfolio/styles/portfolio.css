@@ -649,7 +649,21 @@ canvas[data-water-canvas] {
   width: 100vw;
   height: 100vh;
   height: 100svh;
-  overflow: hidden;
+
+  /*
+   * The portrait starts one viewport above its own section during the
+   * Hero -> Intro approach. It must be allowed to paint above the Journey's
+   * top edge; clipping both axes here makes the high entrance impossible.
+   *
+   * Only the horizontal axis clips (the off-stage copy/rail/coda still need
+   * it): ScrollSmoother writes `overflow: visible` inline on
+   * #smooth-wrapper, so that ancestor never clips them. `clip` on one axis
+   * keeps the other axis `visible`, unlike `hidden`, and adds no scroll
+   * container — measured `documentElement.scrollWidth` stays at the viewport
+   * width instead of growing to the rail's full track.
+   */
+  overflow-x: clip;
+  overflow-y: visible;
   background: var(--stage);
 }
 
@@ -663,6 +677,15 @@ canvas[data-water-canvas] {
   box-sizing: border-box;
   padding-inline: var(--gutter);
   will-change: transform;
+}
+
+/*
+ * During the pre-pin approach the portrait overlaps the outgoing Hero.
+ * It is decorative at that point and must not steal hover/drag events from
+ * the Hero bars or other underlying controls.
+ */
+.story-visual {
+  pointer-events: none;
 }
 
 .story-photo-box {
@@ -1770,6 +1793,83 @@ canvas[data-water-canvas] {
 
 .works[data-tv-phase="theater"] .tv-box {
   will-change: transform;
+
+  /*
+   * The bottom dissolve belongs to the full-stage browsing composition.
+   * In the theater the cabinet itself is the subject, so no scene-level mask
+   * may cut through the enlarged photograph.
+   */
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/*
+ * Use the complete Photoshop alpha plate while screening.
+ *
+ * The normal rows keep their existing local mask. In the theater, however,
+ * restricting the plate to the nominal --screen-* rectangle also clips away
+ * the very bezel pixels that should cover the media's outer edge. Removing
+ * the CSS mask here lets the asset's own transparent glass aperture do the
+ * compositing: video -> transparent hole -> real opaque bezel.
+ */
+.works[data-tv-phase="theater"] .tv-frame-alpha {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/*
+ * Grow the media pocket underneath the real bezel. These percentages are in
+ * the same native-ratio anchor coordinate system as --screen-*; they do not
+ * change the measured glass rectangle or the theater's target scale.
+ *
+ * The alpha plate is unmasked in this phase, so the extra pixels are covered
+ * by the cabinet rather than becoming a rectangular spill outside the glass.
+ */
+.works[data-tv-phase="theater"] .tv-screen {
+  top: calc(var(--screen-top) - 0.8%);
+  left: calc(var(--screen-left) - 0.8%);
+  width: calc(var(--screen-width) + 1.6%);
+  height: calc(var(--screen-height) + 1.6%);
+  background: #020303;
+}
+
+/*
+ * One extra device-independent pixel on each side prevents a transparent
+ * rasterisation hairline after the whole set is scaled. The parent still
+ * clips the overscan, and the alpha bezel clips it visually a second time.
+ */
+.works[data-tv-phase="theater"] .tv-picture {
+  inset: -1px;
+}
+
+/*
+ * A full-stage vignette becomes disproportionately dark after the theater
+ * scale. Keep only a restrained glass sheen so it cannot be mistaken for a
+ * transparent border. Channel-change snow/sync/roll are separate layers and
+ * remain untouched.
+ */
+.works[data-tv-phase="theater"] .tv-crt-optics {
+  background:
+    radial-gradient(
+      ellipse at 28% 18%,
+      rgba(204, 238, 255, 0.045),
+      rgba(136, 187, 204, 0.01) 45%,
+      transparent 72%
+    ),
+    linear-gradient(
+      96deg,
+      rgba(255, 255, 255, 0.015) 0%,
+      transparent 14%,
+      transparent 90%,
+      rgba(0, 0, 0, 0.07) 100%
+    ),
+    radial-gradient(
+      ellipse at 50% 50%,
+      transparent 76%,
+      rgba(0, 0, 0, 0.07) 90%,
+      rgba(0, 0, 0, 0.18) 100%
+    );
+  box-shadow: inset 0 0 0.8vmin rgba(0, 0, 0, 0.18);
 }
 
 .works[data-tv-phase="theater"] .tv-seam,
