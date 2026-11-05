@@ -444,94 +444,107 @@ body {
 }
 
 /*
- * The type rail leans into the photograph instead of drawing a hard border
- * beside it. Each row is as wide as its own content, so the numeral stays
- * next to its title rather than at the opposite edge of a wide container.
+ * A loose editorial cascade rather than a right-aligned rail: the two sans
+ * lockups lean with the sliced photographs, the italic serif counterpoint
+ * breaks their rhythm, and each numeral travels with its own rotated lockup.
+ * Ported from the hero typography in #96.
  *
- * `rotate` is deliberately the individual CSS property, not `transform`:
- * GSAP may continue to own the rail's translate/Y without overwriting tilt.
- *
- * `top` is `min(25vw, 44vh)`: on wide-but-short windows (1568×768) a plain
- * 25vw dropped the rail so low that the third row crossed the fold, so the
- * `vh` term lifts it there. On 16:10 / 4:3 windows the `vw` term still wins,
- * which leaves the tuned composition untouched.
+ * `top` keeps #96's 19vw on 16:10 / 4:3 windows but takes the `vh` term on
+ * wide-but-short ones (1568×768), where 19vw dropped the third lockup about
+ * 70px past the fold.
  */
 .hero-type {
   position: absolute;
   z-index: 7;
-  top: min(25vw, 44vh);
+  top: min(19vw, 21vh);
   left: 0;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  width: 51vw;
-  padding: 0;
-  border: 0;
-  rotate: -7deg;
-  transform-origin: 100% 50%;
+  width: 64vw;
   mix-blend-mode: difference;
   pointer-events: none;
 }
 
 .hero-word {
   position: relative;
-  display: grid;
-  grid-template-columns: auto max-content;
-  align-items: start;
-  column-gap: 1.2vw;
+  display: block;
   width: max-content;
   max-width: none;
+  padding-top: clamp(14px, 1.2vw, 20px);
   color: var(--ink);
   font-family: var(--font-sans);
-  font-size: clamp(28px, 4.9vw, 88px);
+  font-size: clamp(30px, 5.35vw, 92px);
   font-weight: 500;
-  line-height: 0.94;
-  letter-spacing: -0.06em;
+  line-height: 0.92;
+  letter-spacing: -0.065em;
   white-space: nowrap;
-  transform-origin: 100% 50%;
-}
-
-.hero-word + .hero-word {
-  margin-top: 2.4vw;
+  transform-origin: 0 50%;
 }
 
 .hero-word.is-zh {
   font-family: var(--font-cjk);
-  font-size: clamp(30px, 5.1vw, 90px);
+  font-size: clamp(32px, 5.8vw, 100px);
   font-weight: 500;
   line-height: 1;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.045em;
 }
 
 .hero-word-mask {
-  grid-column: 2;
   display: block;
   max-width: none;
   overflow: hidden;
-  padding-bottom: 0.08em;
+  padding: 0.08em 0.12em 0.1em 0.04em;
 }
 
 .hero-word-text {
   display: block;
   text-align: left;
-  white-space: nowrap;
 }
 
 .hero-word-index {
-  grid-column: 1;
-  grid-row: 1;
-  align-self: start;
+  position: absolute;
+  top: 0;
+  left: 0.5em;
   min-width: 0;
-  padding-top: 0.55em;
-  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-family: var(--font-sans);
   font-size: clamp(9px, 0.65vw, 12px);
   font-weight: 500;
   line-height: 1;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.16em;
   text-align: left;
   font-variant-numeric: tabular-nums;
   color: rgba(252, 252, 252, 0.64);
+}
+
+.hero-word-1 {
+  margin-left: 1.5vw;
+  transform: rotate(-5deg);
+}
+
+.hero-word-2 {
+  margin-top: 5vw;
+  margin-left: 17vw;
+  font-size: clamp(36px, 6.3vw, 108px);
+  font-weight: 400;
+  letter-spacing: -0.055em;
+  transform: rotate(3deg);
+}
+
+.hero-word-2:not(.is-zh) .hero-word-text {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.045em;
+}
+
+.hero-word-2.is-zh {
+  font-size: clamp(36px, 6.2vw, 106px);
+  font-weight: 400;
+}
+
+.hero-word-3 {
+  margin-top: 4.6vw;
+  margin-left: 5vw;
+  font-size: clamp(32px, 5.8vw, 100px);
+  transform: rotate(-2.5deg);
 }
 
 .hero-bar {
@@ -2785,37 +2798,50 @@ canvas[data-water-canvas] {
 
   .hero-type {
     top: 30vw;
-    width: 52vw;
-    padding: 0;
-    border: 0;
-    rotate: -5deg;
-    transform-origin: 100% 50%;
+    width: 100%;
   }
 
   .hero-word {
-    grid-template-columns: auto max-content;
-    column-gap: 2vw;
-    width: max-content;
-    font-size: 4.25vw;
-    line-height: 1;
-    letter-spacing: -0.05em;
-    white-space: nowrap;
-  }
-
-  .hero-word + .hero-word {
-    margin-top: 6vw;
+    font-size: 6.8vw;
+    line-height: 0.96;
+    letter-spacing: -0.055em;
   }
 
   .hero-word.is-zh {
-    font-size: 6.4vw;
+    font-size: 8.4vw;
     line-height: 1.04;
-    letter-spacing: -0.025em;
+    letter-spacing: -0.035em;
   }
 
   .hero-word-index {
+    top: 0;
+    left: 0.4em;
     min-width: 0;
-    padding-top: 0.45em;
+    padding: 0;
     font-size: 9px;
+  }
+
+  .hero-word-1 {
+    margin-left: 0;
+    transform: rotate(-6deg);
+  }
+
+  .hero-word-2 {
+    margin-top: 18vw;
+    margin-left: 24vw;
+    font-size: 11.2vw;
+    transform: rotate(5deg);
+  }
+
+  .hero-word-2.is-zh {
+    font-size: 10.2vw;
+  }
+
+  .hero-word-3 {
+    margin-top: 15vw;
+    margin-left: 4vw;
+    font-size: 7.8vw;
+    transform: rotate(-4deg);
   }
 
   .hero-bar {
