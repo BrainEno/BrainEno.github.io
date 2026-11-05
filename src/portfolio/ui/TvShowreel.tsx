@@ -359,7 +359,7 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
         className="tv-frame-alpha"
         src={alphaSrc}
         alt=""
-        sizes="(max-aspect-ratio: 4/3) 295vh, 185vw"
+        sizes="(max-aspect-ratio: 3/2) 295vh, 185vw"
         hidden
         loading="lazy"
         draggable={false}

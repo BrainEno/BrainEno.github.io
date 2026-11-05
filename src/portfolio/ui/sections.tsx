@@ -331,7 +331,7 @@ export function Works({
               className="tv-frame"
               src={src}
               alt=""
-              sizes="150vh"
+              sizes="(max-aspect-ratio: 3/2) 295vh, 185vw"
               hidden
               loading="lazy"
               draggable={false}

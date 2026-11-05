@@ -443,75 +443,100 @@ body {
   height: 80vw;
 }
 
+/*
+ * The type rail leans into the photograph instead of drawing a hard border
+ * beside it. Each row is as wide as its own content, so the numeral stays
+ * next to its title rather than at the opposite edge of a wide container.
+ *
+ * `rotate` is deliberately the individual CSS property, not `transform`:
+ * GSAP may continue to own the rail's translate/Y without overwriting tilt.
+ *
+ * `top` is `min(25vw, 44vh)`: on wide-but-short windows (1568×768) a plain
+ * 25vw dropped the rail so low that the third row crossed the fold, so the
+ * `vh` term lifts it there. On 16:10 / 4:3 windows the `vw` term still wins,
+ * which leaves the tuned composition untouched.
+ */
 .hero-type {
   position: absolute;
-  z-index: 5;
-  top: 21vw;
+  z-index: 7;
+  top: min(25vw, 44vh);
   left: 0;
   box-sizing: border-box;
-  width: 49.2vw;
-  padding-right: 2vw;
-  border-right: 1px solid rgba(252, 252, 252, 0.28);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  width: 51vw;
+  padding: 0;
+  border: 0;
+  rotate: -7deg;
+  transform-origin: 100% 50%;
   mix-blend-mode: difference;
+  pointer-events: none;
 }
 
 .hero-word {
   position: relative;
   display: grid;
-  grid-template-columns: clamp(24px, 2.4vw, 40px) minmax(0, 1fr);
+  grid-template-columns: auto max-content;
   align-items: start;
   column-gap: 1.2vw;
-  width: 100%;
+  width: max-content;
+  max-width: none;
   color: var(--ink);
   font-family: var(--font-sans);
-  font-size: clamp(24px, 4.7vw, 84px);
+  font-size: clamp(28px, 4.9vw, 88px);
   font-weight: 500;
   line-height: 0.94;
-  letter-spacing: -0.065em;
+  letter-spacing: -0.06em;
   white-space: nowrap;
+  transform-origin: 100% 50%;
 }
 
 .hero-word + .hero-word {
-  margin-top: 2.8vw;
+  margin-top: 2.4vw;
 }
 
 .hero-word.is-zh {
   font-family: var(--font-cjk);
-  font-size: clamp(28px, 5vw, 88px);
+  font-size: clamp(30px, 5.1vw, 90px);
   font-weight: 500;
   line-height: 1;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.04em;
 }
 
 .hero-word-mask {
   grid-column: 2;
-  justify-self: end;
   display: block;
-  max-width: 100%;
+  max-width: none;
   overflow: hidden;
+  padding-bottom: 0.08em;
 }
 
 .hero-word-text {
   display: block;
-  text-align: right;
+  text-align: left;
+  white-space: nowrap;
 }
 
 .hero-word-index {
   grid-column: 1;
   grid-row: 1;
+  align-self: start;
   min-width: 0;
-  padding-top: 0.45em;
-  font-family: var(--font-sans);
+  padding-top: 0.55em;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   font-size: clamp(9px, 0.65vw, 12px);
   font-weight: 500;
   line-height: 1;
   letter-spacing: 0.12em;
   text-align: left;
   font-variant-numeric: tabular-nums;
+  color: rgba(252, 252, 252, 0.64);
 }
 
 .hero-bar {
   position: absolute;
+  z-index: 6;
   width: 6vw;
   height: 54vw;
   overflow: hidden;
@@ -983,14 +1008,34 @@ canvas[data-water-canvas] {
    tall and centred. The screen therefore always sits at --screen-cy of the
    viewport height; narrow screens crop the sides, while wider screens leave
    a clean, unmasked dark field beside the photo. */
+/*
+ * Native-ratio cover. The anchor itself always retains the source image's
+ * aspect ratio, so every --screen-* percentage and the alpha cutout remain
+ * registered to the same pixels.
+ *
+ * Wide viewport:
+ *   width = 100vw, height = 100vw / aspect, negative top crops only vertically.
+ * Narrow viewport:
+ *   height = 100svh, width = aspect * 100svh, negative left centres the image.
+ *
+ * No artificial side panels and no object-fit distortion. Negative offsets are
+ * intentional; theater.measure(), screenLift() and createDive() already derive
+ * their geometry from this anchor and must not clamp them back to zero.
+ */
 .tv-anchor {
   position: absolute;
-  top: 0;
-  left: calc(50% - var(--tv-aspect, 1.5) * 50vh);
-  left: calc(50% - var(--tv-aspect, 1.5) * 50svh);
-  width: calc(var(--tv-aspect, 1.5) * 100vh);
-  width: calc(var(--tv-aspect, 1.5) * 100svh);
-  height: 100%;
+
+  left: min(0px, calc(50vw - var(--tv-aspect, 1.5) * 50vh));
+  left: min(0px, calc(50vw - var(--tv-aspect, 1.5) * 50svh));
+
+  top: min(0px, calc(50vh - 50vw / var(--tv-aspect, 1.5)));
+  top: min(0px, calc(50svh - 50vw / var(--tv-aspect, 1.5)));
+
+  width: max(100vw, calc(var(--tv-aspect, 1.5) * 100vh));
+  width: max(100vw, calc(var(--tv-aspect, 1.5) * 100svh));
+
+  height: max(100vh, calc(100vw / var(--tv-aspect, 1.5)));
+  height: max(100svh, calc(100vw / var(--tv-aspect, 1.5)));
 }
 
 /* No permanent `will-change`: the phone beat now leans in ~2.4x and a
@@ -1078,40 +1123,40 @@ canvas[data-water-canvas] {
 
 /* Curved CRT front-glass optics: subtle scanlines, cool night-sky arc sheen,
    right-edge curvature glint, and cushion falloff into the recessed bezel. */
+/*
+ * Resting glass: a restrained sheen and cushion falloff only. There are no
+ * permanent scanlines over project video.
+ *
+ * Channel-change snow, sync flash and rolling bar live in .tv-static,
+ * .tv-sync-line and .tv-roll; they remain untouched and only appear during
+ * the existing TvShowreel transitions.
+ */
 .tv-crt-optics {
   position: absolute;
   inset: 0;
   z-index: 3;
   pointer-events: none;
   background:
-    repeating-linear-gradient(
-      to bottom,
-      rgba(0, 0, 0, 0.2) 0,
-      rgba(0, 0, 0, 0.2) 1px,
-      transparent 1px,
-      transparent 3px
-    ),
     radial-gradient(
       ellipse at 28% 18%,
-      rgba(204, 238, 255, 0.16),
-      rgba(136, 187, 204, 0.05) 45%,
+      rgba(204, 238, 255, 0.07),
+      rgba(136, 187, 204, 0.02) 45%,
       transparent 72%
     ),
     linear-gradient(
       96deg,
-      rgba(255, 255, 255, 0.05) 0%,
+      rgba(255, 255, 255, 0.025) 0%,
       transparent 14%,
-      transparent 84%,
-      rgba(216, 255, 240, 0.1) 93%,
-      rgba(0, 0, 0, 0.28) 100%
+      transparent 88%,
+      rgba(0, 0, 0, 0.12) 100%
     ),
     radial-gradient(
       ellipse at 50% 50%,
-      transparent 56%,
-      rgba(0, 0, 0, 0.26) 84%,
-      rgba(0, 0, 0, 0.68) 100%
+      transparent 64%,
+      rgba(0, 0, 0, 0.12) 86%,
+      rgba(0, 0, 0, 0.32) 100%
     );
-  box-shadow: inset 0 0 2.4vmin rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 0 1.6vmin rgba(0, 0, 0, 0.32);
 }
 
 .tv-play-btn {
@@ -2739,23 +2784,26 @@ canvas[data-water-canvas] {
   }
 
   .hero-type {
-    top: 28vw;
-    /* The mobile hero box sits inside two 20px gutters. Its photo begins at
-       100% + 6vw - 56vw, so this keeps the rail on that real left edge. */
-    width: calc(100% - 50vw);
-    padding-right: 1vw;
+    top: 30vw;
+    width: 52vw;
+    padding: 0;
+    border: 0;
+    rotate: -5deg;
+    transform-origin: 100% 50%;
   }
 
   .hero-word {
-    grid-template-columns: 16px minmax(0, 1fr);
-    column-gap: 1vw;
+    grid-template-columns: auto max-content;
+    column-gap: 2vw;
+    width: max-content;
     font-size: 4.25vw;
     line-height: 1;
     letter-spacing: -0.05em;
+    white-space: nowrap;
   }
 
   .hero-word + .hero-word {
-    margin-top: 7vw;
+    margin-top: 6vw;
   }
 
   .hero-word.is-zh {
