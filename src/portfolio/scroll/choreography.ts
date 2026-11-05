@@ -327,14 +327,16 @@ function heroScroll(desktop: boolean) {
 function journeyDesktop(scope: HTMLElement, reduce: boolean) {
   const stage = scope.querySelector<HTMLElement>(".journey");
   const rail = scope.querySelector<HTMLElement>(".rail");
-  if (!stage || !rail) return;
+  const portrait = scope.querySelector<HTMLElement>(".story-photo-box");
+  if (!stage || !rail || !portrait) return;
 
   const vw = () => window.innerWidth;
   const vh = () => window.innerHeight;
   const railWidth = () => rail.scrollWidth;
 
-  // The display title used to rise during the settle beat; with only the
-  // portrait landing now, the beat is a little shorter.
+  // The pre-pin flight below owns the portrait's x/y and has already landed
+  // it on the grid when the pin starts. This beat now only settles the mask:
+  // widen, un-tilt and de-grey while the biography prepares to enter.
   const settle = 0.85;
   const approach = 0.7;
   const hold1 = dwell(scope.querySelector(".story-copy-inner"), 0.75, 1.4);
@@ -369,22 +371,79 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean) {
     outro: total - outro,
   };
 
-  tl.fromTo(
-    ".story-photo-box",
-    // The portrait enters with the natural document flow and is already in
-    // frame when the pin starts — the settle beat only reframes it (drift
-    // down, un-tilt, widen, de-grey) instead of travelling a full stage.
-    // Hiding it a full viewport above (-98vh) left a ~500px dead-black
-    // stage between the hero exit and the portrait landing; starting at
-    // -14vh keeps a short, intentional descent with zero black void, and
-    // the pre-pin sliver reads as incoming content, not a layering bug.
-    { y: () => -vh() * 0.14, x: () => vw() * 0.08 },
-    { y: 0, x: 0, duration: settle, ease: "power2.out" },
-    at.settle
-  )
-    // The frame settles from a slight tilt to the rectangular box the grid
-    // gave it. Nothing here may reintroduce a shaped radius: the portrait is
-    // meant to read as a plain picture in a column.
+  /*
+   * Hero -> Intro portrait approach.
+   *
+   * This trigger covers the whole pre-pin interval:
+   *   journey.top: 100vh -> 0
+   *
+   * At its first frame the portrait is composed at approximately:
+   *   viewport x = 19vw
+   *   viewport y = 7vh
+   * which is the high editorial position marked in the reference screenshot.
+   *
+   * `portrait.offsetTop/offsetLeft` are the natural grid position. Deriving the
+   * compensation from them keeps the path correct if the gutter, grid or 18vh
+   * landing changes later; do not replace these measurements with a hard-coded
+   * pixel translation.
+   *
+   * The middle keyframe bows slightly left and puts the portrait at about 11vh
+   * when the Journey top is at 48vh. The last keyframe ends at x=0/y=0 exactly
+   * when the pinned timeline starts, so there is no transform hand-off jump.
+   */
+  const portraitNaturalTop = () => portrait.offsetTop;
+  const portraitStartX = () => Math.max(0, vw() * 0.19 - portrait.offsetLeft);
+
+  if (!reduce) {
+    const portraitFlight = gsap.timeline({
+      defaults: { ease: "none" },
+      scrollTrigger: {
+        trigger: stage,
+        start: "top bottom",
+        end: "top top",
+        scrub: true,
+        invalidateOnRefresh: true,
+      },
+    });
+
+    portraitFlight
+      .fromTo(
+        portrait,
+        {
+          x: () => portraitStartX(),
+          // journey top = 100vh; desired portrait top = 7vh.
+          y: () => vh() * 0.07 - vh() - portraitNaturalTop(),
+        },
+        {
+          x: () => portraitStartX() * 0.68,
+          // At 52% progress journey top = 48vh; desired portrait top = 11vh.
+          y: () => vh() * 0.11 - vh() * 0.48 - portraitNaturalTop(),
+          duration: 0.52,
+          immediateRender: true,
+        },
+        0
+      )
+      .to(
+        portrait,
+        {
+          x: 0,
+          y: 0,
+          duration: 0.48,
+        },
+        0.52
+      );
+  } else {
+    /*
+     * Reduced motion gets the readable final composition without a large
+     * viewport-crossing flight. Other existing static layouts remain intact.
+     */
+    gsap.set(portrait, { x: 0, y: 0 });
+  }
+
+  // The frame settles from a slight tilt to the rectangular box the grid
+  // gave it. Nothing here may reintroduce a shaped radius: the portrait is
+  // meant to read as a plain picture in a column.
+  tl
     .fromTo(
       ".story-photo-mask",
       { rotation: 2.5, width: "76%", filter: "grayscale(40%)" },
