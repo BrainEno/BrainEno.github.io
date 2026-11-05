@@ -445,73 +445,103 @@ body {
 
 .hero-type {
   position: absolute;
-  z-index: 5;
-  top: 21vw;
+  z-index: 7;
+  top: 19vw;
   left: 0;
-  box-sizing: border-box;
-  width: 49.2vw;
-  padding-right: 2vw;
-  border-right: 1px solid rgba(252, 252, 252, 0.28);
+  width: 64vw;
   mix-blend-mode: difference;
+  pointer-events: none;
 }
 
+/* A loose editorial cascade rather than a right-aligned rail. The two sans
+   lockups lean with the sliced photographs; the italic serif counterpoint
+   breaks their rhythm. Each numeral travels with its own rotated lockup. */
 .hero-word {
   position: relative;
-  display: grid;
-  grid-template-columns: clamp(24px, 2.4vw, 40px) minmax(0, 1fr);
-  align-items: start;
-  column-gap: 1.2vw;
-  width: 100%;
+  display: block;
+  width: max-content;
+  max-width: none;
+  padding-top: clamp(14px, 1.2vw, 20px);
   color: var(--ink);
   font-family: var(--font-sans);
-  font-size: clamp(24px, 4.7vw, 84px);
+  font-size: clamp(30px, 5.35vw, 92px);
   font-weight: 500;
-  line-height: 0.94;
+  line-height: 0.92;
   letter-spacing: -0.065em;
   white-space: nowrap;
-}
-
-.hero-word + .hero-word {
-  margin-top: 2.8vw;
+  transform-origin: 0 50%;
 }
 
 .hero-word.is-zh {
   font-family: var(--font-cjk);
-  font-size: clamp(28px, 5vw, 88px);
+  font-size: clamp(32px, 5.8vw, 100px);
   font-weight: 500;
   line-height: 1;
   letter-spacing: -0.045em;
 }
 
 .hero-word-mask {
-  grid-column: 2;
-  justify-self: end;
   display: block;
-  max-width: 100%;
+  max-width: none;
   overflow: hidden;
+  padding: 0.08em 0.12em 0.1em 0.04em;
 }
 
 .hero-word-text {
   display: block;
-  text-align: right;
+  text-align: left;
 }
 
 .hero-word-index {
-  grid-column: 1;
-  grid-row: 1;
+  position: absolute;
+  top: 0;
+  left: 0.5em;
   min-width: 0;
-  padding-top: 0.45em;
   font-family: var(--font-sans);
   font-size: clamp(9px, 0.65vw, 12px);
   font-weight: 500;
   line-height: 1;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.16em;
   text-align: left;
   font-variant-numeric: tabular-nums;
 }
 
+.hero-word-1 {
+  margin-left: 1.5vw;
+  transform: rotate(-5deg);
+}
+
+.hero-word-2 {
+  margin-top: 5vw;
+  margin-left: 17vw;
+  font-size: clamp(36px, 6.3vw, 108px);
+  font-weight: 400;
+  letter-spacing: -0.055em;
+  transform: rotate(3deg);
+}
+
+.hero-word-2:not(.is-zh) .hero-word-text {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.045em;
+}
+
+.hero-word-2.is-zh {
+  font-size: clamp(36px, 6.2vw, 106px);
+  font-weight: 400;
+}
+
+.hero-word-3 {
+  margin-top: 4.6vw;
+  margin-left: 5vw;
+  font-size: clamp(32px, 5.8vw, 100px);
+  transform: rotate(-2.5deg);
+}
+
 .hero-bar {
   position: absolute;
+  z-index: 6;
   width: 6vw;
   height: 54vw;
   overflow: hidden;
@@ -979,18 +1009,20 @@ canvas[data-water-canvas] {
     );
 }
 
-/* Native framing: the whole photograph at its own ratio, exactly one stage
-   tall and centred. The screen therefore always sits at --screen-cy of the
-   viewport height; narrow screens crop the sides, while wider screens leave
-   a clean, unmasked dark field beside the photo. */
+/* Contain the complete native photograph instead of sizing from height alone.
+   Tall or narrow viewports get clean stage space above/below; wide viewports
+   get it at the sides. Neither case crops the source's vertical edges. */
 .tv-anchor {
+  --tv-height: min(100vh, calc(100vw / var(--tv-aspect, 1.5)));
+  --tv-height: min(100svh, calc(100vw / var(--tv-aspect, 1.5)));
+  --tv-width: calc(var(--tv-height) * var(--tv-aspect, 1.5));
+
   position: absolute;
-  top: 0;
-  left: calc(50% - var(--tv-aspect, 1.5) * 50vh);
-  left: calc(50% - var(--tv-aspect, 1.5) * 50svh);
-  width: calc(var(--tv-aspect, 1.5) * 100vh);
-  width: calc(var(--tv-aspect, 1.5) * 100svh);
-  height: 100%;
+  top: calc((100vh - var(--tv-height)) / 2);
+  top: calc((100svh - var(--tv-height)) / 2);
+  left: calc(50% - var(--tv-width) / 2);
+  width: var(--tv-width);
+  height: var(--tv-height);
 }
 
 /* No permanent `will-change`: the phone beat now leans in ~2.4x and a
@@ -1076,21 +1108,15 @@ canvas[data-water-canvas] {
   -webkit-media-controls-display: none;
 }
 
-/* Curved CRT front-glass optics: subtle scanlines, cool night-sky arc sheen,
-   right-edge curvature glint, and cushion falloff into the recessed bezel. */
+/* Keep project footage clear: no permanent scanline overlay. The curved-glass
+   sheen and cushion remain, while snow, sync flashes and rolling re-lock bars
+   stay independent in .tv-static / .tv-sync-line / .tv-roll for channel changes. */
 .tv-crt-optics {
   position: absolute;
   inset: 0;
   z-index: 3;
   pointer-events: none;
   background:
-    repeating-linear-gradient(
-      to bottom,
-      rgba(0, 0, 0, 0.2) 0,
-      rgba(0, 0, 0, 0.2) 1px,
-      transparent 1px,
-      transparent 3px
-    ),
     radial-gradient(
       ellipse at 28% 18%,
       rgba(204, 238, 255, 0.16),
@@ -2739,35 +2765,51 @@ canvas[data-water-canvas] {
   }
 
   .hero-type {
-    top: 28vw;
-    /* The mobile hero box sits inside two 20px gutters. Its photo begins at
-       100% + 6vw - 56vw, so this keeps the rail on that real left edge. */
-    width: calc(100% - 50vw);
-    padding-right: 1vw;
+    top: 30vw;
+    width: 100%;
   }
 
   .hero-word {
-    grid-template-columns: 16px minmax(0, 1fr);
-    column-gap: 1vw;
-    font-size: 4.25vw;
-    line-height: 1;
-    letter-spacing: -0.05em;
-  }
-
-  .hero-word + .hero-word {
-    margin-top: 7vw;
+    font-size: 6.8vw;
+    line-height: 0.96;
+    letter-spacing: -0.055em;
   }
 
   .hero-word.is-zh {
-    font-size: 6.4vw;
+    font-size: 8.4vw;
     line-height: 1.04;
-    letter-spacing: -0.025em;
+    letter-spacing: -0.035em;
   }
 
   .hero-word-index {
+    top: 0;
+    left: 0.4em;
     min-width: 0;
-    padding-top: 0.45em;
+    padding: 0;
     font-size: 9px;
+  }
+
+  .hero-word-1 {
+    margin-left: 0;
+    transform: rotate(-6deg);
+  }
+
+  .hero-word-2 {
+    margin-top: 18vw;
+    margin-left: 24vw;
+    font-size: 11.2vw;
+    transform: rotate(5deg);
+  }
+
+  .hero-word-2.is-zh {
+    font-size: 10.2vw;
+  }
+
+  .hero-word-3 {
+    margin-top: 15vw;
+    margin-left: 4vw;
+    font-size: 7.8vw;
+    transform: rotate(-4deg);
   }
 
   .hero-bar {
