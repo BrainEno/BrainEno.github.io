@@ -108,19 +108,15 @@ export function createHeroEntrance() {
     0
   )
     .from(".hero-photo-zoom", { scale: 1.32, duration: 2.2 }, 0)
-    // Each row opens from the shared right-hand axis and settles from a
-    // slightly fanned angle. The parent owns the permanent -7deg/-5deg tilt;
-    // these row transforms must all finish at rotation 0.
+    // Each row wipes open along its own baseline. The per-row lean is static
+    // CSS (`transform: rotate(...)` on `.hero-word-1/2/3`), so the entrance
+    // deliberately writes no transform on the rows: GSAP would merge the CSS
+    // angle into `transform` and then overwrite it with the tween's value.
     .fromTo(
       ".hero-word",
-      {
-        clipPath: "inset(0% 0% 0% 100%)",
-        rotation: 4,
-        transformOrigin: "100% 50%",
-      },
+      { clipPath: "inset(0% 100% 0% 0%)" },
       {
         clipPath: "inset(0% 0% 0% 0%)",
-        rotation: 0,
         stagger: 0.1,
         duration: 1.35,
       },
