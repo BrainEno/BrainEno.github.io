@@ -26,7 +26,13 @@ import {
 } from "../scroll/choreography";
 import { openTheater, type TheaterHandle } from "../scroll/theater";
 import { cx } from "./cx";
-import { Contact, Hero, Journey, Works } from "./sections";
+import {
+  Contact,
+  Hero,
+  Journey,
+  Works,
+  videoAtPoint,
+} from "./sections";
 
 const LANG_KEY = "pf-lang";
 const subscribeNever = () => () => {};
@@ -165,12 +171,28 @@ function Cursor({
       el.dataset.state = target?.dataset.cursor ?? (target ? "link" : "");
 
       const worksSection = document.getElementById("works");
-      const inRowsPhase = !worksSection?.dataset.tvPhase || worksSection.dataset.tvPhase === "rows";
-      const row = inRowsPhase ? element?.closest<HTMLElement>(".work-row[data-work-index]") : null;
+      const inRowsPhase =
+        !worksSection?.dataset.tvPhase ||
+        worksSection.dataset.tvPhase === "rows";
+
+      if (inRowsPhase && worksSection) {
+        const video = videoAtPoint(worksSection, pointerX, pointerY);
+
+        /*
+         * Keep the current channel while the pointer crosses transparent row
+         * hit areas over the glass. This mirrors the delegated click behavior
+         * and avoids powering the video off immediately before a pause/play
+         * click.
+         */
+        if (video) return;
+      }
+
+      const row = inRowsPhase
+        ? element?.closest<HTMLElement>(".work-row[data-work-index]")
+        : null;
+
       if (row) {
         onHoverWork(Number(row.dataset.workIndex));
-      } else if (inRowsPhase && element?.closest(".tv-video")) {
-        // Allow clicking a video work directly on the CRT tube without powering it off mid-click.
       } else if (!document.activeElement?.closest(".work-row")) {
         onHoverWork(-1);
       }

@@ -1121,14 +1121,24 @@ canvas[data-water-canvas] {
 /* Placed *underneath* `.tv-frame-alpha` (`tv-alpha.webp`) and grown ~0.4% past
    the alpha hole on all four sides so its outer edge is tucked safely beneath
    the opaque recessed bezel — no sub-pixel seam can ever open. */
+/*
+ * The media occupies the nominal glass rectangle exactly. The full alpha
+ * plate above it supplies the curved aperture and opaque bezel, so the video
+ * itself no longer needs to be enlarged to conceal compositing seams.
+ *
+ * A one-pixel, screen-coloured seam guard sits outside the media box and
+ * underneath the alpha plate. It is only an antialiasing safeguard, not a
+ * visible border and not a substitute for the real bezel.
+ */
 .tv-screen {
   position: absolute;
-  top: calc(var(--screen-top) - 0.45%);
-  left: calc(var(--screen-left) - 0.38%);
-  width: calc(var(--screen-width) + 0.76%);
-  height: calc(var(--screen-height) + 0.9%);
+  top: var(--screen-top);
+  left: var(--screen-left);
+  width: var(--screen-width);
+  height: var(--screen-height);
   z-index: 1;
-  background: #060908;
+  background: #020303;
+  box-shadow: 0 0 0 1px #020303;
   transform: translateZ(0);
   overflow: hidden;
   overflow: clip;
@@ -1138,6 +1148,7 @@ canvas[data-water-canvas] {
   position: absolute;
   inset: 0;
   opacity: 0;
+  background: #000;
   will-change: transform, opacity, filter;
 }
 
@@ -1151,7 +1162,24 @@ canvas[data-water-canvas] {
 
 /* Video variant of the cover: identical box model to `.tv-cover` so the CRT
    channel-change animation reads identically on stills and clips. */
+/*
+ * Video is width-driven rather than cover-driven.
+ *
+ * With height:auto, the replaced element keeps its intrinsic aspect ratio:
+ * - a wide film fits the glass width exactly and letterboxes vertically;
+ * - a taller clip may crop only at the top/bottom;
+ * - neither case sacrifices the left/right picture or stretches the film.
+ *
+ * The transform belongs only to centering. CRT channel changes continue to
+ * animate .tv-picture, so they do not overwrite this translation.
+ */
 .tv-video {
+  display: block;
+  inset: 50% auto auto 50%;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  transform: translate(-50%, -50%);
   background: #000;
   cursor: pointer;
   -webkit-media-controls-display: none;
@@ -1256,6 +1284,17 @@ canvas[data-water-canvas] {
    Feathered smoothly inside the jet-black recessed bezel pocket (anchored to
    `--screen-*` so it tracks the content's screen rect automatically) while the
    rest of the cabinet and street stays on `tv.webp` with zero shift. */
+/*
+ * Full photographic alpha plate, in every phase — not only in the theater.
+ *
+ * The WebP already contains the transparent glass aperture. Its own alpha
+ * channel must decide where the video shows through; an additional CSS mask
+ * around --screen-* clips away real bezel pixels and recreates the dark /
+ * transparent seams around the tube.
+ *
+ * The plate and base photograph share the same native-ratio .tv-anchor, so
+ * the cabinet, control panel and glass remain registered at every viewport.
+ */
 .tv-frame-alpha {
   position: absolute;
   inset: 0;
@@ -1264,38 +1303,8 @@ canvas[data-water-canvas] {
   height: 100%;
   object-fit: fill;
   pointer-events: none;
-  -webkit-mask-image:
-    linear-gradient(
-      90deg,
-      transparent calc(var(--screen-left) - 0.45%),
-      #000 calc(var(--screen-left) - 0.2%),
-      #000 calc(var(--screen-left) + var(--screen-width) + 0.2%),
-      transparent calc(var(--screen-left) + var(--screen-width) + 0.45%)
-    ),
-    linear-gradient(
-      180deg,
-      transparent calc(var(--screen-top) - 0.45%),
-      #000 calc(var(--screen-top) - 0.2%),
-      #000 calc(var(--screen-top) + var(--screen-height) + 0.2%),
-      transparent calc(var(--screen-top) + var(--screen-height) + 0.45%)
-    );
-  -webkit-mask-composite: source-in;
-  mask-image:
-    linear-gradient(
-      90deg,
-      transparent calc(var(--screen-left) - 0.45%),
-      #000 calc(var(--screen-left) - 0.2%),
-      #000 calc(var(--screen-left) + var(--screen-width) + 0.2%),
-      transparent calc(var(--screen-left) + var(--screen-width) + 0.45%)
-    ),
-    linear-gradient(
-      180deg,
-      transparent calc(var(--screen-top) - 0.45%),
-      #000 calc(var(--screen-top) - 0.2%),
-      #000 calc(var(--screen-top) + var(--screen-height) + 0.2%),
-      transparent calc(var(--screen-top) + var(--screen-height) + 0.45%)
-    );
-  mask-composite: intersect;
+  -webkit-mask-image: none;
+  mask-image: none;
 }
 
 /* Color-adaptive ambient light cast by the active CRT image onto the recessed
@@ -1716,12 +1725,23 @@ canvas[data-water-canvas] {
   transition: transform 0.58s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/*
+ * Selected / focused Latin rows roll from grotesk uppercase into a serif
+ * uppercase, following the reference's typeface change rather than merely
+ * increasing the weight of the same sans.
+ *
+ * Cap height and advance width are still normalised by WorkTitle.tsx, so the
+ * row does not jump when the two typefaces exchange places.
+ */
 .work-row-name-alt {
   position: absolute;
   inset: 0;
-  font-family: var(--font-sans);
-  font-weight: 500;
+  font-family: var(--font-serif);
+  font-style: normal;
+  font-weight: 400;
   font-size: calc(var(--work-size) * var(--work-fit, 1) * var(--work-cap, 1.06));
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
   transform: translateY(105%);
 }
 
@@ -1737,10 +1757,12 @@ canvas[data-water-canvas] {
 .work-row-title[data-script="cjk"] .work-row-name,
 .work-row-title[data-script="cjk"] .work-row-name-alt {
   font-family: var(--font-cjk);
+  font-style: normal;
 }
 
 .work-row-title[data-script="cjk"] .work-row-name-alt {
   font-weight: 500;
+  letter-spacing: -0.03em;
 }
 
 .work-row.is-active .work-row-name,
@@ -1804,45 +1826,6 @@ canvas[data-water-canvas] {
 }
 
 /*
- * Use the complete Photoshop alpha plate while screening.
- *
- * The normal rows keep their existing local mask. In the theater, however,
- * restricting the plate to the nominal --screen-* rectangle also clips away
- * the very bezel pixels that should cover the media's outer edge. Removing
- * the CSS mask here lets the asset's own transparent glass aperture do the
- * compositing: video -> transparent hole -> real opaque bezel.
- */
-.works[data-tv-phase="theater"] .tv-frame-alpha {
-  -webkit-mask-image: none;
-  mask-image: none;
-}
-
-/*
- * Grow the media pocket underneath the real bezel. These percentages are in
- * the same native-ratio anchor coordinate system as --screen-*; they do not
- * change the measured glass rectangle or the theater's target scale.
- *
- * The alpha plate is unmasked in this phase, so the extra pixels are covered
- * by the cabinet rather than becoming a rectangular spill outside the glass.
- */
-.works[data-tv-phase="theater"] .tv-screen {
-  top: calc(var(--screen-top) - 0.8%);
-  left: calc(var(--screen-left) - 0.8%);
-  width: calc(var(--screen-width) + 1.6%);
-  height: calc(var(--screen-height) + 1.6%);
-  background: #020303;
-}
-
-/*
- * One extra device-independent pixel on each side prevents a transparent
- * rasterisation hairline after the whole set is scaled. The parent still
- * clips the overscan, and the alpha bezel clips it visually a second time.
- */
-.works[data-tv-phase="theater"] .tv-picture {
-  inset: -1px;
-}
-
-/*
  * A full-stage vignette becomes disproportionately dark after the theater
  * scale. Keep only a restrained glass sheen so it cannot be mistaken for a
  * transparent border. Channel-change snow/sync/roll are separate layers and
@@ -1872,9 +1855,10 @@ canvas[data-water-canvas] {
   box-shadow: inset 0 0 0.8vmin rgba(0, 0, 0, 0.18);
 }
 
+/* The play glyph is no longer a permanent overlay: TvShowreel renders it only
+   after a rejected autoplay, so the enlarged theater glass must show it too. */
 .works[data-tv-phase="theater"] .tv-seam,
-.works[data-tv-phase="theater"] .tv-osd-layer,
-.works[data-tv-phase="theater"] .tv-play-btn {
+.works[data-tv-phase="theater"] .tv-osd-layer {
   visibility: hidden;
 }
 

@@ -288,6 +288,38 @@ type WorksProps = SectionProps<"works"> & {
   onStep: (delta: 1 | -1) => void;
 };
 
+/**
+ * Return the active video when a viewport point is inside the CRT glass.
+ *
+ * The works rows and theater sheet intentionally remain visually above the
+ * photograph. Their transparent hit areas can therefore receive the pointer
+ * even when the pointer is visually over the tube. This helper lets those
+ * layers delegate a glass click to the video without changing z-index or
+ * covering the project copy with the television photograph.
+ */
+export function videoAtPoint(
+  scope: ParentNode,
+  clientX: number,
+  clientY: number
+): HTMLVideoElement | null {
+  const screen = scope.querySelector<HTMLElement>(".tv-screen");
+  const video = scope.querySelector<HTMLVideoElement>(".tv-video");
+
+  if (!screen || !video) return null;
+
+  const rig = video.closest<HTMLElement>(".tv-active-rig");
+  if (rig?.dataset.active !== "true") return null;
+
+  const rect = screen.getBoundingClientRect();
+  const inside =
+    clientX >= rect.left &&
+    clientX <= rect.right &&
+    clientY >= rect.top &&
+    clientY <= rect.bottom;
+
+  return inside ? video : null;
+}
+
 export function Works({
   lang,
   content,
@@ -381,6 +413,25 @@ export function Works({
           aria-modal={theaterOpen || undefined}
           aria-hidden={!theaterOpen || undefined}
           aria-label={featured ? t(featured.title, lang) : undefined}
+          onClick={(event) => {
+            const target = event.target as Element;
+
+            // Real theater controls always keep their own behavior.
+            if (target.closest("button, a")) return;
+
+            const works = event.currentTarget.closest(".works");
+            const video = works
+              ? videoAtPoint(works, event.clientX, event.clientY)
+              : null;
+
+            if (!works || !video) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            // The video is outside .tv-sheet, so this cannot recurse here.
+            video.click();
+          }}
         >
           {featured ? (
             <div className="tv-sheet-inner">
@@ -497,7 +548,14 @@ export function Works({
         <ol
           className="work-rows"
           onMouseLeave={(event) => {
-            if (!(event.relatedTarget as Element | null)?.closest?.(".tv-video")) {
+            const works = event.currentTarget.closest(".works");
+
+            if (works && videoAtPoint(works, event.clientX, event.clientY)) {
+              return;
+            }
+
+            const related = event.relatedTarget as Element | null;
+            if (!related?.closest?.(".tv-video")) {
               onPreview(-1);
             }
           }}
@@ -515,7 +573,13 @@ export function Works({
                 className={cx("work-row", zh && "is-zh", index === activeIndex && "is-active")}
                 data-cursor="view"
                 data-work-index={index}
-                onMouseEnter={() => onPreview(index)}
+                onMouseEnter={(event) => {
+                  const works = event.currentTarget.closest(".works");
+                  if (works && videoAtPoint(works, event.clientX, event.clientY)) {
+                    return;
+                  }
+                  onPreview(index);
+                }}
               >
                 {/* One real control per row, covering it: the <ol>/<li> keep
                     their list semantics, the row is still announced as a
@@ -534,10 +598,51 @@ export function Works({
                   // it ourselves, without scrolling.
                   onMouseDown={(event) => {
                     if (event.button !== 0) return;
+
+                    /*
+                     * A press over the glass is a pause/play gesture for the
+                     * tube, not a selection. Focusing this row here would fire
+                     * its onFocus preview and switch the channel out from under
+                     * the click before it lands.
+                     */
+                    const works = event.currentTarget.closest(".works");
+                    if (works && videoAtPoint(works, event.clientX, event.clientY)) {
+                      event.preventDefault();
+                      return;
+                    }
+
                     event.preventDefault();
                     event.currentTarget.focus({ preventScroll: true });
                   }}
-                  onClick={() => onOpen(index)}
+                  onClick={(event) => {
+                    /*
+                     * Keyboard-generated clicks have detail=0 and must keep
+                     * their normal behavior: open the focused project. Only
+                     * pointer clicks can be glass gestures.
+                     */
+                    if (event.detail > 0) {
+                      const works = event.currentTarget.closest(".works");
+                      const video = works
+                        ? videoAtPoint(works, event.clientX, event.clientY)
+                        : null;
+
+                      if (works && video) {
+                        event.preventDefault();
+                        event.stopPropagation();
+
+                        /*
+                         * The video is not a descendant of this row, so its
+                         * programmatic click cannot bubble back into this
+                         * handler. It reaches TvShowreel's real onClick and
+                         * preserves the original user gesture.
+                         */
+                        video.click();
+                        return;
+                      }
+                    }
+
+                    onOpen(index);
+                  }}
                 >
                   <span className="sr-only">
                     {title}
