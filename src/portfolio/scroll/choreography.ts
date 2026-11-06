@@ -34,6 +34,35 @@ export function prefersReducedMotion() {
   return typeof window !== "undefined" && window.matchMedia(REDUCED_QUERY).matches;
 }
 
+/**
+ * How the pinned sections are held in place.
+ *
+ * With smooth scrolling the content is a transformed layer, so a pin has to
+ * ride that layer with a `translate` GSAP re-writes on every scroll tick
+ * (`"transform"`). On touch devices ScrollSmoother leaves the page native —
+ * `#smooth-content` keeps `transform: none` — and there that per-tick write
+ * lands a frame *after* the compositor has already scrolled: the pinned box
+ * slides up with the page and is yanked back, so pinned art (the gallery rail)
+ * visibly shakes, the harder the faster the fling. Native pages get
+ * `position: fixed` instead, which the browser holds in place with no script
+ * involved at all.
+ */
+let cachedPinType: "fixed" | "transform" | null = null;
+function pinType(): "fixed" | "transform" {
+  if (cachedPinType) return cachedPinType;
+  // ScrollSmoother holds its wrapper fixed while it smooths the content; when it
+  // leaves the page native it writes `position: relative` back and never
+  // transforms the content. Both signals are read, because either one alone is
+  // enough to prove the layer is not a plain document flow.
+  const wrapper = document.getElementById("smooth-wrapper");
+  const content = document.getElementById("smooth-content");
+  const smoothed =
+    (!!wrapper && getComputedStyle(wrapper).position === "fixed") ||
+    (!!content && getComputedStyle(content).transform !== "none");
+  cachedPinType = smoothed ? "transform" : "fixed";
+  return cachedPinType;
+}
+
 export function createSmoother() {
   registerGsap();
   return (
@@ -285,6 +314,25 @@ export type ChoreographyOptions = {
   syncPointer?: () => void;
 };
 
+/**
+ * The boxes that paint the journey's hand-over colour.
+ *
+ * The ramp used to be a tween of the *inherited* `--stage` on the section: every
+ * scroll tick then forced the browser to re-walk the journey's subtree and
+ * restyle everything that inherits the variable. On a phone that was the single
+ * largest style cost of the intro — a full scroll sweep measured 191 ms of style
+ * work with it, 75 ms with it removed. Painting the same ramp straight onto the
+ * boxes that use the variable leaves the colour at every scroll position
+ * identical without touching the tree.
+ */
+const HANDOFF_PAINTED = ".journey, .story-photo-mask, .rail-item, .coda-pic";
+
+/** `.works::before` reads `--handoff` from its own section, so the write is
+ *  scoped there instead of on the page root (which restyled every descendant). */
+function handoffScope(scope: HTMLElement): HTMLElement {
+  return scope.querySelector<HTMLElement>("#works") ?? scope;
+}
+
 function heroScroll(desktop: boolean) {
   gsap
     .timeline({
@@ -354,6 +402,7 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean) {
       start: "top top",
       end: () => `+=${total * vh()}`,
       pin: true,
+      pinType: pinType(),
       scrub: true,
       anticipatePin: 1,
       invalidateOnRefresh: true,
@@ -516,17 +565,17 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean) {
 
   tl
     // Black -> the photograph's night sky, from the gallery push to the coda.
-    // Every journey layer paints var(--stage), so tweening the variable on the
-    // section recolours all of them, and the timeline ends on exactly the
-    // colour the works stage starts with: the hand-over has no seam.
+    // Every journey layer paints the stage colour, so the ramp is painted on
+    // each of them directly (see HANDOFF_PAINTED), and the timeline ends on
+    // exactly the colour the works stage starts with: the hand-over has no seam.
     .fromTo(
-      stage,
-      { "--stage": cssColor(scope, "--stage", "#000000") },
-      { "--stage": cssColor(scope, "--sky", "#001c5c"), duration: total - at.push, ease: "sine.inOut" },
+      scope.querySelectorAll(HANDOFF_PAINTED),
+      { backgroundColor: cssColor(scope, "--stage", "#000000") },
+      { backgroundColor: cssColor(scope, "--sky", "#001c5c"), duration: total - at.push, ease: "sine.inOut" },
       at.push
     )
     .fromTo(
-      scope,
+      handoffScope(scope),
       { "--handoff": cssColor(scope, "--stage", "#000000") },
       {
         "--handoff": cssColor(scope, "--sky", "#001c5c"),
@@ -542,16 +591,16 @@ function journeyFlow(scope: HTMLElement, desktop: boolean, reduce: boolean) {
   const journey = scope.querySelector<HTMLElement>(".journey");
   if (journey) {
     gsap.fromTo(
-      journey,
-      { "--stage": cssColor(scope, "--stage", "#000000") },
+      scope.querySelectorAll(HANDOFF_PAINTED),
+      { backgroundColor: cssColor(scope, "--stage", "#000000") },
       {
-        "--stage": cssColor(scope, "--sky", "#001c5c"),
+        backgroundColor: cssColor(scope, "--sky", "#001c5c"),
         ease: "sine.inOut",
         scrollTrigger: { trigger: journey, start: "top 40%", end: "bottom bottom", scrub: true },
       }
     );
     gsap.fromTo(
-      scope,
+      handoffScope(scope),
       { "--handoff": cssColor(scope, "--stage", "#000000") },
       {
         "--handoff": cssColor(scope, "--sky", "#001c5c"),
@@ -608,6 +657,7 @@ function journeyFlow(scope: HTMLElement, desktop: boolean, reduce: boolean) {
         start: "center center",
         end: () => `+=${rail.scrollWidth * 0.9}`,
         pin: true,
+        pinType: pinType(),
         scrub: true,
         invalidateOnRefresh: true,
       },
@@ -849,6 +899,7 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
     endTrigger: "#contact",
     end: "clamp(top top)",
     pin: true,
+    pinType: pinType(),
     pinSpacing: false,
     anticipatePin: 1,
   });
