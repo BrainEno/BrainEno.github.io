@@ -34,8 +34,9 @@ type Props = {
   frameHeight: number;
   /** Alt text for the current language. */
   label: (text: LocalizedText) => string;
-  /** Theater mode: start the clip as soon as it is on the tube (muted), and
-   *  let stills drift slowly so the enlarged glass never looks frozen. */
+  /** Theater presentation mode: stills drift slowly while enlarged.
+   *  Video works autoplay whenever they are the active channel; this flag
+   *  only delays theater playback until the opening move has settled. */
   autoplay?: boolean;
 };
 
@@ -72,6 +73,7 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
   const rigActiveRef = useRef<boolean>(Boolean(active));
   const timeline = useRef<gsap.core.Timeline | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [autoplayFailed, setAutoplayFailed] = useState(false);
   /** Clips that failed to load fall back to the project still. */
   const [broken, setBroken] = useState<Record<string, true>>({});
 
@@ -112,6 +114,7 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
       video.pause();
       video.currentTime = 0;
       setIsPlaying(false);
+      setAutoplayFailed(false);
     }
 
     const commit = (work: TvWork | null) => {
@@ -235,8 +238,18 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
   const handleScreenClick = useCallback(() => {
     const video = videoRef.current;
     if (!video || !video.src) return;
+
     if (video.paused) {
-      void video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+      void video
+        .play()
+        .then(() => {
+          setIsPlaying(true);
+          setAutoplayFailed(false);
+        })
+        .catch(() => {
+          setIsPlaying(false);
+          setAutoplayFailed(true);
+        });
     } else {
       video.pause();
       setIsPlaying(false);
@@ -246,7 +259,10 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    const onPlay = () => setIsPlaying(true);
+    const onPlay = () => {
+      setIsPlaying(true);
+      setAutoplayFailed(false);
+    };
     const onPause = () => setIsPlaying(false);
     video.addEventListener("play", onPlay);
     video.addEventListener("pause", onPause);
@@ -259,19 +275,58 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
   const isVideoWork = Boolean(shown?.videoSrc) && !(shown?.videoSrc && broken[shown.videoSrc]);
   const posterSrc = shown?.videoPoster ?? shown?.src;
 
-  // Theater: play as soon as the picture has locked in; leaving the theater
-  // (or hovering back through the index) pauses and rewinds.
+  const activeId = active?.id ?? null;
+
+  /*
+   * Direct playback for the active video channel.
+   *
+   * Rows preview starts after the short channel-lock beat; theater waits for
+   * its longer opening move. The shown id must match the active id so a video
+   * from the previous channel never starts during the snow transition.
+   *
+   * Muted + playsInline makes this eligible for normal browser autoplay.
+   * If a browser still rejects it, the existing screen click and a fallback
+   * play icon remain available; no repeated retry loop is created.
+   */
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !isVideoWork) return;
-    if (!autoplay) {
+
+    if (!activeId || shown?.id !== activeId) {
       video.pause();
       return;
     }
-    const start = () => void video.play().catch(() => setIsPlaying(false));
-    const delay = window.setTimeout(start, 380);
-    return () => window.clearTimeout(delay);
-  }, [autoplay, isVideoWork, shown?.id]);
+
+    let cancelled = false;
+
+    const start = () => {
+      if (cancelled) return;
+      video.muted = true;
+      // Cleared on the attempt itself rather than in the effect body: a
+      // synchronous setState here would cascade an extra render per channel.
+      setAutoplayFailed(false);
+
+      void video
+        .play()
+        .then(() => {
+          if (cancelled) return;
+          setIsPlaying(true);
+          setAutoplayFailed(false);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setIsPlaying(false);
+          setAutoplayFailed(true);
+        });
+    };
+
+    const delay = window.setTimeout(start, autoplay ? 380 : 120);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(delay);
+    };
+  }, [activeId, autoplay, isVideoWork, shown?.id]);
 
   return (
     <div
@@ -320,7 +375,7 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
               className="tv-cover tv-video"
               src={shown?.videoSrc ? asset(shown.videoSrc) : undefined}
               poster={posterSrc ? asset(posterSrc) : undefined}
-              preload={autoplay ? "auto" : "metadata"}
+              preload="auto"
               muted
               loop
               playsInline
@@ -343,7 +398,7 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
           )}
         </div>
         <div className="tv-crt-optics" aria-hidden="true" />
-        {isVideoWork && !isPlaying ? (
+        {isVideoWork && autoplayFailed && !isPlaying ? (
           <div className="tv-play-btn" aria-hidden="true">
             <svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor">
               <path d="M8 5v14l11-7z" />
