@@ -56,22 +56,44 @@ type ImgProps = {
   water?: boolean | "subtle" | "strong";
 };
 
+/**
+ * Parsed results, keyed by content path.
+ *
+ * `Img` renders a dozen times on one page and re-renders on every hover in the
+ * works index (the television frame, the ambient halos and the alpha plate all
+ * live inside that tree). The manifest is a build-time constant, so splitting
+ * the same candidate list again on each render is pure waste — the answers are
+ * cached for the lifetime of the page.
+ */
+const srcSetCache = new Map<string, string | undefined>();
+const sizeCache = new Map<string, { width: number; height: number } | undefined>();
+
 /** The WebP candidate list for a source, if one was generated. */
 export function srcSetFor(src: string): string | undefined {
+  if (srcSetCache.has(src)) return srcSetCache.get(src);
+
   const srcSet = IMAGES[src]?.variants.find((variant) => variant.type === "image/webp")?.srcSet;
-  if (!srcSet) return undefined;
-  return srcSet
-    .split(",")
-    .map((candidate) => {
-      const [url, descriptor] = candidate.trim().split(/\s+/);
-      return descriptor ? `${asset(url)} ${descriptor}` : asset(url);
-    })
-    .join(", ");
+  const resolved = srcSet
+    ? srcSet
+        .split(",")
+        .map((candidate) => {
+          const [url, descriptor] = candidate.trim().split(/\s+/);
+          return descriptor ? `${asset(url)} ${descriptor}` : asset(url);
+        })
+        .join(", ")
+    : undefined;
+
+  srcSetCache.set(src, resolved);
+  return resolved;
 }
 
 export function intrinsicSize(src: string): { width: number; height: number } | undefined {
+  if (sizeCache.has(src)) return sizeCache.get(src);
+
   const entry = IMAGES[src];
-  return entry ? { width: entry.width, height: entry.height } : undefined;
+  const size = entry ? { width: entry.width, height: entry.height } : undefined;
+  sizeCache.set(src, size);
+  return size;
 }
 
 export function Img({
