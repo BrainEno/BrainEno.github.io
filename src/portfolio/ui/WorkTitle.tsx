@@ -32,11 +32,21 @@ export function WorkTitle({ text }: { text: string }) {
          */
         ctx.font = `${style.fontStyle} ${style.fontWeight} 100px ${style.fontFamily}`;
 
-        /* letter-spacing is reported in the row's own px size; the canvas
-         * above measures at 100px, so the spacing is normalised to that scale
-         * before it is added to the advance width. */
         const parsedSpacing = parseFloat(style.letterSpacing);
-        const spacing = Number.isFinite(parsedSpacing) ? (parsedSpacing * 100) / size : 0;
+        const layerFontSize = parseFloat(style.fontSize);
+
+        /*
+         * Computed letter-spacing is an absolute px value derived from this
+         * layer's own font-size, including --work-fit and, for the serif,
+         * --work-cap. Normalise against that layer size rather than the
+         * root's --work-size.
+         */
+        const spacing =
+          Number.isFinite(parsedSpacing) &&
+          Number.isFinite(layerFontSize) &&
+          layerFontSize > 0
+            ? (parsedSpacing * 100) / layerFontSize
+            : 0;
         const glyphCount = Array.from(label).length;
         const advance = ctx.measureText(label).width + Math.max(0, glyphCount - 1) * spacing;
 

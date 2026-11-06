@@ -1855,9 +1855,10 @@ canvas[data-water-canvas] {
   box-shadow: inset 0 0 0.8vmin rgba(0, 0, 0, 0.18);
 }
 
+/* The play glyph is no longer a permanent overlay: TvShowreel renders it only
+   after a rejected autoplay, so the enlarged theater glass must show it too. */
 .works[data-tv-phase="theater"] .tv-seam,
-.works[data-tv-phase="theater"] .tv-osd-layer,
-.works[data-tv-phase="theater"] .tv-play-btn {
+.works[data-tv-phase="theater"] .tv-osd-layer {
   visibility: hidden;
 }
 

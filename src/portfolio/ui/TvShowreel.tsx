@@ -74,6 +74,12 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
   const timeline = useRef<gsap.core.Timeline | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [autoplayFailed, setAutoplayFailed] = useState(false);
+  /**
+   * True only while the viewer has asked for a pause. Browser- or
+   * system-initiated pauses never set it, so opening or closing the
+   * theater cannot silently resume a clip the viewer stopped.
+   */
+  const userPausedRef = useRef(false);
   /** Clips that failed to load fall back to the project still. */
   const [broken, setBroken] = useState<Record<string, true>>({});
 
@@ -113,6 +119,7 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
     if (video) {
       video.pause();
       video.currentTime = 0;
+      userPausedRef.current = false;
       setIsPlaying(false);
       setAutoplayFailed(false);
     }
@@ -240,6 +247,8 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
     if (!video || !video.src) return;
 
     if (video.paused) {
+      userPausedRef.current = false;
+
       void video
         .play()
         .then(() => {
@@ -251,6 +260,7 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
           setAutoplayFailed(true);
         });
     } else {
+      userPausedRef.current = true;
       video.pause();
       setIsPlaying(false);
     }
@@ -297,10 +307,14 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
       return;
     }
 
+    // The viewer stopped this channel: respect it until a new channel starts.
+    if (userPausedRef.current) return;
+
     let cancelled = false;
 
     const start = () => {
-      if (cancelled) return;
+      if (cancelled || userPausedRef.current || !video.paused) return;
+
       video.muted = true;
       // Cleared on the attempt itself rather than in the effect body: a
       // synchronous setState here would cascade an extra render per channel.
@@ -381,6 +395,14 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
               playsInline
               onClick={handleScreenClick}
               onError={() => shown?.videoSrc && setBroken((prev) => ({ ...prev, [shown.videoSrc as string]: true }))}
+              role="button"
+              tabIndex={active ? 0 : -1}
+              aria-pressed={isPlaying}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                handleScreenClick();
+              }}
               aria-label={shown ? label(shown.alt) : ""}
               draggable={false}
             />
