@@ -42,6 +42,14 @@ export function PhoneBoothModel({ src, fallback, spin = 0.16, plateText }: Props
     let disposed = false;
     let handle: BoothHandle | null = null;
     let loading = false;
+    /*
+     * The pause observer starts observing before the model has finished
+     * loading, so its first callback (which can already say "off screen")
+     * normally lands while `handle` is still null. Remembering the answer here
+     * — instead of only forwarding it — keeps the freshly mounted render loop
+     * from spinning at 60 fps for the whole approach to the contact section.
+     */
+    let onScreen = true;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const mount = async () => {
@@ -56,6 +64,8 @@ export function PhoneBoothModel({ src, fallback, spin = 0.16, plateText }: Props
           return;
         }
         handle = mounted;
+        // Apply the intersection state that may have arrived before mounting.
+        handle.setPaused(!onScreen);
         // Written straight to the DOM instead of through state: the canvas is
         // already painted at this point and the cutout underneath must be
         // hidden in the same frame (a React re-render would let one frame of
@@ -93,8 +103,8 @@ export function PhoneBoothModel({ src, fallback, spin = 0.16, plateText }: Props
     // Park the render loop whenever the booth is off screen.
     const pause = new IntersectionObserver(
       (entries) => {
-        const visible = entries.some((entry) => entry.isIntersecting);
-        handle?.setPaused(!visible);
+        onScreen = entries.some((entry) => entry.isIntersecting);
+        handle?.setPaused(!onScreen);
       },
       { rootMargin: "20% 0px 20% 0px" }
     );

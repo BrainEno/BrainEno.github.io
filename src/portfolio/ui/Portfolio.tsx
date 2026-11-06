@@ -198,9 +198,37 @@ function Cursor({
       }
     };
 
+    /*
+     * Hit testing costs a `closest()` walk, a `#works` lookup and — over the
+     * tube — two `querySelector`s plus a layout read. A 120 Hz pointer would
+     * run all of that (and the React state it can trigger) three times per
+     * painted frame for no visible gain, so the last event of a frame wins.
+     */
+    let queued = 0;
+    let lastTarget: Element | null = null;
+
+    const flush = () => {
+      queued = 0;
+      evaluateTarget(lastTarget);
+    };
+
+    const queue = (target: Element | null) => {
+      lastTarget = target;
+      if (!queued) queued = window.requestAnimationFrame(flush);
+    };
+
+    const cancelQueued = () => {
+      if (!queued) return;
+      window.cancelAnimationFrame(queued);
+      queued = 0;
+    };
+
+    // Programmatic re-syncs (after the theater closes) must land immediately.
     syncRef.current = () => {
       if (!visible) return;
-      evaluateTarget(document.elementFromPoint(pointerX, pointerY));
+      cancelQueued();
+      lastTarget = document.elementFromPoint(pointerX, pointerY);
+      evaluateTarget(lastTarget);
     };
 
     const onMove = (event: PointerEvent) => {
@@ -213,10 +241,11 @@ function Cursor({
       }
       xTo(pointerX);
       yTo(pointerY);
-      evaluateTarget(event.target as Element | null);
+      queue(event.target as Element | null);
     };
     const onLeave = () => {
       visible = false;
+      cancelQueued();
       gsap.to(el, { autoAlpha: 0, duration: 0.3 });
       if (!document.activeElement?.closest(".work-row")) onHoverWork(-1);
     };
@@ -224,6 +253,7 @@ function Cursor({
     document.documentElement.addEventListener("pointerleave", onLeave);
     return () => {
       syncRef.current = null;
+      cancelQueued();
       window.removeEventListener("pointermove", onMove);
       document.documentElement.removeEventListener("pointerleave", onLeave);
     };
@@ -396,12 +426,25 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
       else if (event.key === "ArrowRight") stepWork(1);
       else if (event.key === "ArrowLeft") stepWork(-1);
     };
-    const onResize = () => theaterRef.current?.refit();
+    /*
+     * A dragged window edge fires `resize` at pointer rate, and every call
+     * measures the stage and restarts a 0.35 s tween. Coalescing to one refit
+     * per frame leaves the same resting geometry without the churn.
+     */
+    let refitFrame = 0;
+    const onResize = () => {
+      if (refitFrame) return;
+      refitFrame = window.requestAnimationFrame(() => {
+        refitFrame = 0;
+        theaterRef.current?.refit();
+      });
+    };
     window.addEventListener("keydown", onKey);
     window.addEventListener("resize", onResize);
     return () => {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("resize", onResize);
+      if (refitFrame) window.cancelAnimationFrame(refitFrame);
     };
   }, [closeWork, stepWork]);
 

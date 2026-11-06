@@ -18,6 +18,16 @@ export function WorkTitle({ text }: { text: string }) {
     let frame = 0;
     const measure = () => {
       if (disposed) return;
+
+      /*
+       * A row can be measured while it is hidden (a collapsed breakpoint, a
+       * detached tree during a language switch). `clientWidth` is 0 there, and
+       * the fit would be written as 0 — a title with a zero font-size. Keep the
+       * previous custom properties and let the ResizeObserver fire again once
+       * the row has a real box.
+       */
+      if (!root.clientWidth) return;
+
       const size = parseFloat(getComputedStyle(root).fontSize);
       const a = getComputedStyle(normal);
       const b = getComputedStyle(alternate);
@@ -85,14 +95,17 @@ export function WorkTitle({ text }: { text: string }) {
     };
     const observer = new ResizeObserver(schedule);
     observer.observe(root);
-    document.fonts.addEventListener("loadingdone", schedule);
-    void document.fonts.ready.then(schedule);
+    // `document.fonts` is optional on purpose: the rest of the app treats the
+    // FontFaceSet as a progressive enhancement, and a missing one must not take
+    // the whole works index down with it.
+    document.fonts?.addEventListener("loadingdone", schedule);
+    if (document.fonts) void document.fonts.ready.then(schedule);
     measure();
     return () => {
       disposed = true;
       cancelAnimationFrame(frame);
       observer.disconnect();
-      document.fonts.removeEventListener("loadingdone", schedule);
+      document.fonts?.removeEventListener("loadingdone", schedule);
     };
   }, [text, cjk]);
 
