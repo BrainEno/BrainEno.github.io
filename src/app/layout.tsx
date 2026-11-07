@@ -14,7 +14,8 @@ import "@fontsource/inria-serif/latin-400.css";
 import "@fontsource/inria-serif/latin-400-italic.css";
 import "@fontsource/inria-serif/latin-700.css";
 import { getSiteContent } from "@/portfolio/content/source";
-import { htmlLang, pageTitle, pickText, siteUrl, absoluteUrl } from "@/portfolio/seo/site";
+import { htmlLang, pageTitle, pickText, siteUrl, shareImage } from "@/portfolio/seo/site";
+import { asset } from "@/portfolio/seo/asset";
 import PwaRegister from "@/portfolio/ui/PwaRegister";
 import WaterHover from "@/portfolio/ui/WaterHover";
 import "./globals.css";
@@ -28,7 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const lang = content.identity.defaultLanguage;
   const title = pageTitle(content);
   const description = pickText(content.identity.description, lang);
-  const image = absoluteUrl(content.hero.image.src);
+  const image = shareImage(content.hero.image.src, pickText(content.hero.image.alt, lang));
   return {
     metadataBase: siteUrl(),
     title: { default: title, template: `%s — ${pickText(content.identity.siteName, lang) || content.identity.name}` },
@@ -39,6 +40,13 @@ export async function generateMetadata(): Promise<Metadata> {
     keywords: [content.identity.name, ...content.works.items.map((w) => pickText(w.title, lang))],
     alternates: { canonical: "/" },
     manifest: "/manifest.webmanifest",
+    // iOS takes the home-screen icon from this link, not from the manifest, and
+    // search/social crawlers use it as the site's visual mark.
+    icons: {
+      icon: [{ url: asset("/icon.svg"), type: "image/svg+xml" }],
+      apple: [{ url: asset("/icons/icon-192.png"), sizes: "192x192", type: "image/png" }],
+      shortcut: [{ url: asset("/icons/icon-192.png") }],
+    },
     appleWebApp: { capable: true, title: content.identity.name, statusBarStyle: "black-translucent" },
     formatDetection: { telephone: false },
     openGraph: {
@@ -48,10 +56,34 @@ export async function generateMetadata(): Promise<Metadata> {
       description,
       url: "/",
       locale: lang === "zh" ? "zh_CN" : "en_US",
-      images: [{ url: image, alt: pickText(content.hero.image.alt, lang) }],
+      // The other language is the same URL, so `alternateLocale` is the honest
+      // signal: cards pick the reader's language, crawlers still see one page.
+      alternateLocale: lang === "zh" ? ["en_US"] : ["zh_CN"],
+      images: [image],
     },
-    twitter: { card: "summary_large_image", title, description, images: [image] },
-    robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large" } },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      creator: content.identity.name,
+      images: [image.url],
+    },
+    // `max-snippet`/`max-video-preview` widen what a search result may quote;
+    // the defaults truncate the description on some engines.
+    robots: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      },
+    },
   };
 }
 

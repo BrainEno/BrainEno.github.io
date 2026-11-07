@@ -2479,6 +2479,28 @@ canvas[data-water-canvas] {
   transition: transform 0.6s var(--ease-out);
 }
 
+/* The arrow is an inline path (`ui/Arrow.tsx`), not the character `↗`: sized in
+   `em` so it keeps the optical weight of the glyph it replaces, and flushed to
+   the line box the way a glyph is, so nothing around it moves. */
+.contact-mail-arrow svg {
+  display: block;
+  width: 0.84em;
+  height: 0.56em;
+  margin-bottom: 0.115em;
+}
+
+/* `width` keeps the advance the glyph had (0.84em) and `height` the ink it
+   drew (0.56em): `preserveAspectRatio` centres the square drawing inside that
+   box, so the arrow lands on the same box the character occupied and the
+   link's own gap/spacing does not move. */
+.tv-sheet-link svg,
+.contact-arrow svg {
+  display: inline-block;
+  width: 0.84em;
+  height: 0.56em;
+  vertical-align: 0.04em;
+}
+
 @media (hover: hover) {
   .contact-mail:hover::after {
     transform: scaleX(1);

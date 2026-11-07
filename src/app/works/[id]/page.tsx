@@ -3,7 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSiteContent } from "@/portfolio/content/source";
 import { Img } from "@/portfolio/ui/Img";
-import { absoluteUrl, pickText, siteUrl } from "@/portfolio/seo/site";
+import { ArrowIcon } from "@/portfolio/ui/Arrow";
+import { pickText, shareImage, siteUrl } from "@/portfolio/seo/site";
 import "@/portfolio/styles/work-detail.css";
 
 /**
@@ -32,8 +33,10 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const title = pickText(work.title, lang);
   const description = pickText(work.description, lang);
   const imageSrc = work.image.src || content.hero.image.src;
-  const image = imageSrc ? absoluteUrl(imageSrc) : undefined;
   const imageAlt = pickText((work.image.src ? work.image : content.hero.image).alt, lang) || title;
+  // Largest WebP rung with its real dimensions, not the multi-megabyte original:
+  // a link paste into a messenger should render a card, not time out.
+  const image = imageSrc ? shareImage(imageSrc, imageAlt) : undefined;
   return {
     title,
     description,
@@ -43,13 +46,15 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       title,
       description,
       url: `/works/${work.id}/`,
-      images: image ? [{ url: image, alt: imageAlt }] : undefined,
+      locale: lang === "zh" ? "zh_CN" : "en_US",
+      alternateLocale: lang === "zh" ? ["en_US"] : ["zh_CN"],
+      images: image ? [image] : undefined,
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: image ? [image] : undefined,
+      images: image ? [image.url] : undefined,
     },
   };
 }
@@ -62,12 +67,33 @@ export default async function WorkPage({ params }: Params) {
   const lang = content.identity.defaultLanguage;
   const images = [work.image, ...work.detailImages].filter((image) => image.src);
   const origin = siteUrl().toString().replace(/\/$/, "");
+  const title = pickText(work.title, lang);
+  const share = images[0] ? shareImage(images[0].src, pickText(images[0].alt, lang) || title) : undefined;
+  // Two nodes: the trail the reader walked, and the work itself as a
+  // `CreativeWork` with its author and dates — the shape search engines expect
+  // for a portfolio entry, and the one that survives a no-JS crawl.
   const ld = {
     "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: content.identity.name, item: `${origin}/` },
-      { "@type": "ListItem", position: 2, name: pickText(work.title, lang), item: `${origin}/works/${work.id}/` },
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: content.identity.name, item: `${origin}/` },
+          { "@type": "ListItem", position: 2, name: title, item: `${origin}/works/${work.id}/` },
+        ],
+      },
+      {
+        "@type": "CreativeWork",
+        "@id": `${origin}/works/${work.id}/#work`,
+        name: title,
+        description: pickText(work.description, lang),
+        url: `${origin}/works/${work.id}/`,
+        dateCreated: work.year,
+        inLanguage: lang === "zh" ? "zh-Hans" : "en",
+        image: share ? { "@type": "ImageObject", url: share.url, width: share.width, height: share.height } : undefined,
+        creator: { "@type": "Person", name: content.identity.name, url: `${origin}/` },
+        isPartOf: { "@type": "WebSite", name: pickText(content.identity.siteName, lang) || content.identity.name, url: `${origin}/` },
+      },
     ],
   };
 
@@ -96,7 +122,7 @@ export default async function WorkPage({ params }: Params) {
           target="_blank"
           rel="noreferrer noopener"
         >
-          {work.url.replace(/^https?:\/\//, "")} ↗
+          {work.url.replace(/^https?:\/\//, "")} <ArrowIcon />
         </a>
       ) : null}
       <div className="wd-grid">

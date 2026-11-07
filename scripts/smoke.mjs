@@ -128,11 +128,17 @@ try {
   const robots = await head(route("/robots.txt"));
   const robotsBody = await robots.text();
   check("robots.txt → 200", robots.status === 200, `status ${robots.status}`);
+  // Every `Disallow` must point at the offline shell and nothing else. The
+  // rule used to be "exactly one Disallow line", which passed only while there
+  // was a single user-agent group; naming market-specific crawlers
+  // (Baiduspider, Sogou, 360, Bytespider) gives each group its own line, and
+  // the property that actually matters is *what* is blocked, not how many
+  // times it is written down.
+  const disallows = robotsBody.match(/^Disallow:.*$/gm) ?? [];
   check(
     "robots.txt only disallows /offline",
-    robotsBody.split("\n").filter((line) => line.startsWith("Disallow:")).length === 1 &&
-      /Disallow: .*\/offline/.test(robotsBody),
-    robotsBody.match(/^Disallow:.*$/gm)?.join(" ")
+    disallows.length > 0 && disallows.every((line) => /^Disallow:\s*\S*\/offline$/.test(line)),
+    disallows.join(" ") || "no Disallow lines"
   );
   check("robots.txt points at the sitemap", /Sitemap: https?:\/\//.test(robotsBody));
   const manifestResponse = await head(route("/manifest.webmanifest"));
@@ -173,7 +179,15 @@ try {
     }
     // `<link rel="preconnect" href="/">` points at the *origin*, not at a file;
     // on a project site that is somebody else's root. It is not a fetch.
-    const html = readFileSync(file, "utf8").replace(/<link[^>]+rel="(?:preconnect|dns-prefetch)"[^>]*>/g, "");
+    // `<script>` and `<style>` bodies are not markup: with the sheet inlined
+    // (`experimental.inlineCss`), the RSC payload inside the hydration script
+    // carries its own `"href":"/_next/static/…css"` strings, and the old scan
+    // read them as attributes — turning two real URLs into one bogus one and
+    // failing a site that serves every file it references.
+    const html = readFileSync(file, "utf8")
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+      .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
+      .replace(/<link[^>]+rel="(?:preconnect|dns-prefetch)"[^>]*>/g, "");
     const add = (raw) => {
       const url = raw.split("#")[0].split("?")[0];
       // Only site-absolute URLs are this export's business; relative links

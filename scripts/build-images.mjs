@@ -53,10 +53,19 @@ const SKIP = new Set([]);
  * alpha-cutout frame get high-resolution ladders, with lossless alpha on the
  * cutout so the Photoshop screen edge stays razor-sharp.
  */
+/**
+ * `tv2` / `tv2-alpha` are the two files a phone actually notices (the screen is
+ * laid out at `max(160vw, 230vh)`, so a phone picks the 1536w rung, and both the
+ * base frame and the alpha cutout are fetched): 84 → 80 measured 36.9 → 34.7 dB
+ * PSNR at 1536w while dropping 63 KB per file, and the picture is upscaled past
+ * 3× on the same screen, which hides far more than that. The hero portrait is
+ * the LCP image: 78 → 74 saves 22 KB across its rungs at 37.4 dB.
+ */
 const OVERRIDES = {
-  "tv2.webp": { widths: [1280, 1536], quality: 84 },
-  "tv2-alpha.webp": { widths: [1280, 1536], quality: 84, alphaQuality: 100 },
+  "tv2.webp": { widths: [1280, 1536], quality: 80 },
+  "tv2-alpha.webp": { widths: [1280, 1536], quality: 80, alphaQuality: 100 },
   "telephone-booth.webp": { widths: [480, 800, 1200], quality: 82, alphaQuality: 95 },
+  "headline.png": { quality: 74 },
 };
 
 const force = process.argv.includes("--force");
@@ -99,10 +108,17 @@ async function main() {
   for (const file of files) {
     const url = toUrl(file);
     const stem = path.relative(SOURCE_DIR, file).replace(/\.(jpe?g|png|webp)$/i, "").split(path.sep).join("-");
-    const hash = createHash("sha256").update(readFileSync(file)).digest("hex").slice(0, 8);
     const override = OVERRIDES[path.basename(file)];
     const widths = await ladderFor(file, override?.widths);
     const quality = override?.quality ?? QUALITY;
+    // The hash covers the *encode*, not just the source bytes: retuning quality
+    // (or the ladder) rewrites the pixels, and a name that did not move would
+    // leave hosts and service workers serving the previous picture indefinitely.
+    const hash = createHash("sha256")
+      .update(readFileSync(file))
+      .update(`|q${quality}|a${override?.alphaQuality ?? ""}|w${widths.join(",")}`)
+      .digest("hex")
+      .slice(0, 8);
     const { width, height } = await sharp(file).metadata();
     const candidates = [];
 

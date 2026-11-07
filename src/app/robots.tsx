@@ -13,8 +13,19 @@ export function generateStaticParams() {
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
   const origin = siteUrl().toString().replace(/\/$/, "");
+  // The offline shell is a PWA fallback, not a page: keep it out of the index
+  // for every crawler. The named agents are the ones that matter for a
+  // mainland-China audience — an explicit rule costs nothing and removes any
+  // doubt about the wildcard when a market-specific crawler is conservative.
+  const rules = [
+    { userAgent: "*", allow: "/", disallow: [`${BASE_PATH}/offline`] },
+    { userAgent: "Baiduspider", allow: "/", disallow: [`${BASE_PATH}/offline`] },
+    { userAgent: "Sogou web spider", allow: "/", disallow: [`${BASE_PATH}/offline`] },
+    { userAgent: "360Spider", allow: "/", disallow: [`${BASE_PATH}/offline`] },
+    { userAgent: "Bytespider", allow: "/", disallow: [`${BASE_PATH}/offline`] },
+  ];
   return {
-    rules: [{ userAgent: "*", allow: "/", disallow: [`${BASE_PATH}/offline`] }],
+    rules,
     sitemap: `${origin}/sitemap.xml`,
     host: origin,
   };

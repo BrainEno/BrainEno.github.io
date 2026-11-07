@@ -11,7 +11,7 @@
  *
  * Bump VERSION to drop all caches on the next visit.
  */
-const VERSION = "v4";
+const VERSION = "v5";
 const STATIC = `pf-static-${VERSION}`;
 const PAGES = `pf-pages-${VERSION}`;
 /** `""` at a domain root (`BrainEno.github.io`), `"/<repo>"` under a Pages project site. */
@@ -63,6 +63,43 @@ async function networkFirst(request, cacheName, fallbackUrl) {
   }
 }
 
+/**
+ * How long a navigation waits for the network before the cached page is used.
+ *
+ * Network-first is the right default here (a deploy must be visible on the next
+ * load), but it assumes the network *answers*. On a phone in mainland China a
+ * request to the Pages CDN can sit for tens of seconds before it fails, and the
+ * reader stares at a blank tab the whole time even though the page is already
+ * in the cache. Four seconds is longer than a healthy load and shorter than a
+ * reader's patience; the network request is not cancelled, it keeps running and
+ * refreshes the cache for the *next* navigation.
+ */
+const NAV_TIMEOUT = 4000;
+
+async function navigationFirst(request, fallbackUrl) {
+  const cache = await caches.open(PAGES);
+  const cached = await cache.match(request);
+  const network = fetch(request).then((response) => {
+    if (response.ok) cache.put(request, response.clone());
+    return response;
+  });
+  const settled = network.catch(() => undefined);
+  if (!cached) {
+    const fresh = await settled;
+    if (fresh) return fresh;
+    if (fallbackUrl) {
+      const fallback = await cache.match(fallbackUrl);
+      if (fallback) return fallback;
+    }
+    return new Response("Offline", { status: 503, statusText: "Offline" });
+  }
+  const timer = new Promise((resolve) => setTimeout(() => resolve(undefined), NAV_TIMEOUT));
+  const winner = await Promise.race([settled, timer]);
+  // Keep the in-flight request alive so the cache is warm next time.
+  void settled;
+  return winner || cached;
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
@@ -75,7 +112,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   if (request.mode === "navigate") {
-    event.respondWith(networkFirst(request, PAGES, at("/offline")));
+    event.respondWith(navigationFirst(request, at("/offline")));
     return;
   }
   if (url.pathname === at("/manifest.webmanifest")) {
