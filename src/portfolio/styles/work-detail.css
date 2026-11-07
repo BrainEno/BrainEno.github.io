@@ -23,6 +23,8 @@
 .wd-title { margin: 0; font-family: var(--font-sans); font-weight: 500; font-size: clamp(2.6rem, 9vw, 8rem); line-height: .95; letter-spacing: -.045em; overflow-wrap: anywhere; }
 .wd-text { max-width: 44em; margin: 0 0 2em; font-size: clamp(1rem, 1.4vw, 1.25rem); line-height: 1.7; color: #d6d6d6; }
 .wd-link { display: inline-block; margin-bottom: 8svh; }
+/* Inline arrow path, sized like the glyph it replaces (see ui/Arrow.tsx). */
+.wd-link svg { display: inline-block; width: 0.84em; height: 0.56em; vertical-align: 0.04em; }
 .wd-access {
   max-width: 44em;
   margin: 0 0 8svh;

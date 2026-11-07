@@ -18,6 +18,7 @@ import type { Language, PortfolioContent } from "../content/types";
 import { cx } from "./cx";
 import { PhoneBoothModel } from "./PhoneBoothModel";
 import { WorkTitle } from "./WorkTitle";
+import { ArrowIcon } from "./Arrow";
 
 type SectionProps<K extends keyof PortfolioContent> = {
   lang: Language;
@@ -494,7 +495,9 @@ export function Works({
                       data-cursor="link"
                     >
                       <span>{zh ? "查看仓库" : "Open repository"}</span>
-                      <span aria-hidden="true">↗</span>
+                      <span aria-hidden="true">
+                        <ArrowIcon />
+                      </span>
                     </a>
                   ) : null}
                 </div>
@@ -766,7 +769,9 @@ export const Contact = memo(function Contact({ lang, content }: SectionProps<"co
                 <span className="contact-mail-text">{content.email}</span>
               </span>
               <span className="contact-mail-arrow" aria-hidden="true">
-                <span>↗</span>
+                <span>
+                  <ArrowIcon />
+                </span>
               </span>
             </a>
           </div>
@@ -781,7 +786,11 @@ export const Contact = memo(function Contact({ lang, content }: SectionProps<"co
               {...(handleExternal ? { target: "_blank", rel: "noreferrer" } : {})}
             >
               <span>{content.phone}</span>
-              {handleExternal ? <span className="contact-arrow" aria-hidden="true">↗</span> : null}
+              {handleExternal ? (
+                <span className="contact-arrow" aria-hidden="true">
+                  <ArrowIcon />
+                </span>
+              ) : null}
             </a>
           </div>
         </div>

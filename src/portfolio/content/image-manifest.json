@@ -9,11 +9,11 @@
     "/images/headline.png": {
       "width": 1086,
       "height": 1448,
-      "quality": 78,
+      "quality": 74,
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/headline-480.d354425f.webp 480w, /images/opt/headline-800.d354425f.webp 800w, /images/opt/headline-1086.d354425f.webp 1086w"
+          "srcSet": "/images/opt/headline-480.2358d60f.webp 480w, /images/opt/headline-800.2358d60f.webp 800w, /images/opt/headline-1086.2358d60f.webp 1086w"
         }
       ]
     },
@@ -24,7 +24,7 @@
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/no-wave1-480.72e7d11c.webp 480w, /images/opt/no-wave1-800.72e7d11c.webp 800w, /images/opt/no-wave1-1200.72e7d11c.webp 1200w, /images/opt/no-wave1-3838.72e7d11c.webp 3838w"
+          "srcSet": "/images/opt/no-wave1-480.2c14b50a.webp 480w, /images/opt/no-wave1-800.2c14b50a.webp 800w, /images/opt/no-wave1-1200.2c14b50a.webp 1200w, /images/opt/no-wave1-3838.2c14b50a.webp 3838w"
         }
       ]
     },
@@ -35,7 +35,7 @@
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/profilephoto-480.c0ab8e27.webp 480w, /images/opt/profilephoto-800.c0ab8e27.webp 800w, /images/opt/profilephoto-1000.c0ab8e27.webp 1000w"
+          "srcSet": "/images/opt/profilephoto-480.7700a20d.webp 480w, /images/opt/profilephoto-800.7700a20d.webp 800w, /images/opt/profilephoto-1000.7700a20d.webp 1000w"
         }
       ]
     },
@@ -46,7 +46,7 @@
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/red1-480.c7373516.webp 480w, /images/opt/red1-800.c7373516.webp 800w, /images/opt/red1-1200.c7373516.webp 1200w, /images/opt/red1-3838.c7373516.webp 3838w"
+          "srcSet": "/images/opt/red1-480.01a5bea5.webp 480w, /images/opt/red1-800.01a5bea5.webp 800w, /images/opt/red1-1200.01a5bea5.webp 1200w, /images/opt/red1-3838.01a5bea5.webp 3838w"
         }
       ]
     },
@@ -57,7 +57,7 @@
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/red2-480.5b76564d.webp 480w, /images/opt/red2-800.5b76564d.webp 800w, /images/opt/red2-1200.5b76564d.webp 1200w, /images/opt/red2-3817.5b76564d.webp 3817w"
+          "srcSet": "/images/opt/red2-480.48efc6c0.webp 480w, /images/opt/red2-800.48efc6c0.webp 800w, /images/opt/red2-1200.48efc6c0.webp 1200w, /images/opt/red2-3817.48efc6c0.webp 3817w"
         }
       ]
     },
@@ -68,7 +68,7 @@
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/screenshot1-480.28110c9d.webp 480w, /images/opt/screenshot1-800.28110c9d.webp 800w"
+          "srcSet": "/images/opt/screenshot1-480.85d43617.webp 480w, /images/opt/screenshot1-800.85d43617.webp 800w"
         }
       ]
     },
@@ -79,7 +79,7 @@
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/screenshot2-480.f4bdf37d.webp 480w, /images/opt/screenshot2-800.f4bdf37d.webp 800w"
+          "srcSet": "/images/opt/screenshot2-480.b3046e2c.webp 480w, /images/opt/screenshot2-800.b3046e2c.webp 800w"
         }
       ]
     },
@@ -90,29 +90,29 @@
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/telephone-booth-480.e09ae040.webp 480w, /images/opt/telephone-booth-800.e09ae040.webp 800w, /images/opt/telephone-booth-1200.e09ae040.webp 1200w, /images/opt/telephone-booth-1530.e09ae040.webp 1530w"
+          "srcSet": "/images/opt/telephone-booth-480.1517fe5b.webp 480w, /images/opt/telephone-booth-800.1517fe5b.webp 800w, /images/opt/telephone-booth-1200.1517fe5b.webp 1200w, /images/opt/telephone-booth-1530.1517fe5b.webp 1530w"
         }
       ]
     },
     "/images/tv2-alpha.webp": {
       "width": 1536,
       "height": 1024,
-      "quality": 84,
+      "quality": 80,
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/tv2-alpha-1280.cf59d68a.webp 1280w, /images/opt/tv2-alpha-1536.cf59d68a.webp 1536w"
+          "srcSet": "/images/opt/tv2-alpha-1280.17e8cda6.webp 1280w, /images/opt/tv2-alpha-1536.17e8cda6.webp 1536w"
         }
       ]
     },
     "/images/tv2.webp": {
       "width": 1536,
       "height": 1024,
-      "quality": 84,
+      "quality": 80,
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/tv2-1280.f7c4fb11.webp 1280w, /images/opt/tv2-1536.f7c4fb11.webp 1536w"
+          "srcSet": "/images/opt/tv2-1280.dda3add4.webp 1280w, /images/opt/tv2-1536.dda3add4.webp 1536w"
         }
       ]
     },
@@ -123,7 +123,7 @@
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/work3-480.81125d29.webp 480w, /images/opt/work3-800.81125d29.webp 800w, /images/opt/work3-1200.81125d29.webp 1200w"
+          "srcSet": "/images/opt/work3-480.a083929b.webp 480w, /images/opt/work3-800.a083929b.webp 800w, /images/opt/work3-1200.a083929b.webp 1200w"
         }
       ]
     },
@@ -134,7 +134,7 @@
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/work4-480.be7565a3.webp 480w, /images/opt/work4-800.be7565a3.webp 800w, /images/opt/work4-1200.be7565a3.webp 1200w"
+          "srcSet": "/images/opt/work4-480.670fdaa6.webp 480w, /images/opt/work4-800.670fdaa6.webp 800w, /images/opt/work4-1200.670fdaa6.webp 1200w"
         }
       ]
     },
@@ -145,7 +145,7 @@
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/work5-480.b113a829.webp 480w, /images/opt/work5-800.b113a829.webp 800w, /images/opt/work5-1200.b113a829.webp 1200w"
+          "srcSet": "/images/opt/work5-480.902870b7.webp 480w, /images/opt/work5-800.902870b7.webp 800w, /images/opt/work5-1200.902870b7.webp 1200w"
         }
       ]
     },
@@ -156,7 +156,7 @@
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/works-flutter-blog-480.26757460.webp 480w, /images/opt/works-flutter-blog-800.26757460.webp 800w, /images/opt/works-flutter-blog-1200.26757460.webp 1200w"
+          "srcSet": "/images/opt/works-flutter-blog-480.3fda114c.webp 480w, /images/opt/works-flutter-blog-800.3fda114c.webp 800w, /images/opt/works-flutter-blog-1200.3fda114c.webp 1200w"
         }
       ]
     },
@@ -167,7 +167,7 @@
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/works-lyric-forge-ktv-480.3f92fd11.webp 480w, /images/opt/works-lyric-forge-ktv-800.3f92fd11.webp 800w, /images/opt/works-lyric-forge-ktv-1200.3f92fd11.webp 1200w, /images/opt/works-lyric-forge-ktv-1600.3f92fd11.webp 1600w"
+          "srcSet": "/images/opt/works-lyric-forge-ktv-480.ccd595e9.webp 480w, /images/opt/works-lyric-forge-ktv-800.ccd595e9.webp 800w, /images/opt/works-lyric-forge-ktv-1200.ccd595e9.webp 1200w, /images/opt/works-lyric-forge-ktv-1600.ccd595e9.webp 1600w"
         }
       ]
     },
@@ -178,7 +178,7 @@
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/works-remix-partfolio-480.4f29676d.webp 480w, /images/opt/works-remix-partfolio-800.4f29676d.webp 800w, /images/opt/works-remix-partfolio-1200.4f29676d.webp 1200w, /images/opt/works-remix-partfolio-1600.4f29676d.webp 1600w"
+          "srcSet": "/images/opt/works-remix-partfolio-480.56839916.webp 480w, /images/opt/works-remix-partfolio-800.56839916.webp 800w, /images/opt/works-remix-partfolio-1200.56839916.webp 1200w, /images/opt/works-remix-partfolio-1600.56839916.webp 1600w"
         }
       ]
     },
@@ -189,7 +189,7 @@
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/works-scribeforge-480.36c3d826.webp 480w, /images/opt/works-scribeforge-800.36c3d826.webp 800w, /images/opt/works-scribeforge-1200.36c3d826.webp 1200w, /images/opt/works-scribeforge-1600.36c3d826.webp 1600w"
+          "srcSet": "/images/opt/works-scribeforge-480.1776914a.webp 480w, /images/opt/works-scribeforge-800.1776914a.webp 800w, /images/opt/works-scribeforge-1200.1776914a.webp 1200w, /images/opt/works-scribeforge-1600.1776914a.webp 1600w"
         }
       ]
     },
@@ -200,7 +200,7 @@
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/works-sureshot-archive-detail-480.91fc6fe7.webp 480w, /images/opt/works-sureshot-archive-detail-800.91fc6fe7.webp 800w, /images/opt/works-sureshot-archive-detail-1200.91fc6fe7.webp 1200w"
+          "srcSet": "/images/opt/works-sureshot-archive-detail-480.4b7e491b.webp 480w, /images/opt/works-sureshot-archive-detail-800.4b7e491b.webp 800w, /images/opt/works-sureshot-archive-detail-1200.4b7e491b.webp 1200w"
         }
       ]
     },
@@ -211,7 +211,7 @@
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/works-sureshot-archive-480.df0f4466.webp 480w, /images/opt/works-sureshot-archive-800.df0f4466.webp 800w, /images/opt/works-sureshot-archive-1200.df0f4466.webp 1200w"
+          "srcSet": "/images/opt/works-sureshot-archive-480.0ffa096a.webp 480w, /images/opt/works-sureshot-archive-800.0ffa096a.webp 800w, /images/opt/works-sureshot-archive-1200.0ffa096a.webp 1200w"
         }
       ]
     },
@@ -222,7 +222,7 @@
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/works-win7-book-management-480.cbebbd98.webp 480w, /images/opt/works-win7-book-management-800.cbebbd98.webp 800w, /images/opt/works-win7-book-management-1200.cbebbd98.webp 1200w, /images/opt/works-win7-book-management-1600.cbebbd98.webp 1600w"
+          "srcSet": "/images/opt/works-win7-book-management-480.e1932f14.webp 480w, /images/opt/works-win7-book-management-800.e1932f14.webp 800w, /images/opt/works-win7-book-management-1200.e1932f14.webp 1200w, /images/opt/works-win7-book-management-1600.e1932f14.webp 1600w"
         }
       ]
     }

@@ -361,6 +361,7 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
               srcSet={srcSetFor(posterSrc)}
               sizes="28vw"
               alt=""
+              loading="lazy"
               decoding="async"
               draggable={false}
             />
@@ -371,6 +372,7 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
               srcSet={srcSetFor(posterSrc)}
               sizes="28vw"
               alt=""
+              loading="lazy"
               decoding="async"
               draggable={false}
             />
@@ -389,7 +391,10 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
               className="tv-cover tv-video"
               src={shown?.videoSrc ? asset(shown.videoSrc) : undefined}
               poster={posterSrc ? asset(posterSrc) : undefined}
-              preload="auto"
+              /* `metadata` instead of `auto`: `auto` starts pulling the clip the
+                 moment the work is selected (megaoctets on a phone, before any
+                 gesture). `play()` still fetches what it needs. */
+              preload="metadata"
               muted
               loop
               playsInline
@@ -414,6 +419,7 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
               srcSet={shown ? srcSetFor(shown.src) : undefined}
               sizes={shown?.src ? "(max-width: 767px) 80vw, 55vw" : undefined}
               alt={shown ? label(shown.alt) : ""}
+              loading="lazy"
               decoding="async"
               draggable={false}
             />

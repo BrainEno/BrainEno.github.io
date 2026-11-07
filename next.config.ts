@@ -45,6 +45,19 @@ const nextConfig: NextConfig = {
   // (`pageExtensions=tsx&pageExtensions=ts`). `verify` boots the dev server so
   // this cannot come back unnoticed.
   pageExtensions: ["tsx", "ts"],
+
+  experimental: {
+    /**
+     * Ship the CSS inside each page instead of as two `<link rel=stylesheet>`
+     * requests. The whole sheet is ~12 KB (≈4 KB brotli) and it is needed before
+     * the first paint anyway, so inlining removes two render-blocking round
+     * trips — the dominant cost on a phone in mainland China, where every
+     * round trip to GitHub Pages' CDN can cost a few hundred milliseconds.
+     * Pages stay cacheable: HTML is revalidated, the bytes saved are the two
+     * extra connections.
+     */
+    inlineCss: true,
+  },
 };
 
 export default nextConfig;

@@ -8,6 +8,7 @@
  * 详见：LICENSE, TERMS.md
  */
 import type { Language, PortfolioContent } from "../content/types";
+import manifest from "../content/image-manifest.json";
 import { asset } from "./asset";
 
 /**
@@ -56,6 +57,43 @@ export function absoluteUrl(src: string) {
   } catch {
     return base.toString();
   }
+}
+
+/**
+ * The picture a link preview should actually show.
+ *
+ * `og:image` used to point at the *original* upload — a 1.9 MB PNG. Every
+ * messenger that renders a card (WeChat, Slack, X, Telegram) then either
+ * downsamples it after downloading the whole thing or gives up and shows no
+ * preview, which is exactly the wrong outcome on a phone in a slow network.
+ *
+ * The responsive ladder already contains a WebP of that same picture at a
+ * share-friendly size, so the card points at the widest rung and declares its
+ * dimensions and type: scrapers that understand `og:image:width/height` can lay
+ * the card out before the bytes arrive, and nothing new has to be generated.
+ */
+export function shareImage(src: string, fallbackAlt = "") {
+  const entry = (manifest as { images: Record<string, { width: number; height: number; variants: { type: string; srcSet: string }[] }> }).images[src];
+  const candidates =
+    entry?.variants
+      .find((variant) => variant.type === "image/webp")
+      ?.srcSet.split(",")
+      .map((candidate) => {
+        const [url, descriptor] = candidate.trim().split(/\s+/);
+        return { url, width: Number(descriptor?.replace("w", "")) || entry.width };
+      })
+      .filter((candidate) => Number.isFinite(candidate.width)) ?? [];
+  if (!candidates.length || !entry) {
+    return { url: absoluteUrl(src), width: entry?.width, height: entry?.height, type: undefined, alt: fallbackAlt };
+  }
+  const widest = candidates.reduce((best, candidate) => (candidate.width > best.width ? candidate : best), candidates[0]);
+  return {
+    url: absoluteUrl(widest.url),
+    width: widest.width,
+    height: Math.round((widest.width * entry.height) / entry.width),
+    type: "image/webp",
+    alt: fallbackAlt,
+  };
 }
 
 export function pageTitle(content: PortfolioContent) {
