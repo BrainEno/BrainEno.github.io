@@ -165,7 +165,9 @@ export const Journey = memo(function Journey({ lang, content, name }: JourneyPro
                 src={content.portrait.src}
                 alt={t(content.portrait.alt, lang)}
                 sizes="(max-width: 1023px) 72vw, 27vw"
-                loading="lazy"
+                // Intro media is fetched and decoded before the pin is measured.
+                loading="eager"
+                decoding="async"
               />
             </div>
             {t(content.portraitCredit, lang) ? (
@@ -206,7 +208,11 @@ export const Journey = memo(function Journey({ lang, content, name }: JourneyPro
                 src={image.src}
                 alt={t(image.alt, lang)}
                 sizes="(max-width: 1023px) 78vw, 40vw"
-                loading="lazy"
+                // Eager + decoded before ScrollTrigger.refresh(): a lazy fetch
+                // or a late decode during the fling is a visible pop in the
+                // pinned gallery and re-measures the pin at the worst moment.
+                loading="eager"
+                decoding="async"
               />
               <figcaption className="rail-caption" aria-hidden="true">
                 <span>{String(index + 1).padStart(2, "0")}</span>

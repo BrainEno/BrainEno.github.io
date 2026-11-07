@@ -2718,13 +2718,19 @@ canvas[data-water-canvas] {
     display: flex;
     align-items: center;
     overflow: hidden;
+    /* Isolate the pinned stage from the rest of the document's paint work. */
+    contain: layout paint;
+    backface-visibility: hidden;
   }
 
   .rail {
     height: auto;
     padding: 0 var(--gutter);
     gap: 16px;
-    transform: none;
+    /* Promote the moving track from its first frame, not from GSAP's first
+       write; avoids a sub-pixel repaint step at the start of the pin. */
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
   }
 
   .rail-item,
@@ -2739,6 +2745,10 @@ canvas[data-water-canvas] {
   .rail-image {
     left: 0;
     width: 100%;
+    /* Flow layout does not animate individual pictures; the composited .rail
+       carries them. Five extra will-change layers only cost texture memory. */
+    will-change: auto;
+    backface-visibility: hidden;
   }
 
   .coda {
