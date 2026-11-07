@@ -20,6 +20,17 @@ export const MOBILE_QUERY = "(max-width: 767px)";
  *  all get the vertical, flow-based intro instead (see `journeyFlow`). */
 export const JOURNEY_PINNED_QUERY = "(min-width: 1024px) and (min-height: 561px) and (orientation: landscape)";
 const REDUCED_QUERY = "(prefers-reduced-motion: reduce)";
+const TOUCH_QUERY = "(hover: none), (pointer: coarse)";
+/**
+ * Touch scroll events arrive coalesced and in uneven bundles during a
+ * momentum fling. A raw 1:1 scrub writes every bundle straight into the intro's
+ * transforms and background colour, so the gallery rail micro-steps and a fast
+ * flick reads as a shake. 0.45 s of GSAP interpolation smooths the sampling
+ * without changing any trigger range, pin spacing, easing or DOM geometry.
+ * Reduced motion keeps the rigid 1:1 behaviour: trailing 0.45 s of motion is
+ * still motion, and that preference asks for none.
+ */
+const INTRO_TOUCH_SCRUB = 0.45;
 
 let registered = false;
 
@@ -61,6 +72,12 @@ function pinType(): "fixed" | "transform" {
     (!!content && getComputedStyle(content).transform !== "none");
   cachedPinType = smoothed ? "transform" : "fixed";
   return cachedPinType;
+}
+
+/** A choreography rebuild (language, width, orientation) can change the
+ *  smoother's wrapper, so do not carry the old pin strategy across it. */
+function resetPinType() {
+  cachedPinType = null;
 }
 
 export function createSmoother() {
@@ -304,7 +321,7 @@ export function createLoader(preloader: HTMLElement, flood: HTMLElement, quick: 
   return { intro, reveal };
 }
 
-type Conditions = { desktop: boolean; mobile: boolean; journeyPinned: boolean; reduce: boolean };
+type Conditions = { desktop: boolean; mobile: boolean; journeyPinned: boolean; touch: boolean; reduce: boolean };
 
 export type ChoreographyOptions = {
   scope: HTMLElement;
@@ -372,7 +389,7 @@ function heroScroll(desktop: boolean) {
   );
 }
 
-function journeyDesktop(scope: HTMLElement, reduce: boolean) {
+function journeyDesktop(scope: HTMLElement, reduce: boolean, scrub: boolean | number) {
   const stage = scope.querySelector<HTMLElement>(".journey");
   const rail = scope.querySelector<HTMLElement>(".rail");
   const portrait = scope.querySelector<HTMLElement>(".story-photo-box");
@@ -403,7 +420,7 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean) {
       end: () => `+=${total * vh()}`,
       pin: true,
       pinType: pinType(),
-      scrub: true,
+      scrub,
       anticipatePin: 1,
       invalidateOnRefresh: true,
     },
@@ -450,7 +467,7 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean) {
         trigger: stage,
         start: "top bottom",
         end: "top top",
-        scrub: true,
+        scrub,
         invalidateOnRefresh: true,
       },
     });
@@ -586,7 +603,7 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean) {
     );
 }
 
-function journeyFlow(scope: HTMLElement, desktop: boolean, reduce: boolean) {
+function journeyFlow(scope: HTMLElement, desktop: boolean, reduce: boolean, scrub: boolean | number, touch: boolean) {
   // Same colour hand-over as desktop, spread over the section's own scroll.
   const journey = scope.querySelector<HTMLElement>(".journey");
   if (journey) {
@@ -596,7 +613,7 @@ function journeyFlow(scope: HTMLElement, desktop: boolean, reduce: boolean) {
       {
         backgroundColor: cssColor(scope, "--sky", "#001c5c"),
         ease: "sine.inOut",
-        scrollTrigger: { trigger: journey, start: "top 40%", end: "bottom bottom", scrub: true },
+        scrollTrigger: { trigger: journey, start: "top 40%", end: "bottom bottom", scrub },
       }
     );
     gsap.fromTo(
@@ -609,7 +626,7 @@ function journeyFlow(scope: HTMLElement, desktop: boolean, reduce: boolean) {
           trigger: journey,
           start: "top 40%",
           end: "bottom bottom",
-          scrub: true,
+          scrub,
         },
       }
     );
@@ -658,7 +675,8 @@ function journeyFlow(scope: HTMLElement, desktop: boolean, reduce: boolean) {
         end: () => `+=${rail.scrollWidth * 0.9}`,
         pin: true,
         pinType: pinType(),
-        scrub: true,
+        scrub,
+        anticipatePin: touch ? 1 : 0,
         invalidateOnRefresh: true,
       },
     });
@@ -1167,18 +1185,44 @@ function sectionTracking(opts: ChoreographyOptions) {
   });
 }
 
+/** The intro's own photographs must be fetched and decoded before the pin is
+ *  measured. A late lazy load used to fire `ScrollTrigger.refresh()` while the
+ *  reader was already flinging through the section — the pin re-measured, the
+ *  page jumped, and the rail appeared to shake. Only these images are awaited;
+ *  later loads elsewhere on the page must never refresh the intro again. */
+const JOURNEY_MEDIA_SELECTOR = ".story-photo, .rail-image";
+
+function waitForJourneyMedia(scope: HTMLElement, signal: AbortSignal): Promise<void> {
+  const images = Array.from(scope.querySelectorAll<HTMLImageElement>(JOURNEY_MEDIA_SELECTOR));
+  return Promise.all(
+    images.map(async (img) => {
+      if (!img.complete) {
+        await new Promise<void>((resolve) => {
+          const done = () => resolve();
+          img.addEventListener("load", done, { once: true, signal });
+          img.addEventListener("error", done, { once: true, signal });
+        });
+      }
+      if (typeof img.decode === "function") {
+        await img.decode().catch(() => undefined);
+      }
+    })
+  ).then(() => undefined);
+}
+
 export function setupChoreography(opts: ChoreographyOptions) {
   registerGsap();
   const { scope } = opts;
   const mm = gsap.matchMedia(scope);
 
   mm.add(
-    { desktop: DESKTOP_QUERY, mobile: MOBILE_QUERY, journeyPinned: JOURNEY_PINNED_QUERY, reduce: REDUCED_QUERY },
+    { desktop: DESKTOP_QUERY, mobile: MOBILE_QUERY, journeyPinned: JOURNEY_PINNED_QUERY, touch: TOUCH_QUERY, reduce: REDUCED_QUERY },
     (context) => {
-      const { desktop, journeyPinned, reduce } = context.conditions as Conditions;
+      const { desktop, journeyPinned, touch, reduce } = context.conditions as Conditions;
+      const introScrub: boolean | number = reduce ? true : touch ? INTRO_TOUCH_SCRUB : true;
       heroScroll(desktop);
-      if (journeyPinned) journeyDesktop(scope, reduce);
-      else journeyFlow(scope, desktop, reduce);
+      if (journeyPinned) journeyDesktop(scope, reduce, introScrub);
+      else journeyFlow(scope, desktop, reduce, introScrub, touch);
       const tvCleanup = television(scope, opts, desktop, reduce);
       contact(scope, desktop, reduce);
       sectionTracking(opts);
@@ -1192,17 +1236,24 @@ export function setupChoreography(opts: ChoreographyOptions) {
   let refreshTimer = 0;
   const refresh = () => {
     window.clearTimeout(refreshTimer);
-    refreshTimer = window.setTimeout(() => !disposed && ScrollTrigger.refresh(), 120);
+    refreshTimer = window.setTimeout(() => {
+      if (!disposed) ScrollTrigger.refresh();
+    }, 120);
   };
-  void document.fonts?.ready.then(refresh);
-  const images = Array.from(scope.querySelectorAll("img")).filter((img) => !img.complete);
-  images.forEach((img) => img.addEventListener("load", refresh, { once: true }));
+  const mediaAbort = new AbortController();
+  void Promise.all([
+    document.fonts?.ready ?? Promise.resolve(),
+    waitForJourneyMedia(scope, mediaAbort.signal),
+  ]).then(() => {
+    if (!disposed) refresh();
+  });
   refresh();
 
   return () => {
     disposed = true;
+    mediaAbort.abort();
     window.clearTimeout(refreshTimer);
-    images.forEach((img) => img.removeEventListener("load", refresh));
+    resetPinType();
     mm.revert();
   };
 }
