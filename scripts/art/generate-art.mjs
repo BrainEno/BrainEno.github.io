@@ -4,14 +4,16 @@
  *   public/images/tv.webp               - only if it does not exist yet (see below)
  *   public/images/phone-booth-cutout.png - the telephone booth
  *   public/images/figure.jpg             - hero image
- *   public/images/profilephoto.jpg       - biography portrait
+ *   public/images/profile-placeholder.jpg - the vector biography portrait
+ *   public/images/profilephoto.jpg       - only if it does not exist yet (see below)
  *   public/images/tree{1..5}.jpg         - gallery rolls
  *   public/images/accent-{1,2}.jpg       - gallery accents
  *   public/images/works/*.jpg            - sample project covers
  *
  * Run:  node scripts/art/generate-art.mjs
  *
- * It never overwrites `tv.webp` (your own photo) — see the note further down.
+ * It never overwrites `tv.webp` or `profilephoto.jpg` (your own pictures) —
+ * see the notes further down.
  */
 import sharp from "sharp";
 import { copyFile, existsSync, mkdirSync, readFileSync } from "node:fs";
@@ -206,8 +208,19 @@ if (existsSync(tvTarget)) {
 await sharp(Buffer.from(boothSvg)).png({ compressionLevel: 9 }).toFile(path.join(out, "phone-booth-cutout.png"));
 
 // 2. Portrait and Hero images
+//
+// The biography portrait follows the TV's replacement contract: the vector
+// card is written to `profile-placeholder.jpg`, and `profilephoto.jpg` is only
+// seeded when it is still missing, so an authored portrait is never destroyed.
 await renderCard(path.join(out, "figure.jpg"), 1200, 1600, "FIGURE", "HERO SCENE", ["#1e1b18", "#110f0d", "#080706"]);
-await renderCard(path.join(out, "profilephoto.jpg"), 1000, 1400, "PORTRAIT", "BIOGRAPHY / ABOUT", ["#1f1a1d", "#131012", "#090708"]);
+const profileTarget = path.join(out, "profilephoto.jpg");
+await renderCard(path.join(out, "profile-placeholder.jpg"), 1000, 1400, "PORTRAIT", "BIOGRAPHY / ABOUT", ["#1f1a1d", "#131012", "#090708"]);
+if (existsSync(profileTarget)) {
+  console.log("[art] public/images/profilephoto.jpg exists — kept as is (placeholder written to profile-placeholder.jpg)");
+} else {
+  await copyFile(path.join(out, "profile-placeholder.jpg"), profileTarget);
+  console.log("[art] seeded public/images/profilephoto.jpg from the vector placeholder");
+}
 
 // 3. Gallery rolls & accents
 const palettes = [
