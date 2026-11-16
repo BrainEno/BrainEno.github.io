@@ -10,6 +10,7 @@
 "use client";
 
 import { memo, type CSSProperties } from "react";
+import Link from "next/link";
 import TvShowreel from "./TvShowreel";
 import { Img } from "./Img";
 import { asset } from "../seo/asset";
@@ -396,14 +397,23 @@ export function Works({
               autoplay={theaterOpen}
             />
             <TvMessage email={email} />
-            {/* Channel number flashed in the tube's corner after each change. */}
-            <div className="tv-osd-layer" aria-hidden="true">
-              {active ? (
-                <span key={active.id} className="tv-osd">
-                  CH {String(activeIndex + 1).padStart(2, "0")}
-                </span>
-              ) : null}
-            </div>
+        {/* Channel number flashed in the tube's corner after each change. */}
+        <div className="tv-osd-layer" aria-hidden="true">
+          {active ? (
+            <span key={active.id} className="tv-osd">
+              CH {String(activeIndex + 1).padStart(2, "0")}
+            </span>
+          ) : null}
+        </div>
+        {/* The channel change is visual; screen readers get the same event as
+            an announcement of whichever work is on the tube now (#3). */}
+        <p className="sr-only" role="status">
+          {active
+            ? zh
+              ? `正在预览：${t(active.title, lang)}（第 ${activeIndex + 1} 项，共 ${content.items.length} 项）`
+              : `Now previewing: ${t(active.title, lang)} (${activeIndex + 1} of ${content.items.length})`
+            : ""}
+        </p>
             </div>
           </div>
         </div>
@@ -580,7 +590,6 @@ export function Works({
               <li
                 key={work.id}
                 className={cx("work-row", zh && "is-zh", index === activeIndex && "is-active")}
-                data-cursor="view"
                 data-work-index={index}
                 onMouseEnter={(event) => {
                   const works = event.currentTarget.closest(".works");
@@ -590,21 +599,30 @@ export function Works({
                   onPreview(index);
                 }}
               >
-                {/* One real control per row, covering it: the <ol>/<li> keep
-                    their list semantics, the row is still announced as a
-                    button, and its accessible name is the project title rather
-                    than the year / credit line underneath. */}
-                <button
-                  type="button"
-                  className="work-row-hit"
-                  aria-haspopup="dialog"
+                {/*
+                 * The row's covering control is a real link to the detail page
+                 * (#3): hover/focus still tunes the television, activation
+                 * opens `/works/<id>` — crawlable in the SSR HTML and one
+                 * Tab + Enter away for keyboard users.
+                 *
+                 * Pointing at the tube stays a pause/play gesture, and the
+                 * *first* touch tap only previews (a desktop hover would
+                 * already have), so the same row is never a trap: tap to tune,
+                 * tap again to navigate.
+                 */}
+                <Link
+                  href={`/works/${work.id}`}
+                  prefetch={false}
+                  className="work-row-link"
+                  data-cursor="view"
+                  aria-current={index === activeIndex ? "true" : undefined}
                   onFocus={() => onPreview(index)}
                   // A mouse press would focus with the browser's default
                   // scroll-into-view, which runs against ScrollSmoother's
                   // transformed content and can move the row between
                   // pointerdown and pointerup — the click then lands on the
-                  // list instead of the row and the theater never opens. Focus
-                  // it ourselves, without scrolling.
+                  // list instead of the link. Focus it ourselves, without
+                  // scrolling.
                   onMouseDown={(event) => {
                     if (event.button !== 0) return;
 
@@ -625,9 +643,10 @@ export function Works({
                   }}
                   onClick={(event) => {
                     /*
-                     * Keyboard-generated clicks have detail=0 and must keep
-                     * their normal behavior: open the focused project. Only
-                     * pointer clicks can be glass gestures.
+                     * Keyboard-generated clicks have detail=0 and keep their
+                     * normal behavior: follow the link to the detail page.
+                     * Only pointer clicks can be glass gestures or first-tap
+                     * previews.
                      */
                     if (event.detail > 0) {
                       const works = event.currentTarget.closest(".works");
@@ -648,15 +667,55 @@ export function Works({
                         video.click();
                         return;
                       }
-                    }
 
-                    onOpen(index);
+                      // A pointer that lands on a row that is not on the tube
+                      // yet means touch: preview first. Desktop pointers have
+                      // hovered (and previewed) before the click can land.
+                      if (index !== activeIndex) {
+                        event.preventDefault();
+                        onPreview(index);
+                        return;
+                      }
+                    }
                   }}
                 >
                   <span className="sr-only">
                     {title}
                     {work.isPrivate ? (zh ? "，私有项目" : ", private project") : ""}
                   </span>
+                </Link>
+                {/* The theater (video screening room) keeps its own small
+                    control instead of the whole row, now that the row itself
+                    navigates: tune-by-hover, open-from-here. */}
+                <button
+                  type="button"
+                  className="work-row-tv"
+                  aria-haspopup="dialog"
+                  aria-label={zh ? `在电视上放映《${title}》` : `Screen ${title} on the television`}
+                  data-cursor="view"
+                  onFocus={() => onPreview(index)}
+                  onMouseDown={(event) => {
+                    if (event.button !== 0) return;
+                    event.preventDefault();
+                    event.currentTarget.focus({ preventScroll: true });
+                  }}
+                  onClick={(event) => {
+                    if (event.detail > 0) {
+                      const works = event.currentTarget.closest(".works");
+                      const video = works
+                        ? videoAtPoint(works, event.clientX, event.clientY)
+                        : null;
+                      if (works && video) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        video.click();
+                        return;
+                      }
+                    }
+                    onOpen(index);
+                  }}
+                >
+                  <span aria-hidden="true">TV</span>
                 </button>
                 <span className="work-row-line" aria-hidden="true" />
                 <span className="work-row-index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>

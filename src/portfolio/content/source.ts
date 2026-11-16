@@ -3,6 +3,7 @@ import path from "node:path";
 import { defaultContent } from "./defaults";
 import { normalizeContent } from "./normalize";
 import type { PortfolioContent } from "./types";
+import { formatIssues, unwrapSnapshot, validateContent } from "./validate";
 
 /**
  * The one place a page asks for the site's content.
@@ -17,33 +18,81 @@ import type { PortfolioContent } from "./types";
  * the deploy is the editor. `/admin` deliberately does not exist: a static site
  * has no session to protect and nowhere to save a request, so a browser-only
  * "studio" would only ever be a mock-up of one.
+ *
+ * The snapshot may be the documented `{ "exportedAt": …, "content": { … } }`
+ * wrapper or a bare content object; both are accepted (#51). Unreadable or
+ * structurally unknown snapshots are now loud build errors in the log instead
+ * of a silent fallback, and structural problems list their content path (#68).
  */
-const PUBLISHED_FILE = path.join(process.cwd(), "src", "portfolio", "content", "published.json");
+
+/** Resolved per call, so tests can point the build at a fixture directory. */
+function publishedFilePath(): string {
+  return path.join(process.cwd(), "src", "portfolio", "content", "published.json");
+}
 
 /**
  * An optional content snapshot. Without one, a fresh clone builds from the
  * authored defaults and needs nothing else.
  */
-function readPublishedSnapshot(): unknown | null {
+function readPublishedSnapshot(): { raw: unknown; error: unknown } | null {
+  const file = publishedFilePath();
   try {
-    if (!existsSync(PUBLISHED_FILE)) return null;
-    return JSON.parse(readFileSync(PUBLISHED_FILE, "utf8"));
+    if (!existsSync(file)) return null;
+    return { raw: JSON.parse(readFileSync(file, "utf8")), error: null };
   } catch (error) {
-    console.warn("[portfolio] published.json is not readable, falling back to defaults", error);
-    return null;
+    return { raw: null, error };
   }
 }
 
+/** True when a content-owned path exists under `public/`. */
+function publicFileExists(publicPath: string): boolean {
+  return existsSync(path.join(process.cwd(), "public", publicPath.replace(/^\//, "")));
+}
+
 export async function getSiteContent(): Promise<PortfolioContent> {
-  const published = readPublishedSnapshot();
-  return published ? normalizeContent(published) : defaultContent;
+  const snapshot = readPublishedSnapshot();
+
+  let raw: unknown = defaultContent;
+  let published = false;
+  if (snapshot) {
+    if (snapshot.error) {
+      console.error("[content:error] (root) — published.json is not readable; falling back to defaults\n", snapshot.error);
+    } else {
+      const { content, issues } = unwrapSnapshot(snapshot.raw);
+      for (const line of formatIssues(issues)) console.error(line);
+      if (content) {
+        raw = content;
+        published = true;
+      } // else: unwrap already said what was wrong; defaults take over
+    }
+  }
+
+  // Structural checks run on the raw input so paths name the authored file —
+  // defaults included: a broken template should be just as loud as a broken
+  // snapshot. The build keeps going (these are maintainer-facing warnings, not
+  // gates), but nothing is silent anymore. Note the default path keeps its
+  // original object identity on export, so `defaultContent` is returned as-is
+  // when nothing was published.
+  const structure = validateContent(raw as Record<string, unknown>, { exists: publicFileExists });
+  for (const line of formatIssues(structure)) console.warn(line);
+
+  return published ? normalizeContent(raw) : (raw as PortfolioContent);
 }
 
 /** When the committed snapshot was exported, for `sitemap.xml`'s lastmod. */
 export async function getContentUpdatedAt(): Promise<string | null> {
+  const file = publishedFilePath();
   try {
-    if (!existsSync(PUBLISHED_FILE)) return null;
-    return readFileSync(PUBLISHED_FILE, "utf8").match(/"(?:exportedAt|exportedAtIso)":\s*"([^"]+)"/)?.[1] ?? null;
+    if (!existsSync(file)) return null;
+    try {
+      const parsed: unknown = JSON.parse(readFileSync(file, "utf8"));
+      const { exportedAt } = unwrapSnapshot(parsed);
+      if (exportedAt) return exportedAt;
+    } catch {
+      // Fall through to the textual scan: a snapshot whose JSON is broken may
+      // still carry a readable timestamp near the top.
+    }
+    return readFileSync(file, "utf8").match(/"(?:exportedAt|exportedAtIso)":\s*"([^"]+)"/)?.[1] ?? null;
   } catch {
     return null;
   }

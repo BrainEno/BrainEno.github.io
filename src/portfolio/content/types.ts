@@ -50,7 +50,11 @@ export type Work = {
   isPrivate?: boolean;
   /** Long-form project description, used by detail views and backups. */
   description: LocalizedText;
-  /** Extra stills for the project detail view / backup bundle. */
+  /**
+   * Additional stills for the project detail view / backup bundle — the cover
+   * (`image`) already opens the detail page, so do not repeat it here; the
+   * renderer skips it, and the build warns (#74).
+   */
   detailImages: MediaImage[];
 };
 

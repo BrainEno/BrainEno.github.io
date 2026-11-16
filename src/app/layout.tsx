@@ -109,11 +109,17 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             Two navigations keep their position: a deep link (hash) and going
             *back* to the page, which the reader expects to land where they
             left the index. `data-boot` tells the portfolio that the reset
-            happened, so it only re-asserts the top when it did. */}
+            happened, so it only re-asserts the top when it did.
+
+            The same parse-time script also flags `<html>` with a `js` class:
+            the preloader CSS is gated on it (#60), so a browser without
+            working JavaScript never sees the opening overlay at all. Doing it
+            here — before the body exists — means the gate is settled before
+            the first paint, with no flash of the overlay in between. */}
         <script
           dangerouslySetInnerHTML={{
             __html:
-              'try{var n=performance.getEntriesByType&&performance.getEntriesByType("navigation")[0];if(!location.hash&&!(n&&n.type==="back_forward")&&"scrollRestoration"in history){history.scrollRestoration="manual";window.scrollTo(0,0);document.documentElement.setAttribute("data-boot","top")}}catch(e){}',
+              'try{document.documentElement.classList.add("js");var n=performance.getEntriesByType&&performance.getEntriesByType("navigation")[0];if(!location.hash&&!(n&&n.type==="back_forward")&&"scrollRestoration"in history){history.scrollRestoration="manual";window.scrollTo(0,0);document.documentElement.setAttribute("data-boot","top")}}catch(e){}',
           }}
         />
         {children}

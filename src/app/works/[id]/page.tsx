@@ -25,6 +25,22 @@ async function findWork(id: string) {
   return { content, work };
 }
 
+/**
+ * Normalise the free-form `year` label for JSON-LD `dateCreated`:
+ * "2026.04.22" → "2026-04-22", "2026" stays "2026", anything looser ("—")
+ * becomes `undefined` so the field is omitted instead of emitted as junk.
+ */
+function isoDateLabel(label: string): string | undefined {
+  const trimmed = label.trim();
+  if (/^\d{4}$/.test(trimmed)) return trimmed;
+  const dotted = trimmed.match(/^(\d{4})[./-](\d{1,2})[./-](\d{1,2})$/);
+  if (dotted) {
+    const [, year, month, day] = dotted;
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  }
+  return undefined;
+}
+
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { id } = await params;
   const { content, work } = await findWork(id);
@@ -65,7 +81,12 @@ export default async function WorkPage({ params }: Params) {
   const { content, work } = await findWork(id);
   if (!work) notFound();
   const lang = content.identity.defaultLanguage;
-  const images = [work.image, ...work.detailImages].filter((image) => image.src);
+  // The cover opens the page and detailImages are *additional* stills: if the
+  // contents repeat the cover as detailImages[0] (the old template did that
+  // for every work), render each distinct source exactly once (#74).
+  const images = [work.image, ...work.detailImages].filter(
+    (image, index, all) => image.src && all.findIndex((other) => other.src === image.src) === index,
+  );
   const origin = siteUrl().toString().replace(/\/$/, "");
   const title = pickText(work.title, lang);
   const share = images[0] ? shareImage(images[0].src, pickText(images[0].alt, lang) || title) : undefined;
@@ -88,7 +109,10 @@ export default async function WorkPage({ params }: Params) {
         name: title,
         description: pickText(work.description, lang),
         url: `${origin}/works/${work.id}/`,
-        dateCreated: work.year,
+        // Schema.org wants ISO 8601; the content field is a loose display
+        // label ("2026.04.22", "2026", "—"). Normalise what is parseable and
+        // omit the rest rather than emitting junk a parser would choke on.
+        dateCreated: isoDateLabel(work.year),
         inLanguage: lang === "zh" ? "zh-Hans" : "en",
         image: share ? { "@type": "ImageObject", url: share.url, width: share.width, height: share.height } : undefined,
         creator: { "@type": "Person", name: content.identity.name, url: `${origin}/` },
