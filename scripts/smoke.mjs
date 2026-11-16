@@ -303,7 +303,7 @@ try {
     `${shareUrls.size} URLs, ${badShare} broken`
   );
 
-  console.log("[smoke] content correctness (#3, #60, #74, #75)");
+  console.log("[smoke] content correctness (#60, #74, #75)");
 
   // #74: a work's detail page renders the cover once, then the *additional*
   // stills — no <img> source repeats within one page.

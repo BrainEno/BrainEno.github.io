@@ -49,7 +49,7 @@ npm run build:static && npm run smoke   # 跑完和 CI 等价
 
 ## 路由的样子
 
-- 首页 `/`：频道式的作品列表，每一行是一个真实的 `<Link href="/works/<id>">`（[#3](https://github.com/BrainEno/BrainEno.github.io/issues/3)）——SSR 里就有可爬的 URL；桌面悬停调台、点进详情；触屏第一次点击调台、第二次点击进详情；行的 TV 小按钮才是“在电视机里放映”。
+- 首页 `/`：频道式的作品列表。悬停/聚焦一行调台预览，点击整行把该作品放进电视机剧场放大播放（行的覆盖控件是一个真正的 `<button>`，键盘可达）。**行不导航**——作品详情页只经直接 URL 访问，首页交互保持调收音机式的原地播放。
 - `/works/<id>/`：作品详情页，从 `generateStaticParams` 出来——`published.json` 里的每一个 work id 都会有独立 HTML 文件，不需要 JS 就能读。
 - 其它所有路径：静态主机下发的 `404.html`（[#75](https://github.com/BrainEno/BrainEno.github.io/issues/75)），中英双语，两个链接回首页 / 到作品区，`robots` 里 `noindex`。
 
@@ -58,5 +58,5 @@ npm run build:static && npm run smoke   # 跑完和 CI 等价
 静态导出的每一页在没有任何 JS 的情况下都可读：作品列表是 `<ol>/<li>` 加 `<a>`，详情页是纯文本。几个体验细节是靠 JS 叠上去的——以及**它们全都允许 JS 缺席**：
 
 - 开屏的 `preloader`（[#60](https://github.com/BrainEno/BrainEno.github.io/issues/60)）由 `documentElement.classList.add("js")` 门控——`<html>` 上没这个类，CSS 直接把整块盖层 `display:none`。脚本失败时用户落到的是真内容，不是一片黑。
-- 首页的作品行点击是 `<Link>`——JS 不工作，点它仍会导航到详情页。
+- 首页作品行的剧场播放依赖 JS；但每个作品详情页是纯静态文本，`/works/<id>/` 的直接链接与 sitemap 不依赖任何脚本。
 - 404 页的两个回退链接同样是无 JS 可用的 `<a>`。

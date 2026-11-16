@@ -1662,61 +1662,16 @@ canvas[data-water-canvas] {
 /* Index | title | the television's column | meta. Titles end before the set
    and the meta starts after it, so a hovered row never covers the channel
    change it triggers; the hairlines break around the set for the same reason. */
-/* The row's main control (#3). It covers the row as a real link to the work's
-   detail page, so the whole line is a crawlable, keyboard-focusable URL. */
-.work-row-link {
+/* The row's single control. It covers the row, so the whole line stays
+   clickable while the markup keeps a real button (and a real list). */
+.work-row-hit {
   position: absolute;
   inset: 0;
   z-index: 1;
 }
 
-.work-row-link:focus-visible {
+.work-row-hit:focus-visible {
   outline-offset: -2px;
-}
-
-/* Small companion control that keeps the television screening room reachable
-   from the row itself, sitting above the covering link. */
-.work-row-tv {
-  position: absolute;
-  top: 50%;
-  right: 0;
-  z-index: 2;
-  translate: 0 -50%;
-  padding: 0.45em 0.7em;
-  border: 1px solid var(--rule-dusk);
-  border-radius: 999px;
-  font: inherit;
-  font-size: 10px;
-  line-height: 1.1;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  transition:
-    opacity 0.22s var(--e-lift),
-    color 0.22s var(--e-lift),
-    border-color 0.22s var(--e-lift);
-}
-
-/* Do not let the pill hide the meta: reserve room for it in the text column
-   so the server-rendered geometry is already the final one. */
-.work-row-meta {
-  padding-right: 3.4em;
-}
-
-/* The pill itself fades in on pointer row entry; it stays visible whenever
-   it or its row holds keyboard focus (CSS-owned, so no hover simulation). */
-@media (hover: hover) and (pointer: fine) {
-  .work-row-tv {
-    opacity: 0;
-  }
-
-  .work-row:hover .work-row-tv {
-    opacity: 1;
-  }
-}
-
-.work-row-tv:focus-visible,
-li.work-row:focus-within .work-row-tv {
-  opacity: 1;
 }
 
 .work-row {
