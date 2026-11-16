@@ -57,14 +57,29 @@ export const defaultContent: PortfolioContent = {
     },
     gallery: [
       { src: "/images/red2.webp", alt: { zh: "视觉摄影 01", en: "Editorial frame 01" } },
-      { src: "/images/work3.jpg", alt: { zh: "视觉摄影 02", en: "Editorial frame 02" } },
-      { src: "/images/work4.jpg", alt: { zh: "视觉摄影 03", en: "Editorial frame 03" } },
+      {
+        src: "/images/game-expressionist-room.jpg",
+        alt: { zh: "开发中游戏画面 · 表现主义房间", en: "In-development game still · expressionist room" },
+      },
+      {
+        src: "/images/game-collage-classroom.jpg",
+        alt: { zh: "开发中游戏画面 · 拼贴教室", en: "In-development game still · collage classroom" },
+      },
       { src: "/images/red1.webp", alt: { zh: "视觉摄影 04", en: "Editorial frame 04" } },
-      { src: "/images/work5.jpg", alt: { zh: "视觉摄影 05", en: "Editorial frame 05" } },
+      {
+        src: "/images/game-window-cross.jpg",
+        alt: { zh: "开发中游戏画面 · 窗格光影", en: "In-development game still · window-grid light" },
+      },
     ],
     accentImages: [
-      { src: "/images/screenshot1.jpg", alt: { zh: "精选画面 01", en: "Featured still 01" } },
-      { src: "/images/screenshot2.jpg", alt: { zh: "精选画面 02", en: "Featured still 02" } },
+      {
+        src: "/images/game-papercut-yard.jpg",
+        alt: { zh: "开发中游戏画面 · 剪纸庭院", en: "In-development game still · paper-cut courtyard" },
+      },
+      {
+        src: "/images/game-papercut-corridor.jpg",
+        alt: { zh: "开发中游戏画面 · 剪纸走廊", en: "In-development game still · paper-cut corridor" },
+      },
     ],
     secondaryText: {
       zh: "我偏好能在本地运行、让使用者掌握数据的工具。这里收录一些项目、界面和实验；公开仓库与后续更新放在 GitHub，私有项目仅展示介绍与预览。",
