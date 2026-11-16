@@ -6,6 +6,61 @@
     1200
   ],
   "images": {
+    "/images/game-collage-classroom.jpg": {
+      "width": 1200,
+      "height": 900,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/game-collage-classroom-480.654451ae.webp 480w, /images/opt/game-collage-classroom-800.654451ae.webp 800w, /images/opt/game-collage-classroom-1200.654451ae.webp 1200w"
+        }
+      ]
+    },
+    "/images/game-expressionist-room.jpg": {
+      "width": 1200,
+      "height": 900,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/game-expressionist-room-480.dbb40d4e.webp 480w, /images/opt/game-expressionist-room-800.dbb40d4e.webp 800w, /images/opt/game-expressionist-room-1200.dbb40d4e.webp 1200w"
+        }
+      ]
+    },
+    "/images/game-papercut-corridor.jpg": {
+      "width": 960,
+      "height": 1200,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/game-papercut-corridor-480.6b4efb86.webp 480w, /images/opt/game-papercut-corridor-800.6b4efb86.webp 800w"
+        }
+      ]
+    },
+    "/images/game-papercut-yard.jpg": {
+      "width": 1350,
+      "height": 900,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/game-papercut-yard-480.f5538b63.webp 480w, /images/opt/game-papercut-yard-800.f5538b63.webp 800w, /images/opt/game-papercut-yard-1200.f5538b63.webp 1200w"
+        }
+      ]
+    },
+    "/images/game-window-cross.jpg": {
+      "width": 1200,
+      "height": 900,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/game-window-cross-480.f5bde7d9.webp 480w, /images/opt/game-window-cross-800.f5bde7d9.webp 800w, /images/opt/game-window-cross-1200.f5bde7d9.webp 1200w"
+        }
+      ]
+    },
     "/images/headline.png": {
       "width": 1086,
       "height": 1448,
@@ -61,28 +116,6 @@
         }
       ]
     },
-    "/images/screenshot1.jpg": {
-      "width": 900,
-      "height": 1200,
-      "quality": 78,
-      "variants": [
-        {
-          "type": "image/webp",
-          "srcSet": "/images/opt/screenshot1-480.85d43617.webp 480w, /images/opt/screenshot1-800.85d43617.webp 800w"
-        }
-      ]
-    },
-    "/images/screenshot2.jpg": {
-      "width": 900,
-      "height": 1200,
-      "quality": 78,
-      "variants": [
-        {
-          "type": "image/webp",
-          "srcSet": "/images/opt/screenshot2-480.b3046e2c.webp 480w, /images/opt/screenshot2-800.b3046e2c.webp 800w"
-        }
-      ]
-    },
     "/images/telephone-booth.webp": {
       "width": 1530,
       "height": 2720,
@@ -113,39 +146,6 @@
         {
           "type": "image/webp",
           "srcSet": "/images/opt/tv2-1280.dda3add4.webp 1280w, /images/opt/tv2-1536.dda3add4.webp 1536w"
-        }
-      ]
-    },
-    "/images/work3.jpg": {
-      "width": 1200,
-      "height": 900,
-      "quality": 78,
-      "variants": [
-        {
-          "type": "image/webp",
-          "srcSet": "/images/opt/work3-480.a083929b.webp 480w, /images/opt/work3-800.a083929b.webp 800w, /images/opt/work3-1200.a083929b.webp 1200w"
-        }
-      ]
-    },
-    "/images/work4.jpg": {
-      "width": 1200,
-      "height": 900,
-      "quality": 78,
-      "variants": [
-        {
-          "type": "image/webp",
-          "srcSet": "/images/opt/work4-480.670fdaa6.webp 480w, /images/opt/work4-800.670fdaa6.webp 800w, /images/opt/work4-1200.670fdaa6.webp 1200w"
-        }
-      ]
-    },
-    "/images/work5.jpg": {
-      "width": 1200,
-      "height": 900,
-      "quality": 78,
-      "variants": [
-        {
-          "type": "image/webp",
-          "srcSet": "/images/opt/work5-480.902870b7.webp 480w, /images/opt/work5-800.902870b7.webp 800w, /images/opt/work5-1200.902870b7.webp 1200w"
         }
       ]
     },
