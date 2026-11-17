@@ -66,6 +66,12 @@ jobs:
         run: npm run lint
       - name: Check TV alpha geometry
         run: npm run test:tv-assets
+
+      # Content contract (#51 + #68): the build accepts the wrapped
+      # `published.json`, flags malformed content with its path, and the
+      # committed defaults stay warning-free.
+      - name: Content pipeline unit tests
+        run: npm run test:content
       # `next dev --webpack` is the daily command and it exercises a webpack
       # loader path the production builds never touch — a config that builds
       # fine can still 500 in dev (see the `pageExtensions` note in

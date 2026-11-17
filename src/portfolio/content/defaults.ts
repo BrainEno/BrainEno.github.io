@@ -126,12 +126,7 @@ export const defaultContent: PortfolioContent = {
           zh: "本地优先的 KTV 编排与伴唱工具：集逐字时间轴打轴、伴奏音轨对齐与离线曲库管理于一体，单机即可流畅开唱，零服务端依赖。",
           en: "A local-first KTV authoring and playback studio: syllable-level lyric timing, backing-track sync, and an offline songbook running entirely on a single device with zero server dependency.",
         },
-        detailImages: [
-          {
-            src: "/images/works/lyric-forge-ktv.jpg",
-            alt: { zh: "lyric-forge-ktv 界面预览", en: "lyric-forge-ktv interface" },
-          },
-        ],
+        detailImages: [],
       },
       {
         id: "sureshot-archive",
@@ -209,12 +204,7 @@ export const defaultContent: PortfolioContent = {
           zh: "基于 pnpm Workspace 构建的全栈 TypeScript 应用：前后端共享领域模型与端到端类型契约，内建严格的静态检查、自动化测试与增量构建流水线。",
           en: "A full-stack TypeScript application structured as a pnpm monorepo: shared domain models and end-to-end type contracts across client and API, backed by strict verification and incremental builds.",
         },
-        detailImages: [
-          {
-            src: "/images/no-wave1.webp",
-            alt: { zh: "no-wave 项目画面", en: "no-wave project visual" },
-          },
-        ],
+        detailImages: [],
       },
       {
         id: "remix-partfolio",
@@ -231,12 +221,7 @@ export const defaultContent: PortfolioContent = {
           zh: "本站的前身与动效原型：以 GSAP ScrollSmoother 编排长卷式滚动叙事与复古电视机作品索引，探索内容数据与复杂视差动效的彻底解耦。",
           en: "The motion prototype behind this site: scroll-driven storytelling orchestrated with GSAP ScrollSmoother, a vintage CRT index, and static-first delivery with content cleanly decoupled from choreography.",
         },
-        detailImages: [
-          {
-            src: "/images/works/remix-partfolio.jpg",
-            alt: { zh: "remix-partfolio 首页预览", en: "remix-partfolio landing page" },
-          },
-        ],
+        detailImages: [],
       },
       {
         id: "scribeforge",
@@ -253,12 +238,7 @@ export const defaultContent: PortfolioContent = {
           zh: "面向深度长文创作的 AI 写作台：Python 后端统筹知识检索与上下文生成编排，Flutter 桌面端提供沉浸式离线草稿与实时排版预览。",
           en: "An AI workbench built for long-form writing: a Python backend orchestrates retrieval and context-aware generation while a native Flutter client delivers offline drafting and live typographic preview.",
         },
-        detailImages: [
-          {
-            src: "/images/works/scribeforge.jpg",
-            alt: { zh: "ScribeForge 写作界面", en: "ScribeForge writing view" },
-          },
-        ],
+        detailImages: [],
       },
       {
         id: "flutter-blog",
@@ -280,12 +260,7 @@ export const defaultContent: PortfolioContent = {
           zh: "No Wave 的 Flutter 移动客户端：离线缓存阅读、本地草稿、点赞收藏、标签浏览与全文搜索，正文以 Markdown 呈现，数据来自自托管的 no-wave API；界面沿用纸色与墨色的编辑式排版，并跟随系统的深浅色与字号设置。",
           en: "The Flutter client for No Wave: offline reading with a local cache, on-device drafts, likes and bookmarks, tag browsing and full-text search, Markdown bodies served by the self-hosted no-wave API — set in the same paper-and-ink editorial layout, and following the system theme and type scale.",
         },
-        detailImages: [
-          {
-            src: "/images/works/flutter-blog.jpg",
-            alt: { zh: "flutter-blog 移动端示意图", en: "flutter-blog mobile card" },
-          },
-        ],
+        detailImages: [],
       },
       {
         id: "win7-book-management",
@@ -302,12 +277,7 @@ export const defaultContent: PortfolioContent = {
           zh: "专为老旧 Windows 7 环境打造的轻量级图书管理软件：单包免依赖部署，内置本地数据库检索、借阅台账与批量导入导出，在低配硬件上依然迅捷稳定。",
           en: "A lightweight desktop library manager engineered for legacy Windows 7 hardware: dependency-free installation, instant local cataloguing, and bulk import/export that stays snappy on ageing machines.",
         },
-        detailImages: [
-          {
-            src: "/images/works/win7-book-management.jpg",
-            alt: { zh: "win7-book-management 主界面", en: "win7-book-management main view" },
-          },
-        ],
+        detailImages: [],
       },
     ],
   },

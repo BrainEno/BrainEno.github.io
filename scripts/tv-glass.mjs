@@ -17,39 +17,18 @@
  * not the measurement.
  */
 import sharp from "sharp";
-import { readFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { readTvFromContent, rootRelative } from "./content-source.mjs";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const contentPath = path.join(root, "src/portfolio/content/defaults.ts");
-const content = readFileSync(contentPath, "utf8");
+const { tv, source } = readTvFromContent();
+console.log(`[tv-glass] content source: ${source}`);
+const { src, screen } = tv;
 
-const tv = content.match(/tv:\s*\{([\s\S]*?)\n      \}/);
-if (!tv) {
-  console.error("[tv-glass] could not find the `tv` block in defaults.ts");
-  process.exit(1);
-}
-const block = tv[1];
 // `works.tv` holds the artwork's intrinsic `width`/`height` *and* the
-// `screen` rect, so the percentages must be read from `screen` only.
-const screenBlock = block.match(/screen:\s*\{([^}]*)\}/)?.[1];
-if (!screenBlock) throw new Error("[tv-glass] missing `screen` in works.tv");
-const num = (key, source = screenBlock) => {
-  const m = source.match(new RegExp(`${key}:\\s*([0-9.]+)`));
-  if (!m) throw new Error(`[tv-glass] missing \`${key}\` in works.tv.screen`);
-  return Number(m[1]);
-};
-const src = block.match(/src:\s*"([^"]+)"/)?.[1];
-if (!src) throw new Error("[tv-glass] missing `src` in works.tv");
-
-const screen = {
-  top: num("top"),
-  left: num("left"),
-  width: num("width"),
-  height: num("height"),
-};
-const file = path.join(root, "public", src.replace(/^\//, ""));
+// `screen` rect: the build (and therefore the site) takes its glass position
+// from the same values this script reads, so a red edge that sits on the
+// photo's bezel is a bug you can see.
+const file = rootRelative("public", src.replace(/^\//, ""));
 const meta = await sharp(file).metadata();
 const box = {
   x: Math.round((screen.left / 100) * meta.width),

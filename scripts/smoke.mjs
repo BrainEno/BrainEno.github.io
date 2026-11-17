@@ -303,6 +303,58 @@ try {
     `${shareUrls.size} URLs, ${badShare} broken`
   );
 
+  console.log("[smoke] content correctness (#60, #74, #75)");
+
+  // #74: a work's detail page renders the cover once, then the *additional*
+  // stills — no <img> source repeats within one page.
+  const workPages = paths.filter((pathname) => /\/works\/[^/]+\/$/.test(pathname));
+  let dupCount = 0;
+  for (const pathname of workPages) {
+    const relative = pathname.slice(BASE_PATH.length).replace(/^\/+$/, "");
+    const file = path.join(OUT, relative, "index.html");
+    if (!existsSync(file)) continue;
+    const html = readFileSync(file, "utf8");
+    const srcs = [...html.matchAll(/<img[^>]+\bsrc="([^"]+)"/gi)].map(([, src]) => src.split(/[?#]/)[0]);
+    const seen = new Set();
+    const dups = srcs.filter((src) => (seen.has(src) ? true : (seen.add(src), false)));
+    if (dups.length > 0) {
+      dupCount += 1;
+      console.log(`  FAIL ${pathname} repeats images: ${[...new Set(dups)].join(", ")}`);
+    }
+  }
+  check("detail pages never render the same image twice", dupCount === 0, `${workPages.length} detail pages`);
+
+  // #60: the preloader is CSS-gated on the `js` class, so the SSR HTML must
+  // flag that gate (the parse-time script adds it) rather than bake it in —
+  // no-JS and dead-script visits land straight on the content.
+  const indexHtml = readFileSync(path.join(OUT, "index.html"), "utf8");
+  const htmlTag = indexHtml.match(/<html[^>]*>/)?.[0] ?? "";
+  const gatePresent =
+    /classList\.add\(["']js["']\)/.test(indexHtml) ||
+    /className\s*=\s*[^;]*js/.test(indexHtml) ||
+    (/\bjs\b/.test(indexHtml) && /classList/.test(indexHtml));
+  check(
+    "preloader is JS-gated (#60)",
+    !/\bclass="js"/.test(htmlTag) && gatePresent,
+    `html tag: ${htmlTag.slice(0, 80)}`
+  );
+
+  // #75: the static 404 is bilingual and basePath-safe.
+  {
+    const file = path.join(OUT, "404.html");
+    check("404.html exists", existsSync(file));
+    if (existsSync(file)) {
+      const html = readFileSync(file, "utf8");
+      check("404 is bilingual zh", html.includes("这里没有信号") || html.includes("没有信号"), "zh copy missing");
+      check("404 is bilingual en", /There was never anything here/i.test(html), "en copy missing");
+      const links = [...html.matchAll(/<a[^>]+\bhref="([^"]*)"/gi)].map(([, href]) => href);
+      const hasHome = links.some((href) => href === `${BASE_PATH}/` || href === "/" || href === "../" || href === "./");
+      const hasWorks = links.some((href) => /(?:^|\/)#works$/.test(href) || href.endsWith("/#works"));
+      check("404 links back home", hasHome, links.join(", "));
+      check("404 links to the works anchor", hasWorks, links.join(", "));
+    }
+  }
+
   console.log("[smoke] transfer encoding");
   const compressed = await fetch(`${BASE}${route("/")}`, { headers: { "accept-encoding": "br" } });
   check(

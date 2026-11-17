@@ -492,6 +492,10 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
     const smoother = createSmoother();
     const scope = scopeRef.current;
     if (!scope) return;
+    // JavaScript is alive — the parse-time script already flagged `<html>`
+    // with `js`, and with that class on, CSS may paint the preloader (#60).
+    // The preloader countdown and its hideLoader partner below own it from
+    // here: a no-JS or dead-script visit landed on the content directly.
     const preloader = scope.querySelector<HTMLElement>(".preloader");
     const flood = scope.querySelector<HTMLElement>(".preloader-flood");
     const heroImage = scope.querySelector<HTMLImageElement>(".hero-photo");

@@ -142,6 +142,16 @@ body {
   place-items: center;
   background: var(--stage);
   color: var(--ink);
+  animation: none;
+}
+
+/* Never visible on the server: it takes JavaScript to start the countdown and
+   to hide the overlay again, so CSS only paints it once hydration has flagged
+   the shell with `.pf-js` (#60). No-JS and dead-script visits go straight to
+   the content. */
+html:not(.js) .preloader,
+html:not(.js) .preloader-flood {
+  display: none;
 }
 
 .preloader-stretch {
@@ -3060,4 +3070,97 @@ canvas[data-water-canvas] {
   .contact-arrow {
     transition: none;
   }
+}
+
+/**
+ * ---------------------------------------------------------------------------
+ * NOT FOUND (#75)
+ * ---------------------------------------------------------------------------
+ * The static host's `404.html`. Same stage as the rest of the site, same
+ * bilingual voice, and — like every other route — readable before any
+ * JavaScript has run. Both languages render side by side because a 404 is
+ * reached by URL alone: there is no telling who is reading.
+ */
+
+.nf {
+  display: flex;
+  min-height: 100dvh;
+  flex-direction: column;
+  justify-content: center;
+  padding: 12vh var(--gutter) 14vh;
+}
+
+.nf-code {
+  font-family: var(--font-serif);
+  font-size: clamp(120px, 26vw, 320px);
+  font-style: italic;
+  font-weight: 300;
+  line-height: 0.82;
+  letter-spacing: -0.03em;
+  opacity: 0.16;
+  user-select: none;
+}
+
+.nf-title {
+  margin-top: 3vh;
+  font-size: clamp(22px, 3.2vw, 44px);
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+}
+
+.nf-title > span {
+  display: block;
+}
+
+.nf-lang-en {
+  opacity: 0.62;
+}
+
+.nf-copy {
+  margin-top: 2.4vh;
+  max-width: 34em;
+  font-size: clamp(14px, 1.05vw, 17px);
+  line-height: 1.7;
+}
+
+.nf-copy > span {
+  display: block;
+}
+
+.nf-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2.6em;
+  margin-top: 7vh;
+}
+
+.nf-link {
+  display: inline-block;
+  font-size: clamp(14px, 0.95vw, 16px);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  transition: opacity 0.25s var(--e-lift);
+}
+
+.nf-link > span {
+  display: block;
+}
+
+.nf-link > .nf-lang-en {
+  margin-top: 0.35em;
+  opacity: 0.62;
+  text-transform: none;
+  letter-spacing: 0.04em;
+}
+
+@media (any-hover: hover) {
+  .nf-link:hover {
+    opacity: 0.55;
+  }
+}
+
+.nf-link:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 4px;
 }
