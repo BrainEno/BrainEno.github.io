@@ -24,7 +24,9 @@ import {
   scrollToSection,
   setupChoreography,
 } from "../scroll/choreography";
+import { sectionFromHash } from "../scroll/hash-section";
 import { motionPolicy } from "../scroll/motion-policy";
+import { setupReveals } from "../scroll/reveals";
 import { openTheater, type TheaterHandle } from "../scroll/theater";
 import { cx } from "./cx";
 import {
@@ -609,6 +611,52 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
       smoother.paused(false);
       ScrollSmoother.get()?.kill();
     };
+  }, []);
+
+  // Keep public section hashes meaningful after ScrollSmoother has wrapped the
+  // document and ScrollTrigger has inserted pin spacing. Wait until the loader
+  // releases scrolling, refresh geometry, then align through the smoother API.
+  useEffect(() => {
+    let measureFrame = 0;
+    let scrollFrame = 0;
+    const navigation = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+
+    const alignHash = (initial = false) => {
+      const target = sectionFromHash(window.location.hash);
+      if (loadStatus !== "ready" || !target) return;
+      // The layout script deliberately preserves back/forward restoration; do
+      // not replace that exact position with an older deep-link hash.
+      if (initial && navigation?.type === "back_forward") return;
+
+      setSection(target);
+      if (measureFrame) window.cancelAnimationFrame(measureFrame);
+      if (scrollFrame) window.cancelAnimationFrame(scrollFrame);
+      measureFrame = window.requestAnimationFrame(() => {
+        measureFrame = 0;
+        ScrollTrigger.refresh();
+        scrollFrame = window.requestAnimationFrame(() => {
+          scrollFrame = 0;
+          if (sectionFromHash(window.location.hash) === target) scrollToSection(target);
+        });
+      });
+    };
+
+    const onHashChange = () => alignHash();
+    window.addEventListener("hashchange", onHashChange);
+    alignHash(true);
+    return () => {
+      window.removeEventListener("hashchange", onHashChange);
+      if (measureFrame) window.cancelAnimationFrame(measureFrame);
+      if (scrollFrame) window.cancelAnimationFrame(scrollFrame);
+    };
+  }, [loadStatus]);
+
+  // One-shot entrances own a stable context; resize and language changes rebuild
+  // pins/scrubs below but do not tear these triggers down or replay completed copy.
+  useEffect(() => {
+    const scope = scopeRef.current;
+    if (!scope) return;
+    return setupReveals(scope);
   }, []);
 
   useEffect(() => {

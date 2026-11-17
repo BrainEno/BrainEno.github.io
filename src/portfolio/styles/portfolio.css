@@ -1704,47 +1704,6 @@ canvas[data-water-canvas] {
   outline-offset: -2px;
 }
 
-/* Each video work also exposes an explicit keyboard-first play/pause action.
-   It borrows the index column until the row is hovered or focused, so the
-   reading layout stays unchanged while the control joins normal Tab order. */
-.pf .work-row-play {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  z-index: 2;
-  display: grid;
-  place-items: center;
-  width: clamp(24px, 2.2vw, 34px);
-  aspect-ratio: 1;
-  padding: 0;
-  border: 1px solid var(--works-meta-strong);
-  border-radius: 50%;
-  color: var(--ink);
-  background: rgba(8, 8, 8, 0.66);
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(-50%) scale(0.92);
-  transition: opacity 0.18s ease-out, transform 0.18s ease-out, border-color 0.18s ease-out;
-  cursor: pointer;
-}
-
-.pf .work-row:hover .work-row-play,
-.pf .work-row:focus-within .work-row-play,
-.pf .work-row-play:focus-visible {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(-50%) scale(1);
-}
-
-.pf .work-row-play:disabled {
-  cursor: not-allowed;
-}
-
-.pf .work-row-play svg {
-  width: 1em;
-  height: 1em;
-}
-
 .work-row {
   position: relative;
   display: grid;
@@ -3496,8 +3455,7 @@ canvas[data-water-canvas] {
     border: 2px solid Highlight;
   }
 
-  .pf .tv-play-btn,
-  .pf .work-row-play {
+  .pf .tv-play-btn {
     color: ButtonText;
     background: ButtonFace;
     border: 1px solid ButtonText;

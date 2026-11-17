@@ -18,11 +18,11 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   // mainland-China audience — an explicit rule costs nothing and removes any
   // doubt about the wildcard when a market-specific crawler is conservative.
   const rules = [
-    { userAgent: "*", allow: "/", disallow: [`${BASE_PATH}/offline`] },
-    { userAgent: "Baiduspider", allow: "/", disallow: [`${BASE_PATH}/offline`] },
-    { userAgent: "Sogou web spider", allow: "/", disallow: [`${BASE_PATH}/offline`] },
-    { userAgent: "360Spider", allow: "/", disallow: [`${BASE_PATH}/offline`] },
-    { userAgent: "Bytespider", allow: "/", disallow: [`${BASE_PATH}/offline`] },
+    { userAgent: "*", allow: "/", disallow: [`${BASE_PATH}/offline/`] },
+    { userAgent: "Baiduspider", allow: "/", disallow: [`${BASE_PATH}/offline/`] },
+    { userAgent: "Sogou web spider", allow: "/", disallow: [`${BASE_PATH}/offline/`] },
+    { userAgent: "360Spider", allow: "/", disallow: [`${BASE_PATH}/offline/`] },
+    { userAgent: "Bytespider", allow: "/", disallow: [`${BASE_PATH}/offline/`] },
   ];
   return {
     rules,

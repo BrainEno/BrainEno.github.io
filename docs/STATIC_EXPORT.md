@@ -20,7 +20,7 @@ npm run smoke                                                          # 逐页�
 前缀之外一律 404，和 Pages 项目站一模一样。如果某个页面在这里打不开，它在线上也打不开。
 
 `npm run smoke` 在同一个服务器上做无人值守的回归：按 `sitemap.xml` 遍历每个页面（200 + `text/html`）、
-断言 `/admin/` 之类的路径是 **404**、`robots.txt` 只 `Disallow: /offline`、首页引用的每个
+断言 `/admin/` 之类的路径是 **404**、`robots.txt` 只 `Disallow: /offline/`、首页引用的每个
 图片 URL（含所有 `srcSet` 候选）都真实存在。CI 的 `verify` job 跑的就是它，没过不会部署。
 
 `out/` 里是：
@@ -108,6 +108,8 @@ npm run preview      # 自动开在 http://localhost:3300/<仓库>/
 
 Pages 不能自定义响应头：`_next/static/*` 会被它缓存 10 分钟，`sw.js` 也是。
 所以发布新版本后最多 10 分钟才全员可见——这是 Pages 的固有行为，不是站点的问题。
+`build:static` 会根据导出内容自动生成 Service Worker 缓存 revision；图片、页面和其他静态资源分别有数量上限，
+新 worker 会等旧页面关闭后再激活，避免旧页面的哈希 chunk 被提前删除。
 
 ## 其他静态托管（可选）
 
@@ -142,7 +144,7 @@ location = /sw.js { add_header Cache-Control "no-cache, max-age=0"; }
 | 作品页 404 | 目录索引没开（`works/slug/` 需要解析到 `index.html`） | 按上面的 nginx / OSS 配置开默认文档 |
 | 样式和 JS 正常但**图片全裂** | 内容里的绝对路径少了子路径前缀 | 确认用的是 `asset()`（`npm run smoke` 在子路径模式下会直接报出漏掉的 URL） |
 | 子路径下样式和 JS 全 404 | 少了 `NEXT_PUBLIC_BASE_PATH` | 重新构建，值就是子路径（`/repo`，带前导斜杠，不带尾斜杠） |
-| 部署后看到旧版本 | Service Worker 缓存，或 Pages 的 10 分钟缓存 | 等一会儿，或强制刷新；新 `sw.js` 会接管 |
+| 部署后看到旧版本 | Pages 的 10 分钟缓存，或仍有旧页面在使用旧 Service Worker | 等 Pages 缓存刷新；关闭旧页面后再开，等待中的 worker 会安全激活 |
 | `sitemap.xml` 全是 localhost | 构建时没设 `NEXT_PUBLIC_SITE_URL` | 设好后重新构建 |
 | 图片不显示 | `images.unoptimized` 模式下走的是 `public/` 里的原文件 | 检查路径大小写，Linux 上区分大小写 |
 
@@ -157,4 +159,4 @@ location = /sw.js { add_header Cache-Control "no-cache, max-age=0"; }
   `generateStaticParams()` 返回 `[]`，就是告诉 exporter「这个可以构建」。
 - 字体来自 `@fontsource`（`layout.tsx` 里 import CSS），不依赖构建期的网络请求，也不依赖
   Google Fonts；构建可以在完全离线的机器上完成。
-- `sitemap.xml` 的 `lastmod` 取 `published.json` 的 `exportedAt`，避免每次部署都声称「刚刚更新」。
+- `sitemap.xml` 的 `lastmod` 优先取 `published.json` 的 `exportedAt`；没有发布快照时回退到构建时间。

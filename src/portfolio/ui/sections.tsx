@@ -9,7 +9,7 @@
  */
 "use client";
 
-import { memo, useCallback, useRef, useState, type CSSProperties } from "react";
+import { memo, type CSSProperties } from "react";
 import TvShowreel from "./TvShowreel";
 import { Img } from "./Img";
 import { asset } from "../seo/asset";
@@ -19,7 +19,7 @@ import { cx } from "./cx";
 import { PhoneBoothModel } from "./PhoneBoothModel";
 import { WorkTitle } from "./WorkTitle";
 import { ArrowIcon } from "./Arrow";
-import { containsPoint, videoControlCopy, type VideoPlaybackRequest, type VideoPlaybackState } from "./tv-transition";
+import { containsPoint } from "./tv-transition";
 
 type SectionProps<K extends keyof PortfolioContent> = {
   lang: Language;
@@ -330,8 +330,8 @@ export function videoAtPoint(
 /**
  * Resolve the semantic playback button under a point in the CRT glass. The
  * actual `.works-list` is intentionally above the TV photograph for legible
- * copy, so row and theater hit areas delegate glass gestures to this button.
- * The matching row-level playback toggle supplies a direct Tab-order action.
+ * copy, so row and theater hit areas delegate glass gestures to the television's
+ * own control without adding a second play/pause button to the works index.
  */
 export function videoControlAtPoint(
   scope: ParentNode,
@@ -362,19 +362,6 @@ export function Works({
   const active = activeIndex >= 0 ? content.items[activeIndex] : undefined;
   const featured = sheetIndex >= 0 ? content.items[sheetIndex] : undefined;
   const theaterOpen = theaterIndex >= 0;
-  const [playRequest, setPlayRequest] = useState<VideoPlaybackRequest | null>(null);
-  const [playback, setPlayback] = useState<{ workId: string | null; state: VideoPlaybackState }>({
-    workId: null,
-    state: "unavailable",
-  });
-  const playRequestSequence = useRef(0);
-  const reportPlayback = useCallback((workId: string | null, state: VideoPlaybackState) => {
-    setPlayback((current) => current.workId === workId && current.state === state ? current : { workId, state });
-  }, []);
-  const requestPlayback = useCallback((workId: string, playing: boolean) => {
-    playRequestSequence.current += 1;
-    setPlayRequest({ workId, action: playing ? "pause" : "play", sequence: playRequestSequence.current });
-  }, []);
   const { screen, width, height, src, alphaSrc } = content.tv;
   const tvStyle = {
     "--tv-ratio": `${width} / ${height}`,
@@ -426,8 +413,6 @@ export function Works({
               frameHeight={height}
               label={(text) => t(text, lang)}
               language={lang}
-              playRequest={playRequest}
-              onPlaybackChange={reportPlayback}
               autoplay={theaterOpen}
             />
             <TvMessage email={email} />
@@ -611,8 +596,6 @@ export function Works({
         >
           {content.items.map((work, index) => {
             const title = t(work.title, lang);
-            const rowPlaybackState = playback.workId === work.id ? playback.state : "paused";
-            const rowPlaybackCopy = videoControlCopy(lang, rowPlaybackState, title);
             return (
               <li
                 key={work.id}
@@ -645,10 +628,10 @@ export function Works({
                     if (event.button !== 0) return;
 
                     /*
-                     * A press over the glass is a pause/play gesture for the
-                     * tube, not a selection. Focusing this row here would fire
-                     * its onFocus preview and switch the channel out from under
-                     * the click before it lands.
+                     * A press over the glass is delegated to the TV control,
+                     * not a row selection. Focusing the row here would fire its
+                     * onFocus preview and switch the channel out from under the
+                     * glass click before it lands.
                      */
                     const works = event.currentTarget.closest(".works");
                     if (works && videoAtPoint(works, event.clientX, event.clientY)) {
@@ -693,30 +676,6 @@ export function Works({
                     {work.isPrivate ? (zh ? "，私有项目" : ", private project") : ""}
                   </span>
                 </button>
-                {work.video ? (
-                  <button
-                    type="button"
-                    className="work-row-play"
-                    data-cursor="link"
-                    aria-label={rowPlaybackCopy.label}
-                    aria-pressed={rowPlaybackState === "playing"}
-                    disabled={rowPlaybackState === "unavailable"}
-                    onFocus={() => onPreview(index)}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      onPreview(index);
-                      requestPlayback(work.id, rowPlaybackState === "playing");
-                    }}
-                  >
-                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true">
-                      {rowPlaybackState === "playing"
-                        ? <path d="M7 5h4v14H7zm6 0h4v14h-4z" />
-                        : <path d="M8 5v14l11-7z" />}
-                    </svg>
-                    <span className="sr-only">{rowPlaybackCopy.label}</span>
-                  </button>
-                ) : null}
                 <span className="work-row-line" aria-hidden="true" />
                 <span className="work-row-index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
                 <span className="work-row-mask">

@@ -142,14 +142,30 @@ try {
   // times it is written down.
   const disallows = robotsBody.match(/^Disallow:.*$/gm) ?? [];
   check(
-    "robots.txt only disallows /offline",
-    disallows.length > 0 && disallows.every((line) => /^Disallow:\s*\S*\/offline$/.test(line)),
+    "robots.txt only disallows the canonical /offline/ path",
+    disallows.length > 0 && disallows.every((line) => /^Disallow:\s*\S*\/offline\/$/.test(line)),
     disallows.join(" ") || "no Disallow lines"
   );
+  const offlineShell = await head(route("/offline/"));
+  check("canonical offline shell path → 200 without redirect", offlineShell.status === 200, `status ${offlineShell.status}`);
   check("robots.txt points at the sitemap", /Sitemap: https?:\/\//.test(robotsBody));
   const manifestResponse = await head(route("/manifest.webmanifest"));
   check("manifest.webmanifest → 200", manifestResponse.status === 200, `status ${manifestResponse.status}`);
   const manifest = await manifestResponse.json();
+  check(
+    "manifest theme color follows the site theme",
+    manifest.theme_color === manifest.background_color,
+    `theme ${manifest.theme_color}, background ${manifest.background_color}`
+  );
+  const workerResponse = await head(route("/sw.js"));
+  const workerSource = await workerResponse.text();
+  check("scope-local service worker → 200", workerResponse.status === 200, `status ${workerResponse.status}`);
+  check(
+    "service-worker cache version matches the static export digest",
+    /^[a-f0-9]{16}$/.test(buildMeta.serviceWorkerRevision ?? "") &&
+      workerSource.includes(`const VERSION = "build-${buildMeta.serviceWorkerRevision}";`),
+    `revision ${buildMeta.serviceWorkerRevision ?? "missing"}`
+  );
   if (BASE_PATH) {
     // An installed PWA with `start_url: "/"` on a project site would open
     // `<user>.github.io` instead of the site.
@@ -352,13 +368,19 @@ try {
     "main landmark is programmatically focusable (#18)",
     /<main\b(?=[^>]*id="main-content")(?=[^>]*tabindex="-1")[^>]*>/i.test(indexHtml)
   );
-  const rowPlaybackControls = indexHtml.match(
-    /<button\b(?=[^>]*class="work-row-play")(?=[^>]*type="button")(?=[^>]*aria-label=)(?=[^>]*aria-pressed=)[^>]*>/gi
+  const rowPlaybackControls = indexHtml.match(/<button\b(?=[^>]*class="work-row-play")[^>]*>/gi) ?? [];
+  const workOpenControls = indexHtml.match(
+    /<button\b(?=[^>]*class="work-row-hit")(?=[^>]*type="button")(?=[^>]*aria-haspopup="dialog")[^>]*>/gi
   ) ?? [];
   check(
-    "video work has a native keyboard playback toggle (#53, #61)",
-    rowPlaybackControls.length > 0,
-    `${rowPlaybackControls.length} semantic playback controls`
+    "works list has no extra play/pause button beside each project",
+    rowPlaybackControls.length === 0,
+    `${rowPlaybackControls.length} row playback controls`
+  );
+  check(
+    "work rows remain native keyboard-operable theater buttons (#53, #61)",
+    workOpenControls.length > 0,
+    `${workOpenControls.length} project buttons`
   );
   check(
     "loading status is announced outside the decorative preloader (#18)",

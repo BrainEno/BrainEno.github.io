@@ -12,6 +12,8 @@ import { ScrollSmoother } from "gsap/ScrollSmoother";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import type { SectionId } from "../content/types";
 import { motionPolicy } from "./motion-policy";
+import { createRateLimitedTask } from "./pointer-sync";
+import { marqueeBoostFromVelocity } from "./marquee-speed";
 
 export const DESKTOP_QUERY = "(min-width: 768px)";
 export const MOBILE_QUERY = "(max-width: 767px)";
@@ -20,7 +22,7 @@ export const MOBILE_QUERY = "(max-width: 767px)";
  *  side. Tablets in portrait, short laptops with the dev-tools open and phones
  *  all get the vertical, flow-based intro instead (see `journeyFlow`). */
 export const JOURNEY_PINNED_QUERY = "(min-width: 1024px) and (min-height: 561px) and (orientation: landscape)";
-const REDUCED_QUERY = "(prefers-reduced-motion: reduce)";
+export const REDUCED_QUERY = "(prefers-reduced-motion: reduce)";
 const TOUCH_QUERY = "(hover: none), (pointer: coarse)";
 /**
  * Touch scroll events arrive coalesced and in uneven bundles during a
@@ -633,22 +635,10 @@ function journeyFlow(scope: HTMLElement, desktop: boolean, reduce: boolean, scru
     );
   }
 
-  gsap.from(".story-photo-mask", {
-    clipPath: "inset(100% 0% 0% 0%)",
-    duration: 1.4,
-    ease: "expo.out",
-    scrollTrigger: { trigger: ".story-photo-box", start: "top 80%" },
-  });
-  // Paragraphs rise in, then their words brighten with the scroll — the same
-  // reading light as the pinned intro, spread over the paragraph's own height.
+  // Flow-mode one-shot entrances are registered independently in `reveals.ts`
+  // so this geometry context can rebuild without replaying completed copy.
+  // Word lighting is scrubbed from the current scroll position and stays here.
   gsap.utils.toArray<HTMLElement>(".story-copy p, .coda-text").forEach((el) => {
-    gsap.from(el, {
-      y: 40,
-      autoAlpha: 0,
-      duration: 1.1,
-      ease: "power3.out",
-      scrollTrigger: { trigger: el, start: "top 88%" },
-    });
     const words = el.querySelectorAll(".copy-word");
     if (!words.length || reduce) return;
     gsap.fromTo(
@@ -946,6 +936,16 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
     };
   }
 
+  // A stationary pointer can land over another row as the page scrolls, but
+  // hit testing on every ScrollTrigger tick is wasteful. Keep one leading and
+  // one trailing re-evaluation per 100 ms; actual pointer movement still
+  // updates the custom cursor on the next animation frame.
+  const scrollPointerSync = hoverCapable
+    ? createRateLimitedTask(() => {
+        if (phase === "rows") opts.syncPointer?.();
+      }, 100)
+    : null;
+
   // The set stays in frame until the contact sheet has fully risen over it —
   // through the message and the whole dive into the glass.
   ScrollTrigger.create({
@@ -995,22 +995,6 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
   }
 
   gsap.utils.toArray<HTMLElement>(".work-row").forEach((row, index) => {
-    const reveal = { trigger: row, start: "top 90%", toggleActions: "play none none reverse" };
-    gsap.from(row.querySelector(".work-row-line"), {
-      scaleX: 0,
-      transformOrigin: "0% 50%",
-      duration: 1.3,
-      ease: "expo.inOut",
-      scrollTrigger: reveal,
-    });
-    gsap.from(row.querySelectorAll(".work-row-title, .work-row-meta span"), {
-      yPercent: 115,
-      duration: 1.15,
-      ease: "expo.out",
-      stagger: 0.05,
-      delay: 0.12,
-      scrollTrigger: reveal,
-    });
     // On fine-pointer devices the TV stays on the untouched `tv.webp` until the
     // cursor dot actually hovers a `.work-row`; touch devices have no cursor,
     // so rows preview as they cross the reading band and return to `tv.webp`
@@ -1032,10 +1016,16 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
     start: hoverCapable ? "top bottom" : "top 62%",
     end: hoverCapable ? "bottom top" : "bottom 62%",
     onUpdate: () => {
-      if (hoverCapable && phase === "rows") opts.syncPointer?.();
+      if (hoverCapable && phase === "rows") scrollPointerSync?.request();
     },
-    onLeave: () => opts.onWork(-1),
-    onLeaveBack: () => opts.onWork(-1),
+    onLeave: () => {
+      scrollPointerSync?.cancel();
+      opts.onWork(-1);
+    },
+    onLeaveBack: () => {
+      scrollPointerSync?.cancel();
+      opts.onWork(-1);
+    },
   });
 
   const lean = desktop ? 2.4 : 2;
@@ -1058,8 +1048,10 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
       },
       onLeaveBack: () => {
         setPhase("rows");
-        if (hoverCapable) opts.syncPointer?.();
-        else opts.onWork(opts.lastWork());
+        if (hoverCapable) {
+          scrollPointerSync?.cancel();
+          opts.syncPointer?.();
+        } else opts.onWork(opts.lastWork());
       },
     },
   });
@@ -1134,6 +1126,7 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
   ScrollTrigger.create({ trigger: section, start: "top bottom", endTrigger: "#contact", end: "bottom top", onUpdate: syncPhase, onRefresh: syncPhase });
 
   return () => {
+    scrollPointerSync?.dispose();
     message?.kill();
     dive?.reset();
   };
@@ -1173,16 +1166,6 @@ function contact(scope: HTMLElement, desktop: boolean, reduce: boolean) {
     // Rest of the dive: nothing left to arrive, the sheet just lands.
     .to({}, { duration: 0.3 }, 0.7);
 
-  gsap
-    .timeline({
-      defaults: { ease: "expo.out", duration: 1.3 },
-      scrollTrigger: { trigger: ".contact-cta", start: "top 95%", toggleActions: "play none none reverse" },
-    })
-    .fromTo(".contact-cta-label", { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0 }, 0)
-    .fromTo(".contact-mail-text", { yPercent: 110 }, { yPercent: 0 }, 0.06)
-    .fromTo(".contact-mail-arrow", { scale: 0, rotation: -90 }, { scale: 1, rotation: 0, duration: 1.1 }, 0.3)
-    .fromTo(".contact-cta .contact-item, .contact-footer > *", { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, stagger: 0.06 }, 0.2);
-
   // Endless counter-running bands; scroll velocity briefly speeds them up.
   const loops = rows.map((row, index) => {
     const tracks = row.querySelectorAll(".contact-reel-track");
@@ -1192,19 +1175,47 @@ function contact(scope: HTMLElement, desktop: boolean, reduce: boolean) {
       : gsap.to(tracks, { xPercent: -100, duration, ease: "none", repeat: -1 });
   });
   if (!loops.length) return;
+
+  // Reuse two paused tweens per loop instead of allocating four new tweens on
+  // every scroll frame. `scrollEnd` retargets the existing recovery tween once.
+  const speedTweens = loops.map((loop) => ({
+    accelerate: gsap.to(loop, { timeScale: 1, duration: 0.2, ease: "power2.out", overwrite: true, paused: true }),
+    recover: gsap.to(loop, { timeScale: 1, duration: 1.2, delay: 0.2, ease: "power2.out", overwrite: true, paused: true }),
+  }));
+  const retarget = (tween: gsap.core.Tween, timeScale: number) => {
+    tween.pause();
+    tween.vars.timeScale = timeScale;
+    tween.invalidate().restart();
+  };
+  const accelerateToVelocity = (velocity: number) => {
+    const boost = marqueeBoostFromVelocity(velocity);
+    speedTweens.forEach(({ accelerate, recover }) => {
+      recover.pause();
+      retarget(accelerate, boost);
+    });
+  };
+  const recoverToRestingSpeed = () => {
+    speedTweens.forEach(({ accelerate, recover }) => {
+      accelerate.pause();
+      retarget(recover, 1);
+    });
+  };
+  ScrollTrigger.addEventListener("scrollEnd", recoverToRestingSpeed);
   ScrollTrigger.create({
     trigger: "#contact",
     start: "top bottom",
     end: "bottom top",
     onToggle: (self) => loops.forEach((loop) => (self.isActive ? loop.play() : loop.pause())),
-    onUpdate: (self) => {
-      const boost = 1 + Math.min(Math.abs(self.getVelocity()) / 320, 5);
-      loops.forEach((loop) => {
-        gsap.to(loop, { timeScale: boost, duration: 0.2, overwrite: true });
-        gsap.to(loop, { timeScale: 1, duration: 1.2, delay: 0.2, ease: "power2.out" });
-      });
-    },
+    onUpdate: (self) => accelerateToVelocity(self.getVelocity()),
   });
+
+  return () => {
+    ScrollTrigger.removeEventListener("scrollEnd", recoverToRestingSpeed);
+    speedTweens.forEach(({ accelerate, recover }) => {
+      accelerate.kill();
+      recover.kill();
+    });
+  };
 }
 
 function sectionTracking(opts: ChoreographyOptions) {
@@ -1264,11 +1275,15 @@ export function setupChoreography(opts: ChoreographyOptions) {
         else journeyFlow(scope, desktop, false, introScrub, touch);
       }
       const tvCleanup = television(scope, opts, desktop, reduce);
-      contact(scope, desktop, !policy.ambientLoops);
+      const contactCleanup = contact(scope, desktop, !policy.ambientLoops);
       sectionTracking(opts);
       // The dive writes matrices straight to the DOM (not through tweens), so
       // they are cleared by hand when the context reverts (resize, language).
-      return () => tvCleanup?.();
+      // The contact scrollEnd listener is also removed by its context cleanup.
+      return () => {
+        tvCleanup?.();
+        contactCleanup?.();
+      };
     }
   );
 
