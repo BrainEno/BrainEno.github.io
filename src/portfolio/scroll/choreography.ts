@@ -11,6 +11,7 @@ import { gsap } from "gsap";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import type { SectionId } from "../content/types";
+import { motionPolicy } from "./motion-policy";
 
 export const DESKTOP_QUERY = "(min-width: 768px)";
 export const MOBILE_QUERY = "(max-width: 767px)";
@@ -87,7 +88,7 @@ export function createSmoother() {
     ScrollSmoother.create({
       wrapper: "#smooth-wrapper",
       content: "#smooth-content",
-      smooth: prefersReducedMotion() ? 0 : 1.1,
+      smooth: motionPolicy(prefersReducedMotion()).smoothScroll,
       smoothTouch: false,
       effects: true,
       normalizeScroll: false,
@@ -909,6 +910,42 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
   };
   setPhase("rows");
 
+  // Reduced motion is a genuinely flow-based mode: no pinned stage, camera
+  // push, channel-transition trigger, or reveal timeline is constructed. On a
+  // touch screen, a narrow IntersectionObserver band preserves the old
+  // automatic row preview without tying it to a scrubbed animation.
+  if (!motionPolicy(reduce).sectionPins) {
+    const rows = gsap.utils.toArray<HTMLElement>(".work-row", section);
+    const visibility = new Map<HTMLElement, number>();
+    let disposed = false;
+    let observer: IntersectionObserver | null = null;
+
+    if (!hoverCapable && typeof window.IntersectionObserver === "function") {
+      const syncPreview = () => {
+        if (disposed) return;
+        const best = [...visibility.entries()].sort((a, b) => b[1] - a[1])[0];
+        const index = best && best[1] > 0 ? Number(best[0].dataset.workIndex) : -1;
+        opts.onWork(Number.isInteger(index) ? index : -1);
+      };
+      observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            visibility.set(entry.target as HTMLElement, entry.isIntersecting ? entry.intersectionRatio : 0);
+          }
+          syncPreview();
+        },
+        { root: null, rootMargin: "-42% 0px -42% 0px", threshold: [0, 0.15, 0.35, 0.6, 0.85] }
+      );
+      rows.forEach((row) => observer?.observe(row));
+    }
+
+    return () => {
+      disposed = true;
+      observer?.disconnect();
+      if (section.dataset.tvPhase === "rows") delete section.dataset.tvPhase;
+    };
+  }
+
   // The set stays in frame until the contact sheet has fully risen over it —
   // through the message and the whole dive into the glass.
   ScrollTrigger.create({
@@ -1219,12 +1256,15 @@ export function setupChoreography(opts: ChoreographyOptions) {
     { desktop: DESKTOP_QUERY, mobile: MOBILE_QUERY, journeyPinned: JOURNEY_PINNED_QUERY, touch: TOUCH_QUERY, reduce: REDUCED_QUERY },
     (context) => {
       const { desktop, journeyPinned, touch, reduce } = context.conditions as Conditions;
-      const introScrub: boolean | number = reduce ? true : touch ? INTRO_TOUCH_SCRUB : true;
-      heroScroll(desktop);
-      if (journeyPinned) journeyDesktop(scope, reduce, introScrub);
-      else journeyFlow(scope, desktop, reduce, introScrub, touch);
+      const policy = motionPolicy(reduce);
+      const introScrub: boolean | number = touch ? INTRO_TOUCH_SCRUB : true;
+      if (policy.scrollTransforms) {
+        heroScroll(desktop);
+        if (journeyPinned) journeyDesktop(scope, false, introScrub);
+        else journeyFlow(scope, desktop, false, introScrub, touch);
+      }
       const tvCleanup = television(scope, opts, desktop, reduce);
-      contact(scope, desktop, reduce);
+      contact(scope, desktop, !policy.ambientLoops);
       sectionTracking(opts);
       // The dive writes matrices straight to the DOM (not through tweens), so
       // they are cleared by hand when the context reverts (resize, language).

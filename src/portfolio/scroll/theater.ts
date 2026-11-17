@@ -10,6 +10,7 @@
 import { gsap } from "gsap";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { motionPolicy } from "./motion-policy";
 
 /**
  * "Theater" beat for the works television.
@@ -96,7 +97,8 @@ export type TheaterHandle = {
 export function openTheater(section: HTMLElement): TheaterHandle | null {
   const fit = measure(section);
   if (!fit) return null;
-  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const policy = motionPolicy(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const reduce = !policy.theaterCamera;
   const box = section.querySelector<HTMLElement>(".tv-box");
   const list = section.querySelector<HTMLElement>(".works-list");
   const sheet = section.querySelector<HTMLElement>(".tv-sheet");

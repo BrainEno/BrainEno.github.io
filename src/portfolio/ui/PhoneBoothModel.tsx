@@ -11,6 +11,7 @@
 
 import { useEffect, useRef } from "react";
 import type { BoothHandle } from "../three/booth";
+import { shouldPauseBooth } from "../three/booth-visibility";
 import { asset } from "../seo/asset";
 import { srcSetFor } from "./Img";
 
@@ -42,15 +43,27 @@ export function PhoneBoothModel({ src, fallback, spin = 0.16, plateText }: Props
     let disposed = false;
     let handle: BoothHandle | null = null;
     let loading = false;
-    /*
-     * The pause observer starts observing before the model has finished
-     * loading, so its first callback (which can already say "off screen")
-     * normally lands while `handle` is still null. Remembering the answer here
-     * — instead of only forwarding it — keeps the freshly mounted render loop
-     * from spinning at 60 fps for the whole approach to the contact section.
-     */
-    let onScreen = true;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let pauseObserver: IntersectionObserver | null = null;
+    // Start pessimistically: the preload observer can run well before the
+    // booth enters the viewport, and its visibility callback may arrive after
+    // the model finishes loading.
+    let viewportVisible = false;
+    let documentVisible = !document.hidden;
+    const syncPaused = () => {
+      handle?.setPaused(shouldPauseBooth(viewportVisible, documentVisible));
+    };
+    const onVisibilityChange = () => {
+      documentVisible = !document.hidden;
+      syncPaused();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let reduceMotion = motionQuery.matches;
+    const onMotionChange = () => {
+      reduceMotion = motionQuery.matches;
+      handle?.setReducedMotion(reduceMotion);
+    };
+    motionQuery.addEventListener("change", onMotionChange);
 
     const mount = async () => {
       if (loading || disposed || handle) return;
@@ -58,14 +71,22 @@ export function PhoneBoothModel({ src, fallback, spin = 0.16, plateText }: Props
       try {
         const { mountBooth } = await import("../three/booth");
         if (disposed) return;
-        const mounted = await mountBooth(host, { url: src, spin, reduceMotion: reduce, plateText });
+        const mounted = await mountBooth(host, {
+          url: src,
+          spin,
+          reduceMotion,
+          initiallyPaused: shouldPauseBooth(viewportVisible, documentVisible),
+          isCancelled: () => disposed,
+          plateText,
+        });
         if (disposed) {
           mounted.dispose();
           return;
         }
         handle = mounted;
-        // Apply the intersection state that may have arrived before mounting.
-        handle.setPaused(!onScreen);
+        // Motion and visibility may have changed during the async import/model fetch.
+        handle.setReducedMotion(reduceMotion);
+        syncPaused();
         // Written straight to the DOM instead of through state: the canvas is
         // already painted at this point and the cutout underneath must be
         // hidden in the same frame (a React re-render would let one frame of
@@ -82,9 +103,14 @@ export function PhoneBoothModel({ src, fallback, spin = 0.16, plateText }: Props
         }
         host.dataset.ready = "true";
       } catch (error) {
+        pauseObserver?.disconnect();
+        pauseObserver = null;
+        document.removeEventListener("visibilitychange", onVisibilityChange);
+        motionQuery.removeEventListener("change", onMotionChange);
+        if (disposed) return;
         // A failed decode / unsupported WebGL must not break the section.
         console.warn("[booth] falling back to the cutout image", error);
-        if (!disposed) host.dataset.fallback = "true";
+        host.dataset.fallback = "true";
       }
     };
 
@@ -101,19 +127,22 @@ export function PhoneBoothModel({ src, fallback, spin = 0.16, plateText }: Props
     preload.observe(host);
 
     // Park the render loop whenever the booth is off screen.
-    const pause = new IntersectionObserver(
+    pauseObserver = new IntersectionObserver(
       (entries) => {
-        onScreen = entries.some((entry) => entry.isIntersecting);
-        handle?.setPaused(!onScreen);
+        viewportVisible = entries.some((entry) => entry.isIntersecting);
+        syncPaused();
       },
       { rootMargin: "20% 0px 20% 0px" }
     );
-    pause.observe(host);
+    pauseObserver.observe(host);
 
     return () => {
       disposed = true;
       preload.disconnect();
-      pause.disconnect();
+      pauseObserver?.disconnect();
+      pauseObserver = null;
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      motionQuery.removeEventListener("change", onMotionChange);
       handle?.dispose();
       handle = null;
     };

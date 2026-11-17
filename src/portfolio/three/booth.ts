@@ -44,10 +44,13 @@ import {
 } from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { boothSpinRate } from "./booth-visibility";
 
 export type BoothHandle = {
   /** Stop rendering while the section is off screen or the tab is hidden. */
   setPaused: (paused: boolean) => void;
+  /** Start/stop the decorative idle motion when the OS preference changes. */
+  setReducedMotion: (reduced: boolean) => void;
   dispose: () => void;
 };
 
@@ -56,6 +59,10 @@ export type BoothOptions = {
   /** Radians per second of idle self-rotation. */
   spin?: number;
   reduceMotion?: boolean;
+  /** Keep the first painted frame static until the owning observers agree. */
+  initiallyPaused?: boolean;
+  /** Avoid creating a renderer when the React owner unmounts during GLTF fetch. */
+  isCancelled?: () => boolean;
   /**
    * Replaces the phone number that is modelled as four separate flat meshes on
    * the booth's panels (see `replacePlateLettering`). Pass an empty string to
@@ -219,7 +226,16 @@ function retypeLettering(
 }
 
 export async function mountBooth(host: HTMLElement, options: BoothOptions): Promise<BoothHandle> {
-  const spin = options.reduceMotion ? 0 : (options.spin ?? 0.16);
+  const requestedSpin = options.spin ?? 0.16;
+  let reduceMotion = Boolean(options.reduceMotion);
+  let spinRate = boothSpinRate(reduceMotion, requestedSpin);
+  // Resolve network/decode failures before allocating a WebGL context, canvas,
+  // PMREM, or animation resources. The React caller can keep its still fallback
+  // without needing a partially constructed handle to clean up.
+  const loader = new GLTFLoader();
+  const gltf = await loader.loadAsync(options.url);
+  if (options.isCancelled?.()) return { setPaused: () => {}, setReducedMotion: () => {}, dispose: () => {} };
+  const model = gltf.scene;
 
   const renderer = new WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -230,7 +246,6 @@ export async function mountBooth(host: HTMLElement, options: BoothOptions): Prom
   const canvas = renderer.domElement;
   canvas.className = "contact-booth-webgl";
   canvas.setAttribute("aria-hidden", "true");
-  host.appendChild(canvas);
 
   const scene = new Scene();
   const camera = new PerspectiveCamera(FOV, 1, 0.05, 40);
@@ -249,9 +264,23 @@ export async function mountBooth(host: HTMLElement, options: BoothOptions): Prom
   rim.position.set(-0.6, 2.2, -3.4);
   scene.add(hemi, key, fill, rim);
 
-  const pmrem = new PMREMGenerator(renderer);
-  const environment = pmrem.fromScene(new RoomEnvironment(), 0.04);
+  let pmrem: PMREMGenerator;
+  try {
+    pmrem = new PMREMGenerator(renderer);
+  } catch (error) {
+    renderer.dispose();
+    throw error;
+  }
+  let environment: ReturnType<PMREMGenerator["fromScene"]>;
+  try {
+    environment = pmrem.fromScene(new RoomEnvironment(), 0.04);
+  } catch (error) {
+    pmrem.dispose();
+    renderer.dispose();
+    throw error;
+  }
   scene.environment = environment.texture;
+  host.appendChild(canvas);
 
   const pivot = new Group();
   pivot.rotation.x = 0.05;
@@ -259,9 +288,6 @@ export async function mountBooth(host: HTMLElement, options: BoothOptions): Prom
   pivot.add(stage);
   scene.add(pivot);
 
-  const loader = new GLTFLoader();
-  const gltf = await loader.loadAsync(options.url);
-  const model = gltf.scene;
   const maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
 
   const lettering: Mesh[] = [];
@@ -420,6 +446,7 @@ export async function mountBooth(host: HTMLElement, options: BoothOptions): Prom
   const onPointerUp = (event: PointerEvent) => {
     if (!dragging) return;
     dragging = false;
+    if (reduceMotion) yawVelocity = 0;
     canvas.classList.remove("is-dragging");
     if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
   };
@@ -434,7 +461,7 @@ export async function mountBooth(host: HTMLElement, options: BoothOptions): Prom
   let yaw = 0;
   let elapsed = 0;
   let frame = 0;
-  let paused = false;
+  let paused = options.initiallyPaused ?? false;
 
   // QA hook: freeze the self-rotation at a given yaw so screenshots are
   // reproducible. Development only — never shipped.
@@ -453,14 +480,14 @@ export async function mountBooth(host: HTMLElement, options: BoothOptions): Prom
     if (!dragging) {
       yawVelocity *= 0.94;
       if (Math.abs(yawVelocity) < 0.002) yawVelocity = 0;
-      yaw += dt * spin + yawVelocity * dt;
+      yaw += dt * spinRate + yawVelocity * dt;
       dragPitch *= 0.995;
     }
 
     pivot.rotation.y = yawOverride ?? (yaw + dragYaw);
     pivot.rotation.x = 0.05 + dragPitch;
     // A slow vertical breath keeps the booth from feeling like a static mesh.
-    stage.position.y = 0.5 + Math.sin(elapsed * 0.62) * (spin ? 0.006 : 0);
+    stage.position.y = 0.5 + Math.sin(elapsed * 0.62) * (spinRate ? 0.006 : 0);
 
     renderer.render(scene, camera);
     if (!paused) frame = requestAnimationFrame(render);
@@ -487,16 +514,17 @@ export async function mountBooth(host: HTMLElement, options: BoothOptions): Prom
   renderer.render(scene, camera);
   start();
 
-  const onVisibility = () => setPaused(document.hidden);
-  document.addEventListener("visibilitychange", onVisibility);
-
   return {
     setPaused,
+    setReducedMotion(reduced) {
+      reduceMotion = reduced;
+      spinRate = boothSpinRate(reduced, requestedSpin);
+      if (reduced) yawVelocity = 0;
+    },
     dispose() {
       if (frame) cancelAnimationFrame(frame);
       frame = 0;
       paused = true;
-      document.removeEventListener("visibilitychange", onVisibility);
       canvas.removeEventListener("pointerdown", onPointerDown);
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerup", onPointerUp);

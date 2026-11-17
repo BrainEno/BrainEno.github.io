@@ -24,6 +24,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import path from "node:path";
 import { brotliCompressSync, gzipSync } from "node:zlib";
+import { createPreviewResolver } from "./preview-resolver.mjs";
 
 const root = path.resolve(process.cwd(), process.env.OUT_DIR || "out");
 const port = Number(process.env.PORT || 3300);
@@ -70,24 +71,7 @@ const TYPES = {
 /** Already-compressed formats: running them through Brotli only wastes CPU. */
 const COMPRESSIBLE = new Set([".html", ".js", ".mjs", ".css", ".json", ".webmanifest", ".xml", ".txt", ".svg"]);
 
-const resolve = (urlPath) => {
-  let requested = decodeURIComponent(urlPath.split("?")[0]);
-  if (mount) {
-    if (requested !== mount && !requested.startsWith(`${mount}/`)) return null;
-    requested = requested.slice(mount.length) || "/";
-  }
-  const clean = requested.replace(/\/+$/, "");
-  const target = path.join(root, clean);
-  if (!target.startsWith(root)) return null;
-  if (existsSync(target) && statSync(target).isDirectory()) {
-    const index = path.join(target, "index.html");
-    return existsSync(index) ? index : null;
-  }
-  if (existsSync(target) && statSync(target).isFile()) return target;
-  // Trailing-slash URLs (`works/slug/`) are directories in the export.
-  const index = path.join(target, "index.html");
-  return existsSync(index) ? index : null;
-};
+const resolve = createPreviewResolver(root, mount);
 
 /**
  * `encoding:file:mtime → bytes`. The mtime belongs in the key: a preview server

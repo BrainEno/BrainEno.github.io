@@ -10,10 +10,20 @@
 "use client";
 
 import { gsap } from "gsap";
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { LocalizedText } from "../content/types";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { Language, LocalizedText } from "../content/types";
+import { motionPolicy } from "../scroll/motion-policy";
 import { asset } from "../seo/asset";
 import { Img, srcSetFor } from "./Img";
+import {
+  channelKey,
+  createTransitionEpoch,
+  isPlaybackRequestReady,
+  ownsPlaybackResult,
+  videoControlCopy,
+  type VideoPlaybackRequest,
+  type VideoPlaybackState,
+} from "./tv-transition";
 
 export type TvWork = {
   id: string;
@@ -34,6 +44,12 @@ type Props = {
   frameHeight: number;
   /** Alt text for the current language. */
   label: (text: LocalizedText) => string;
+  /** Language used for the TV's keyboard playback control and live status. */
+  language: Language;
+  /** A row-level user action, held until the requested channel is painted. */
+  playRequest: VideoPlaybackRequest | null;
+  /** Shares the current channel's playback state with its row control. */
+  onPlaybackChange: (workId: string | null, state: VideoPlaybackState) => void;
   /** Theater presentation mode: stills drift slowly while enlarged.
    *  Video works autoplay whenever they are the active channel; this flag
    *  only delays theater playback until the opening move has settled. */
@@ -58,7 +74,7 @@ const RESTING_FILTER = "saturate(1.06) contrast(1.04) brightness(0.93)";
  *  - `.tv-ambient` casts a subtle, color-adaptive glow from the active project
  *    onto the inner bezel bevels and the dark night asphalt in front of the set.
  */
-export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, label, autoplay = false }: Props) {
+export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, label, language, playRequest, onPlaybackChange, autoplay = false }: Props) {
   const rigRef = useRef<HTMLDivElement>(null);
   const ambientRef = useRef<HTMLDivElement>(null);
   const pictureRef = useRef<HTMLDivElement>(null);
@@ -69,9 +85,15 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
 
   /** What is actually painted inside the tube right now — swapped mid-snow. */
   const [shown, setShown] = useState<TvWork | null>(active);
+  const activeRef = useRef<TvWork | null>(active);
   const shownRef = useRef<TvWork | null>(active);
   const rigActiveRef = useRef<boolean>(Boolean(active));
   const timeline = useRef<gsap.core.Timeline | null>(null);
+  const transitionEpochRef = useRef(createTransitionEpoch());
+  const playbackEpochRef = useRef(createTransitionEpoch());
+  const consumedPlayRequestRef = useRef(0);
+  const manualPlaybackRequestRef = useRef<{ workId: string; channelToken: number } | null>(null);
+  const pendingChannelRef = useRef(channelKey(active?.id ?? null, Boolean(active)));
   const [isPlaying, setIsPlaying] = useState(false);
   const [autoplayFailed, setAutoplayFailed] = useState(false);
   /**
@@ -82,6 +104,10 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
   const userPausedRef = useRef(false);
   /** Clips that failed to load fall back to the project still. */
   const [broken, setBroken] = useState<Record<string, true>>({});
+
+  useLayoutEffect(() => {
+    activeRef.current = active;
+  }, [active]);
 
   /** One 160 px tile of analogue snow, generated once and stepped by GSAP. */
   useEffect(() => {
@@ -104,8 +130,15 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
 
   useEffect(() => {
     const nextId = active?.id ?? null;
+    const nextKey = channelKey(nextId, Boolean(active));
+    // Compare with the requested channel, not only the last painted channel.
+    // During A → B → A, `shownRef` is still A while B is in flight; an early
+    // return here would leave B's delayed commit alive and paint the wrong work.
+    if (nextKey === pendingChannelRef.current) return;
+    pendingChannelRef.current = nextKey;
+    playbackEpochRef.current.invalidate();
+    const token = transitionEpochRef.current.next();
     const currentId = shownRef.current?.id ?? null;
-    if (nextId === currentId && Boolean(active) === rigActiveRef.current) return;
 
     const rig = rigRef.current;
     const ambient = ambientRef.current;
@@ -113,7 +146,7 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
     const staticLayer = staticRef.current;
     const roll = rollRef.current;
     const line = lineRef.current;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const policy = motionPolicy(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
     const video = videoRef.current;
     if (video) {
@@ -125,13 +158,14 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
     }
 
     const commit = (work: TvWork | null) => {
+      if (!transitionEpochRef.current.isCurrent(token)) return;
       shownRef.current = work;
       setShown(work);
     };
 
     timeline.current?.kill();
 
-    if (reduce || !rig || !ambient || !picture || !staticLayer || !roll || !line) {
+    if (!policy.channelEffects || !rig || !ambient || !picture || !staticLayer || !roll || !line) {
       rigActiveRef.current = Boolean(active);
       commit(active);
       if (rig) gsap.set(rig, { opacity: active ? 1 : 0 });
@@ -229,8 +263,44 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
       .to(roll, { opacity: 0, duration: 0.16 }, 0.4);
   }, [active]);
 
+  useEffect(() => {
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const settleToCurrentChannel = () => {
+      if (!preference.matches) return;
+      const work = activeRef.current;
+      const key = channelKey(work?.id ?? null, Boolean(work));
+      transitionEpochRef.current.next();
+      playbackEpochRef.current.invalidate();
+      pendingChannelRef.current = key;
+      timeline.current?.kill();
+
+      const video = videoRef.current;
+      if (video) {
+        video.pause();
+        video.currentTime = 0;
+      }
+      userPausedRef.current = false;
+      setIsPlaying(false);
+      setAutoplayFailed(false);
+      shownRef.current = work;
+      setShown(work);
+      rigActiveRef.current = Boolean(work);
+
+      if (rigRef.current) gsap.set(rigRef.current, { opacity: work ? 1 : 0 });
+      if (ambientRef.current) gsap.set(ambientRef.current, { opacity: work ? 1 : 0 });
+      if (pictureRef.current) gsap.set(pictureRef.current, { opacity: work ? 1 : 0, scaleY: 1, filter: RESTING_FILTER });
+      if (staticRef.current) gsap.set(staticRef.current, { opacity: 0 });
+      if (rollRef.current) gsap.set(rollRef.current, { opacity: 0 });
+      if (lineRef.current) gsap.set(lineRef.current, { opacity: 0 });
+    };
+    preference.addEventListener("change", settleToCurrentChannel);
+    return () => preference.removeEventListener("change", settleToCurrentChannel);
+  }, [active?.id, active?.src, active?.videoSrc, active?.videoPoster]);
+
   useEffect(
     () => () => {
+      transitionEpochRef.current.invalidate();
+      playbackEpochRef.current.invalidate();
       timeline.current?.kill();
       const video = videoRef.current;
       if (video) {
@@ -242,24 +312,32 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
     []
   );
 
-  const handleScreenClick = useCallback(() => {
+  const toggleVideoPlayback = useCallback(() => {
     const video = videoRef.current;
-    if (!video || !video.src) return;
+    const work = activeRef.current;
+    if (!video || !video.src || !work?.videoSrc || shownRef.current?.id !== work.id) return;
 
     if (video.paused) {
       userPausedRef.current = false;
+      const channelToken = transitionEpochRef.current.current();
+      const playbackToken = playbackEpochRef.current.next();
 
       void video
         .play()
         .then(() => {
+          // A play() promise can settle after a rapid retune or a later pause.
+          // Both the channel and the latest user playback action must agree.
+          if (!ownsPlaybackResult(transitionEpochRef.current, channelToken, playbackEpochRef.current, playbackToken)) return;
           setIsPlaying(true);
           setAutoplayFailed(false);
         })
         .catch(() => {
+          if (!ownsPlaybackResult(transitionEpochRef.current, channelToken, playbackEpochRef.current, playbackToken)) return;
           setIsPlaying(false);
           setAutoplayFailed(true);
         });
     } else {
+      playbackEpochRef.current.next();
       userPausedRef.current = true;
       video.pause();
       setIsPlaying(false);
@@ -270,22 +348,94 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
     const video = videoRef.current;
     if (!video) return;
     const onPlay = () => {
+      if (shownRef.current?.id !== active?.id || video.paused) return;
       setIsPlaying(true);
       setAutoplayFailed(false);
     };
-    const onPause = () => setIsPlaying(false);
+    const onPause = () => {
+      if (shownRef.current?.id !== active?.id || !video.paused) return;
+      setIsPlaying(false);
+    };
     video.addEventListener("play", onPlay);
     video.addEventListener("pause", onPause);
     return () => {
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onPause);
     };
-  }, [shown?.videoSrc]);
+  }, [active?.id, shown?.videoSrc]);
 
   const isVideoWork = Boolean(shown?.videoSrc) && !(shown?.videoSrc && broken[shown.videoSrc]);
   const posterSrc = shown?.videoPoster ?? shown?.src;
 
   const activeId = active?.id ?? null;
+  const activeHasVideo = Boolean(active?.videoSrc);
+  const activeVideoBroken = active?.videoSrc ? Boolean(broken[active.videoSrc]) : false;
+  const videoReady = Boolean(activeHasVideo && activeId && shown?.id === activeId && isVideoWork && !activeVideoBroken);
+  const playbackState: VideoPlaybackState = !activeHasVideo || activeVideoBroken
+    ? "unavailable"
+    : !videoReady
+      ? "paused"
+      : autoplayFailed
+        ? "blocked"
+        : isPlaying ? "playing" : "paused";
+  const playbackCopy = videoControlCopy(
+    language,
+    playbackState,
+    active ? label(active.alt) : language === "zh" ? "当前作品" : "Current project"
+  );
+  const playbackAnnouncement = activeHasVideo && (videoReady || activeVideoBroken)
+    ? playbackCopy.announcement
+    : "";
+
+  useEffect(() => {
+    onPlaybackChange(activeId, playbackState);
+  }, [activeId, onPlaybackChange, playbackState]);
+
+  // A work-row control can request playback before the CRT has finished its
+  // channel-lock beat. Hold that user action until the matching video is ready,
+  // and discard it if the reader moves on to a different work first.
+  useEffect(() => {
+    const request = playRequest;
+    if (!request || request.sequence <= consumedPlayRequestRef.current) return;
+    if (request.workId !== activeId) {
+      consumedPlayRequestRef.current = request.sequence;
+      return;
+    }
+    if (activeVideoBroken) {
+      consumedPlayRequestRef.current = request.sequence;
+      return;
+    }
+    if (!isPlaybackRequestReady(request, activeId, shown?.id ?? null, videoReady)) return;
+
+    const video = videoRef.current;
+    consumedPlayRequestRef.current = request.sequence;
+    if (!video || !video.src) return;
+
+    if (request.action === "pause") {
+      playbackEpochRef.current.next();
+      userPausedRef.current = true;
+      video.pause();
+      return;
+    }
+
+    userPausedRef.current = false;
+    video.muted = true;
+    const channelToken = transitionEpochRef.current.current();
+    const playbackToken = playbackEpochRef.current.next();
+    manualPlaybackRequestRef.current = { workId: request.workId, channelToken };
+    void video
+      .play()
+      .then(() => {
+        if (!ownsPlaybackResult(transitionEpochRef.current, channelToken, playbackEpochRef.current, playbackToken)) return;
+        setIsPlaying(true);
+        setAutoplayFailed(false);
+      })
+      .catch(() => {
+        if (!ownsPlaybackResult(transitionEpochRef.current, channelToken, playbackEpochRef.current, playbackToken)) return;
+        setIsPlaying(false);
+        setAutoplayFailed(true);
+      });
+  }, [activeId, activeVideoBroken, playRequest, shown?.id, videoReady]);
 
   /*
    * Direct playback for the active video channel.
@@ -295,12 +445,15 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
    * from the previous channel never starts during the snow transition.
    *
    * Muted + playsInline makes this eligible for normal browser autoplay.
-   * If a browser still rejects it, the existing screen click and a fallback
-   * play icon remain available; no repeated retry loop is created.
+   * If a browser still rejects it, the semantic play button remains available;
+   * no repeated retry loop is created.
    */
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !isVideoWork) return;
+    const policy = motionPolicy(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    if (!video || !isVideoWork || !policy.autoplayPreview) return;
+    const manualRequest = manualPlaybackRequestRef.current;
+    if (manualRequest?.workId === activeId && manualRequest.channelToken === transitionEpochRef.current.current()) return;
 
     if (!activeId || shown?.id !== activeId) {
       video.pause();
@@ -311,9 +464,16 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
     if (userPausedRef.current) return;
 
     let cancelled = false;
+    const channelToken = transitionEpochRef.current.current();
+    const playbackToken = playbackEpochRef.current.next();
 
     const start = () => {
-      if (cancelled || userPausedRef.current || !video.paused) return;
+      if (
+        cancelled ||
+        !ownsPlaybackResult(transitionEpochRef.current, channelToken, playbackEpochRef.current, playbackToken) ||
+        userPausedRef.current ||
+        !video.paused
+      ) return;
 
       video.muted = true;
       // Cleared on the attempt itself rather than in the effect body: a
@@ -323,12 +483,12 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
       void video
         .play()
         .then(() => {
-          if (cancelled) return;
+          if (cancelled || !ownsPlaybackResult(transitionEpochRef.current, channelToken, playbackEpochRef.current, playbackToken)) return;
           setIsPlaying(true);
           setAutoplayFailed(false);
         })
         .catch(() => {
-          if (cancelled) return;
+          if (cancelled || !ownsPlaybackResult(transitionEpochRef.current, channelToken, playbackEpochRef.current, playbackToken)) return;
           setIsPlaying(false);
           setAutoplayFailed(true);
         });
@@ -348,6 +508,8 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
       className="tv-active-rig"
       data-active={active ? "true" : "false"}
       data-theater={autoplay ? "true" : undefined}
+      data-playing={videoReady && isPlaying ? "true" : "false"}
+      data-video-ready={videoReady ? "true" : "false"}
       aria-hidden={!active || undefined}
     >
       {/* Subtle ambient light cast by the active screen onto the bezel & night asphalt */}
@@ -388,6 +550,7 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
           {isVideoWork ? (
             <video
               ref={videoRef}
+              id="tv-video"
               className="tv-cover tv-video"
               src={shown?.videoSrc ? asset(shown.videoSrc) : undefined}
               poster={posterSrc ? asset(posterSrc) : undefined}
@@ -398,16 +561,7 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
               muted
               loop
               playsInline
-              onClick={handleScreenClick}
               onError={() => shown?.videoSrc && setBroken((prev) => ({ ...prev, [shown.videoSrc as string]: true }))}
-              role="button"
-              tabIndex={active ? 0 : -1}
-              aria-pressed={isPlaying}
-              onKeyDown={(event) => {
-                if (event.key !== "Enter" && event.key !== " ") return;
-                event.preventDefault();
-                handleScreenClick();
-              }}
               aria-label={shown ? label(shown.alt) : ""}
               draggable={false}
             />
@@ -426,13 +580,28 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
           )}
         </div>
         <div className="tv-crt-optics" aria-hidden="true" />
-        {isVideoWork && autoplayFailed && !isPlaying ? (
-          <div className="tv-play-btn" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor">
-              <path d="M8 5v14l11-7z" />
+        {activeHasVideo && !activeVideoBroken ? (
+          <button
+            type="button"
+            className="tv-play-btn"
+            data-tv-video-control
+            data-playing={videoReady && isPlaying ? "true" : "false"}
+            aria-label={playbackCopy.label}
+            aria-pressed={videoReady && isPlaying}
+            aria-controls={videoReady ? "tv-video" : undefined}
+            disabled={!videoReady}
+            onClick={toggleVideoPlayback}
+          >
+            <svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor" aria-hidden="true">
+              {isPlaying
+                ? <path d="M7 5h4v14H7zm6 0h4v14h-4z" />
+                : <path d="M8 5v14l11-7z" />}
             </svg>
-          </div>
+          </button>
         ) : null}
+        <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+          {playbackAnnouncement}
+        </span>
         <div ref={staticRef} className="tv-static" aria-hidden="true" />
         <div ref={lineRef} className="tv-sync-line" aria-hidden="true" />
         <div ref={rollRef} className="tv-roll" aria-hidden="true" />

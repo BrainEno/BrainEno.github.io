@@ -1125,7 +1125,7 @@ canvas[data-water-canvas] {
 }
 
 .tv-active-rig[data-active="true"] .tv-video {
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 /* Placed *underneath* `.tv-frame-alpha` (`tv-alpha.webp`) and grown ~0.4% past
@@ -1240,10 +1240,40 @@ canvas[data-water-canvas] {
   display: flex;
   align-items: center;
   justify-content: center;
-  pointer-events: none;
-  color: rgba(255, 255, 255, 0.76);
+  padding: 0;
+  border: 0;
+  color: rgba(255, 255, 255, 0.88);
+  background: transparent;
+  opacity: 0;
+  pointer-events: auto;
+  cursor: pointer;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.55));
-  transition: opacity 0.25s ease-out;
+  transition: opacity 0.2s ease-out;
+}
+
+.tv-play-btn:disabled {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.tv-active-rig[data-active="true"][data-video-ready="true"][data-playing="false"] .tv-play-btn,
+.tv-active-rig[data-active="true"] .tv-play-btn:hover,
+.tv-active-rig[data-active="true"] .tv-play-btn:focus-visible {
+  opacity: 1;
+}
+
+.tv-play-btn svg {
+  width: clamp(36px, 4vw, 56px);
+  height: auto;
+  padding: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.48);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.tv-play-btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -5px;
 }
 
 /* Analogue snow between channels. */
@@ -1672,6 +1702,47 @@ canvas[data-water-canvas] {
 
 .work-row-hit:focus-visible {
   outline-offset: -2px;
+}
+
+/* Each video work also exposes an explicit keyboard-first play/pause action.
+   It borrows the index column until the row is hovered or focused, so the
+   reading layout stays unchanged while the control joins normal Tab order. */
+.pf .work-row-play {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: clamp(24px, 2.2vw, 34px);
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid var(--works-meta-strong);
+  border-radius: 50%;
+  color: var(--ink);
+  background: rgba(8, 8, 8, 0.66);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%) scale(0.92);
+  transition: opacity 0.18s ease-out, transform 0.18s ease-out, border-color 0.18s ease-out;
+  cursor: pointer;
+}
+
+.pf .work-row:hover .work-row-play,
+.pf .work-row:focus-within .work-row-play,
+.pf .work-row-play:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(-50%) scale(1);
+}
+
+.pf .work-row-play:disabled {
+  cursor: not-allowed;
+}
+
+.pf .work-row-play svg {
+  width: 1em;
+  height: 1em;
 }
 
 .work-row {
@@ -3163,4 +3234,283 @@ canvas[data-water-canvas] {
 .nf-link:focus-visible {
   outline: 1px solid currentColor;
   outline-offset: 4px;
+}
+
+/* Reduced motion is a separate reading layout, not a paused copy of the
+   animated composition. The scroll module creates no pins or scrub timelines
+   for this preference; these rules put every formerly off-canvas panel back
+   into document flow so the static route remains complete at every width. */
+@media (prefers-reduced-motion: reduce) {
+  .pf *,
+  .pf *::before,
+  .pf *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .pf .preloader,
+  .pf .preloader-flood {
+    display: none !important;
+  }
+
+  .pf .journey {
+    height: auto;
+    min-height: 0;
+    padding: clamp(56px, 10vh, 112px) 0;
+    overflow: visible;
+  }
+
+  .pf .story-layer,
+  .pf .story-visual {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    transform: none !important;
+    will-change: auto;
+  }
+
+  .pf .story-layer {
+    display: block;
+    padding: 0;
+  }
+
+  .pf .story-visual {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: clamp(24px, 5vh, 64px);
+    padding: 0 var(--gutter);
+  }
+
+  .pf .story-photo-box {
+    position: relative;
+    inset: auto;
+    width: min(100%, 54rem);
+    height: auto;
+    aspect-ratio: 4 / 5;
+    margin: 0 auto;
+  }
+
+  .pf .story-photo-mask {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  .pf .story-credit {
+    position: relative;
+    inset: auto;
+    width: min(100%, 54rem);
+    margin: -1.5rem auto 0;
+    justify-content: flex-end;
+    opacity: 1;
+    visibility: visible;
+    transform: none !important;
+  }
+
+  .pf .story-copy,
+  .pf.lang-zh .story-copy {
+    position: relative;
+    inset: auto;
+    align-self: center;
+    width: min(100%, 54rem);
+    height: auto;
+    padding: 0;
+    transform: none !important;
+    will-change: auto;
+  }
+
+  .pf .story-copy-inner {
+    max-width: 54rem;
+  }
+
+  .pf .rail-stage {
+    position: relative;
+    inset: auto;
+    display: block;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    margin: clamp(32px, 7vh, 88px) 0;
+    overflow: visible;
+    contain: none;
+    backface-visibility: visible;
+  }
+
+  .pf .rail {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: clamp(12px, 2vw, 28px);
+    width: 100%;
+    height: auto;
+    padding: 0 var(--gutter) 1.4rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: x proximity;
+    transform: none !important;
+    will-change: auto;
+    backface-visibility: visible;
+  }
+
+  .pf .rail-item,
+  .pf .rail-item:nth-child(odd),
+  .pf .rail-item:nth-child(even) {
+    flex: 0 0 min(78vw, 58rem);
+    width: min(78vw, 58rem);
+    height: auto;
+    max-height: none;
+    aspect-ratio: 4 / 3;
+    transform: none !important;
+    scroll-snap-align: start;
+  }
+
+  .pf .rail-image {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    min-width: 100%;
+    transform: none !important;
+    will-change: auto;
+  }
+
+  .pf .coda {
+    position: relative;
+    inset: auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(24px, 5vh, 56px);
+    width: auto;
+    height: auto;
+    padding: 0 var(--gutter) clamp(48px, 10vh, 112px);
+    transform: none !important;
+    will-change: auto;
+  }
+
+  .pf .coda-text,
+  .pf .coda-text.is-zh {
+    width: min(100%, 54rem);
+    max-width: 54rem;
+    margin: 0 auto;
+    transform: none !important;
+  }
+
+  .pf .coda-media {
+    width: min(100%, 62rem);
+    height: clamp(320px, 68vw, 680px);
+    margin-inline: auto;
+  }
+
+  .pf .coda-pic {
+    clip-path: none !important;
+    transform: none !important;
+    will-change: auto;
+  }
+
+  .pf .works .tv-phone-spacer {
+    height: clamp(24px, 6vh, 64px);
+  }
+
+  .pf .tv-anchor,
+  .pf .tv-box,
+  .pf .tv-zoom,
+  .pf .tv-sheet,
+  .pf .tv-sheet-content,
+  .pf .tv-sheet-nav {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .pf .tv-box {
+    will-change: auto;
+  }
+
+  .pf .copy-word {
+    opacity: 1 !important;
+  }
+
+  .pf .contact-booth-float {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Keyboard access must still be visible before React has installed its input
+   modality watcher. Native :focus-visible already distinguishes pointer focus;
+   the pointer override only preserves the site's deliberately quiet click UI. */
+.pf :focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 4px;
+}
+
+.pf[data-input="pointer"] :focus-visible {
+  outline: none;
+}
+
+.pf[data-input="keys"] :focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 4px;
+}
+
+.skip-link {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 5000;
+  padding: 0.8em 1em;
+  color: var(--night);
+  background: var(--ink);
+  transform: translateY(calc(-100% - 16px));
+  transition: transform 0.18s ease-out;
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+  transform: translateY(0);
+}
+
+@media (forced-colors: active) {
+  .pf .cursor {
+    display: none !important;
+  }
+
+  .pf :focus-visible,
+  .pf[data-input="keys"] :focus-visible {
+    outline: 2px solid Highlight !important;
+    outline-offset: 4px;
+  }
+
+  .skip-link,
+  .skip-link:focus,
+  .skip-link:focus-visible {
+    color: CanvasText;
+    background: Canvas;
+    border: 2px solid Highlight;
+  }
+
+  .pf .tv-play-btn,
+  .pf .work-row-play {
+    color: ButtonText;
+    background: ButtonFace;
+    border: 1px solid ButtonText;
+    filter: none;
+  }
+
+  .pf .tv-play-btn svg {
+    color: ButtonText;
+    background: ButtonFace;
+    border-color: ButtonText;
+  }
+
+  .pf .tv-sheet-btn:disabled {
+    color: GrayText;
+  }
 }
