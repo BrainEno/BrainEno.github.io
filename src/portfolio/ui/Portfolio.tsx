@@ -24,6 +24,7 @@ import {
   scrollToSection,
   setupChoreography,
 } from "../scroll/choreography";
+import { motionPolicy } from "../scroll/motion-policy";
 import { openTheater, type TheaterHandle } from "../scroll/theater";
 import { cx } from "./cx";
 import {
@@ -193,7 +194,16 @@ function Cursor({
 
       if (row) {
         onHoverWork(Number(row.dataset.workIndex));
-      } else if (!document.activeElement?.closest(".work-row")) {
+        return;
+      }
+
+      // The work list sits over the television, so the pointer must cross a
+      // row gap and the cabinet before it reaches the glass. Keep the last
+      // channel while it is still inside #works; only a different row or an
+      // actual exit from the section should change the preview.
+      if (inRowsPhase && worksSection && element && worksSection.contains(element)) return;
+
+      if (!document.activeElement?.closest(".work-row")) {
         onHoverWork(-1);
       }
     };
@@ -274,6 +284,7 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
   const storedLang = useSyncExternalStore(subscribeNever, readStoredLang, () => null);
   const lang: Language = langOverride ?? (storedLang === "zh" || storedLang === "en" ? storedLang : content.identity.defaultLanguage);
   const [section, setSection] = useState<SectionId>("intro");
+  const [loadStatus, setLoadStatus] = useState<"loading" | "ready" | null>(null);
   const [activeWork, setActiveWork] = useState(-1);
   const [theaterWork, setTheaterWork] = useState(-1);
   // The sheet outlives the theater by one exit animation (see `closeWork`).
@@ -492,6 +503,11 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
     const smoother = createSmoother();
     const scope = scopeRef.current;
     if (!scope) return;
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const syncSmootherMotion = () => {
+      smoother.smooth(motionPolicy(motionQuery.matches).smoothScroll);
+    };
+    motionQuery.addEventListener("change", syncSmootherMotion);
     // JavaScript is alive — the parse-time script already flagged `<html>`
     // with `js`, and with that class on, CSS may paint the preloader (#60).
     // The preloader countdown and its hideLoader partner below own it from
@@ -500,10 +516,14 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
     const flood = scope.querySelector<HTMLElement>(".preloader-flood");
     const heroImage = scope.querySelector<HTMLImageElement>(".hero-photo");
     const entrance = createHeroEntrance();
+    let cancelled = false;
+    let announceTimer = 0;
     // The loader is never unmounted: it is parked outside the flow once done.
     const hideLoader = () => {
+      if (announceTimer) window.clearTimeout(announceTimer);
       if (preloader) preloader.style.display = "none";
       if (flood) flood.style.display = "none";
+      setLoadStatus("ready");
     };
 
     // Reduced motion means *no* motion, not the same motion, quicker. The two
@@ -516,12 +536,18 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
       entrance.progress(1);
       smoother.paused(false);
       return () => {
+        motionQuery.removeEventListener("change", syncSmootherMotion);
         entrance.revert();
         ScrollSmoother.get()?.kill();
       };
     }
 
     const quick = window.sessionStorage.getItem(SEEN_KEY) === "1";
+    // Announce on the next task rather than synchronously deriving render state
+    // inside the effect. If readiness wins first, hideLoader cancels the timer.
+    announceTimer = window.setTimeout(() => {
+      if (!cancelled) setLoadStatus("loading");
+    }, 0);
     smoother.paused(true);
     // A repeat visit in the same session halves every beat; the ready promise
     // still gates the finish, so the loader never ends before the page is up.
@@ -537,7 +563,19 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
     ]);
 
     let outro: gsap.core.Timeline | undefined;
-    let cancelled = false;
+    const onMotionPreferenceChange = () => {
+      syncSmootherMotion();
+      if (!motionQuery.matches || cancelled) return;
+      cancelled = true;
+      if (announceTimer) window.clearTimeout(announceTimer);
+      intro.kill();
+      outro?.kill();
+      entrance.progress(1);
+      smoother.paused(false);
+      hideLoader();
+    };
+    motionQuery.removeEventListener("change", syncSmootherMotion);
+    motionQuery.addEventListener("change", onMotionPreferenceChange);
     void ready.then(() => {
       if (cancelled) return;
       const delay = intro.isActive() ? intro.duration() - intro.time() : 0;
@@ -563,6 +601,8 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
 
     return () => {
       cancelled = true;
+      motionQuery.removeEventListener("change", onMotionPreferenceChange);
+      if (announceTimer) window.clearTimeout(announceTimer);
       intro.kill();
       outro?.kill();
       entrance.revert();
@@ -622,8 +662,20 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
     "--stage": content.theme.stage,
   } as CSSProperties;
 
+  const loadAnnouncement = loadStatus === null
+    ? ""
+    : lang === "zh"
+      ? loadStatus === "loading" ? "页面正在加载，请稍候。" : "页面已就绪。"
+      : loadStatus === "loading" ? "Loading portfolio, please wait." : "Portfolio ready.";
+
   return (
     <div ref={scopeRef} className={cx("pf", lang === "zh" && "lang-zh")} style={themeStyle}>
+      <a className="skip-link" href="#main-content">
+        {lang === "zh" ? "跳到主要内容" : "Skip to main content"}
+      </a>
+      <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {loadAnnouncement}
+      </p>
       <Preloader name={content.identity.name} />
       {/* The glass the dive passes through: positioned every frame by
           `createDive`, invisible until the sheet is on the tube. */}
@@ -639,7 +691,7 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
       />
       <div id="smooth-wrapper">
         <div id="smooth-content">
-          <main>
+          <main id="main-content" tabIndex={-1} aria-busy={loadStatus === "loading"}>
             <Hero lang={lang} content={content.hero} name={content.identity.name} />
             <Journey lang={lang} content={content.intro} name={content.identity.name} />
             <Works

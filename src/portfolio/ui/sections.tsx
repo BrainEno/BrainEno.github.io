@@ -9,7 +9,7 @@
  */
 "use client";
 
-import { memo, type CSSProperties } from "react";
+import { memo, useCallback, useRef, useState, type CSSProperties } from "react";
 import TvShowreel from "./TvShowreel";
 import { Img } from "./Img";
 import { asset } from "../seo/asset";
@@ -19,6 +19,7 @@ import { cx } from "./cx";
 import { PhoneBoothModel } from "./PhoneBoothModel";
 import { WorkTitle } from "./WorkTitle";
 import { ArrowIcon } from "./Arrow";
+import { containsPoint, videoControlCopy, type VideoPlaybackRequest, type VideoPlaybackState } from "./tv-transition";
 
 type SectionProps<K extends keyof PortfolioContent> = {
   lang: Language;
@@ -201,7 +202,12 @@ export const Journey = memo(function Journey({ lang, content, name }: JourneyPro
       </div>
 
       <div className="rail-stage">
-        <div className="rail">
+        <div
+          className="rail"
+          role="region"
+          tabIndex={0}
+          aria-label={zh ? `项目图片画廊，共 ${content.gallery.length} 张` : `Project image gallery, ${content.gallery.length} images`}
+        >
           {content.gallery.map((image, index) => (
             <figure key={`${image.src}-${index}`} className="rail-item">
               <Img
@@ -318,13 +324,26 @@ export function videoAtPoint(
   if (rig?.dataset.active !== "true") return null;
 
   const rect = screen.getBoundingClientRect();
-  const inside =
-    clientX >= rect.left &&
-    clientX <= rect.right &&
-    clientY >= rect.top &&
-    clientY <= rect.bottom;
+  return containsPoint(rect, clientX, clientY) ? video : null;
+}
 
-  return inside ? video : null;
+/**
+ * Resolve the semantic playback button under a point in the CRT glass. The
+ * actual `.works-list` is intentionally above the TV photograph for legible
+ * copy, so row and theater hit areas delegate glass gestures to this button.
+ * The matching row-level playback toggle supplies a direct Tab-order action.
+ */
+export function videoControlAtPoint(
+  scope: ParentNode,
+  clientX: number,
+  clientY: number
+): HTMLButtonElement | null {
+  const video = videoAtPoint(scope, clientX, clientY);
+  if (!video) return null;
+  const control = scope.querySelector<HTMLButtonElement>("[data-tv-video-control]");
+  // Keep disabled controls in the delegation path during a channel change:
+  // clicking the glass must not fall through and open the theater underneath.
+  return control;
 }
 
 export function Works({
@@ -343,6 +362,19 @@ export function Works({
   const active = activeIndex >= 0 ? content.items[activeIndex] : undefined;
   const featured = sheetIndex >= 0 ? content.items[sheetIndex] : undefined;
   const theaterOpen = theaterIndex >= 0;
+  const [playRequest, setPlayRequest] = useState<VideoPlaybackRequest | null>(null);
+  const [playback, setPlayback] = useState<{ workId: string | null; state: VideoPlaybackState }>({
+    workId: null,
+    state: "unavailable",
+  });
+  const playRequestSequence = useRef(0);
+  const reportPlayback = useCallback((workId: string | null, state: VideoPlaybackState) => {
+    setPlayback((current) => current.workId === workId && current.state === state ? current : { workId, state });
+  }, []);
+  const requestPlayback = useCallback((workId: string, playing: boolean) => {
+    playRequestSequence.current += 1;
+    setPlayRequest({ workId, action: playing ? "pause" : "play", sequence: playRequestSequence.current });
+  }, []);
   const { screen, width, height, src, alphaSrc } = content.tv;
   const tvStyle = {
     "--tv-ratio": `${width} / ${height}`,
@@ -393,6 +425,9 @@ export function Works({
               frameWidth={width}
               frameHeight={height}
               label={(text) => t(text, lang)}
+              language={lang}
+              playRequest={playRequest}
+              onPlaybackChange={reportPlayback}
               autoplay={theaterOpen}
             />
             <TvMessage email={email} />
@@ -427,17 +462,17 @@ export function Works({
             if (target.closest("button, a")) return;
 
             const works = event.currentTarget.closest(".works");
-            const video = works
-              ? videoAtPoint(works, event.clientX, event.clientY)
+            const control = works
+              ? videoControlAtPoint(works, event.clientX, event.clientY)
               : null;
 
-            if (!works || !video) return;
+            if (!works || !control) return;
 
             event.preventDefault();
             event.stopPropagation();
 
-            // The video is outside .tv-sheet, so this cannot recurse here.
-            video.click();
+            // The playback button is outside .tv-sheet, so this cannot recurse.
+            control.click();
           }}
         >
           {featured ? (
@@ -558,24 +593,26 @@ export function Works({
           className="work-rows"
           onMouseLeave={(event) => {
             const works = event.currentTarget.closest(".works");
-
-            if (works && videoAtPoint(works, event.clientX, event.clientY)) {
-              return;
-            }
-
-            const related = event.relatedTarget as Element | null;
-            if (!related?.closest?.(".tv-video")) {
-              onPreview(-1);
-            }
+            const related = event.relatedTarget as Node | null;
+            // The glass and the work list overlap visually. Leaving the list
+            // for any part of this section is the bridge to the screen, not a
+            // request to turn the current channel off.
+            if (works && related && works.contains(related)) return;
+            onPreview(-1);
           }}
           onBlur={(event) => {
-            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-              onPreview(-1);
-            }
+            if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+            const related = event.relatedTarget as Element | null;
+            // Shift-Tab can move from a row to the TV's own play control.
+            // Keep the active channel mounted so that control stays enabled.
+            if (related?.closest?.("[data-tv-video-control]")) return;
+            onPreview(-1);
           }}
         >
           {content.items.map((work, index) => {
             const title = t(work.title, lang);
+            const rowPlaybackState = playback.workId === work.id ? playback.state : "paused";
+            const rowPlaybackCopy = videoControlCopy(lang, rowPlaybackState, title);
             return (
               <li
                 key={work.id}
@@ -590,10 +627,9 @@ export function Works({
                   onPreview(index);
                 }}
               >
-                {/* One real control per row, covering it: the <ol>/<li> keep
-                    their list semantics, the row is still announced as a
-                    button, and its accessible name is the project title rather
-                    than the year / credit line underneath. */}
+                {/* The primary real control covers the row: the <ol>/<li> keep
+                    their list semantics, the row is announced as a button, and
+                    its name is the project title, not the year / credit line. */}
                 <button
                   type="button"
                   className="work-row-hit"
@@ -631,21 +667,20 @@ export function Works({
                      */
                     if (event.detail > 0) {
                       const works = event.currentTarget.closest(".works");
-                      const video = works
-                        ? videoAtPoint(works, event.clientX, event.clientY)
+                      const control = works
+                        ? videoControlAtPoint(works, event.clientX, event.clientY)
                         : null;
 
-                      if (works && video) {
+                      if (works && control) {
                         event.preventDefault();
                         event.stopPropagation();
 
                         /*
-                         * The video is not a descendant of this row, so its
-                         * programmatic click cannot bubble back into this
-                         * handler. It reaches TvShowreel's real onClick and
-                         * preserves the original user gesture.
+                         * The semantic control is not a descendant of this
+                         * row, so delegation cannot recurse into the row's
+                         * theater-opening click handler.
                          */
-                        video.click();
+                        control.click();
                         return;
                       }
                     }
@@ -658,6 +693,30 @@ export function Works({
                     {work.isPrivate ? (zh ? "，私有项目" : ", private project") : ""}
                   </span>
                 </button>
+                {work.video ? (
+                  <button
+                    type="button"
+                    className="work-row-play"
+                    data-cursor="link"
+                    aria-label={rowPlaybackCopy.label}
+                    aria-pressed={rowPlaybackState === "playing"}
+                    disabled={rowPlaybackState === "unavailable"}
+                    onFocus={() => onPreview(index)}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      onPreview(index);
+                      requestPlayback(work.id, rowPlaybackState === "playing");
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true">
+                      {rowPlaybackState === "playing"
+                        ? <path d="M7 5h4v14H7zm6 0h4v14h-4z" />
+                        : <path d="M8 5v14l11-7z" />}
+                    </svg>
+                    <span className="sr-only">{rowPlaybackCopy.label}</span>
+                  </button>
+                ) : null}
                 <span className="work-row-line" aria-hidden="true" />
                 <span className="work-row-index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
                 <span className="work-row-mask">

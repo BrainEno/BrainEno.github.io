@@ -72,6 +72,12 @@ jobs:
       # committed defaults stay warning-free.
       - name: Content pipeline unit tests
         run: npm run test:content
+      # Regression tests for the reduced-motion/static route and rapid TV retunes.
+      - name: Motion and television interaction tests
+        run: npm run test:interactions
+      # The preview server must survive malformed URLs and confine paths to out/.
+      - name: Static preview resolver tests
+        run: npm run test:preview
       # `next dev --webpack` is the daily command and it exercises a webpack
       # loader path the production builds never touch — a config that builds
       # fine can still 500 in dev (see the `pageExtensions` note in

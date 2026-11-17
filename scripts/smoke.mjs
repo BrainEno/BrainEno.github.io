@@ -102,6 +102,12 @@ const head = (path, method = "GET") => fetch(`${BASE}${path}`, { method, redirec
 try {
   console.log(`[smoke] mode: ${BASE_PATH ? `mounted at ${BASE_PATH} (GitHub Pages project site)` : "domain root"}`);
 
+  console.log("[smoke] malformed URL resilience (#62)");
+  const malformed = await head(route("/%zz"));
+  check("malformed percent escape returns 404", malformed.status === 404, `status ${malformed.status}`);
+  const afterMalformed = await head(route("/"));
+  check("preview stays alive after malformed URL", afterMalformed.status === 200, `status ${afterMalformed.status}`);
+
   console.log("[smoke] pages");
   const paths = sitemapPaths();
   check("sitemap lists pages", paths.length > 0, `${paths.length} URLs`);
@@ -303,7 +309,7 @@ try {
     `${shareUrls.size} URLs, ${badShare} broken`
   );
 
-  console.log("[smoke] content correctness (#60, #74, #75)");
+  console.log("[smoke] content and accessibility correctness (#18, #60, #61, #74, #75)");
 
   // #74: a work's detail page renders the cover once, then the *additional*
   // stills — no <img> source repeats within one page.
@@ -337,6 +343,26 @@ try {
     "preloader is JS-gated (#60)",
     !/\bclass="js"/.test(htmlTag) && gatePresent,
     `html tag: ${htmlTag.slice(0, 80)}`
+  );
+  check(
+    "keyboard skip link targets the main landmark (#18)",
+    /<a\b(?=[^>]*class="skip-link")(?=[^>]*href="#main-content")[^>]*>/i.test(indexHtml)
+  );
+  check(
+    "main landmark is programmatically focusable (#18)",
+    /<main\b(?=[^>]*id="main-content")(?=[^>]*tabindex="-1")[^>]*>/i.test(indexHtml)
+  );
+  const rowPlaybackControls = indexHtml.match(
+    /<button\b(?=[^>]*class="work-row-play")(?=[^>]*type="button")(?=[^>]*aria-label=)(?=[^>]*aria-pressed=)[^>]*>/gi
+  ) ?? [];
+  check(
+    "video work has a native keyboard playback toggle (#53, #61)",
+    rowPlaybackControls.length > 0,
+    `${rowPlaybackControls.length} semantic playback controls`
+  );
+  check(
+    "loading status is announced outside the decorative preloader (#18)",
+    /<p\b(?=[^>]*role="status")(?=[^>]*aria-live="polite")[^>]*>/i.test(indexHtml)
   );
 
   // #75: the static 404 is bilingual and basePath-safe.
