@@ -18,10 +18,8 @@ import { Img, srcSetFor } from "./Img";
 import {
   channelKey,
   createTransitionEpoch,
-  isPlaybackRequestReady,
   ownsPlaybackResult,
   videoControlCopy,
-  type VideoPlaybackRequest,
   type VideoPlaybackState,
 } from "./tv-transition";
 
@@ -44,12 +42,8 @@ type Props = {
   frameHeight: number;
   /** Alt text for the current language. */
   label: (text: LocalizedText) => string;
-  /** Language used for the TV's keyboard playback control and live status. */
+  /** Language used for the TV's playback control and live status. */
   language: Language;
-  /** A row-level user action, held until the requested channel is painted. */
-  playRequest: VideoPlaybackRequest | null;
-  /** Shares the current channel's playback state with its row control. */
-  onPlaybackChange: (workId: string | null, state: VideoPlaybackState) => void;
   /** Theater presentation mode: stills drift slowly while enlarged.
    *  Video works autoplay whenever they are the active channel; this flag
    *  only delays theater playback until the opening move has settled. */
@@ -74,7 +68,7 @@ const RESTING_FILTER = "saturate(1.06) contrast(1.04) brightness(0.93)";
  *  - `.tv-ambient` casts a subtle, color-adaptive glow from the active project
  *    onto the inner bezel bevels and the dark night asphalt in front of the set.
  */
-export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, label, language, playRequest, onPlaybackChange, autoplay = false }: Props) {
+export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, label, language, autoplay = false }: Props) {
   const rigRef = useRef<HTMLDivElement>(null);
   const ambientRef = useRef<HTMLDivElement>(null);
   const pictureRef = useRef<HTMLDivElement>(null);
@@ -91,8 +85,6 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
   const timeline = useRef<gsap.core.Timeline | null>(null);
   const transitionEpochRef = useRef(createTransitionEpoch());
   const playbackEpochRef = useRef(createTransitionEpoch());
-  const consumedPlayRequestRef = useRef(0);
-  const manualPlaybackRequestRef = useRef<{ workId: string; channelToken: number } | null>(null);
   const pendingChannelRef = useRef(channelKey(active?.id ?? null, Boolean(active)));
   const [isPlaying, setIsPlaying] = useState(false);
   const [autoplayFailed, setAutoplayFailed] = useState(false);
@@ -387,74 +379,19 @@ export default function TvShowreel({ active, alphaSrc, frameWidth, frameHeight, 
     ? playbackCopy.announcement
     : "";
 
-  useEffect(() => {
-    onPlaybackChange(activeId, playbackState);
-  }, [activeId, onPlaybackChange, playbackState]);
-
-  // A work-row control can request playback before the CRT has finished its
-  // channel-lock beat. Hold that user action until the matching video is ready,
-  // and discard it if the reader moves on to a different work first.
-  useEffect(() => {
-    const request = playRequest;
-    if (!request || request.sequence <= consumedPlayRequestRef.current) return;
-    if (request.workId !== activeId) {
-      consumedPlayRequestRef.current = request.sequence;
-      return;
-    }
-    if (activeVideoBroken) {
-      consumedPlayRequestRef.current = request.sequence;
-      return;
-    }
-    if (!isPlaybackRequestReady(request, activeId, shown?.id ?? null, videoReady)) return;
-
-    const video = videoRef.current;
-    consumedPlayRequestRef.current = request.sequence;
-    if (!video || !video.src) return;
-
-    if (request.action === "pause") {
-      playbackEpochRef.current.next();
-      userPausedRef.current = true;
-      video.pause();
-      return;
-    }
-
-    userPausedRef.current = false;
-    video.muted = true;
-    const channelToken = transitionEpochRef.current.current();
-    const playbackToken = playbackEpochRef.current.next();
-    manualPlaybackRequestRef.current = { workId: request.workId, channelToken };
-    void video
-      .play()
-      .then(() => {
-        if (!ownsPlaybackResult(transitionEpochRef.current, channelToken, playbackEpochRef.current, playbackToken)) return;
-        setIsPlaying(true);
-        setAutoplayFailed(false);
-      })
-      .catch(() => {
-        if (!ownsPlaybackResult(transitionEpochRef.current, channelToken, playbackEpochRef.current, playbackToken)) return;
-        setIsPlaying(false);
-        setAutoplayFailed(true);
-      });
-  }, [activeId, activeVideoBroken, playRequest, shown?.id, videoReady]);
-
   /*
    * Direct playback for the active video channel.
    *
-   * Rows preview starts after the short channel-lock beat; theater waits for
+   * The index previews after the short channel-lock beat; theater waits for
    * its longer opening move. The shown id must match the active id so a video
-   * from the previous channel never starts during the snow transition.
-   *
-   * Muted + playsInline makes this eligible for normal browser autoplay.
-   * If a browser still rejects it, the semantic play button remains available;
+   * from the previous channel never starts during the snow transition. If the
+   * browser blocks autoplay, the TV's own native play button remains available;
    * no repeated retry loop is created.
    */
   useEffect(() => {
     const video = videoRef.current;
     const policy = motionPolicy(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
     if (!video || !isVideoWork || !policy.autoplayPreview) return;
-    const manualRequest = manualPlaybackRequestRef.current;
-    if (manualRequest?.workId === activeId && manualRequest.channelToken === transitionEpochRef.current.current()) return;
-
     if (!activeId || shown?.id !== activeId) {
       video.pause();
       return;

@@ -7,7 +7,6 @@ import {
   channelKey,
   containsPoint,
   createTransitionEpoch,
-  isPlaybackRequestReady,
   ownsPlaybackResult,
   videoControlCopy,
 } from "../src/portfolio/ui/tv-transition.ts";
@@ -204,14 +203,6 @@ test("latest play result may update state while its channel remains current", as
   resolvePlay();
   await guarded;
   assert.deepEqual(state, { playing: true });
-});
-
-test("row playback waits until the requested work is both active and painted", () => {
-  const request = { workId: "film-a", action: "play", sequence: 1 };
-  assert.equal(isPlaybackRequestReady(request, "film-a", null, false), false);
-  assert.equal(isPlaybackRequestReady(request, "film-a", "film-b", true), false);
-  assert.equal(isPlaybackRequestReady(request, "film-b", "film-b", true), false);
-  assert.equal(isPlaybackRequestReady(request, "film-a", "film-a", true), true);
 });
 
 test("a late play promise is invalidated by either a retune or a later pause", () => {

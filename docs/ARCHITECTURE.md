@@ -1,4 +1,6 @@
-# 架构说明与本轮重构记录
+# 架构说明（当前实现）与演进记录
+
+> 第 1 节保留静态化迁移的历史清单；第 2 节起描述当前代码。历史中的已删除路径不是当前目录树。
 
 ## 1. 形态：只有静态导出
 
@@ -42,11 +44,11 @@
 - `layout.tsx`：`metadataBase`、title 模板、description、Open Graph / Twitter 卡片（分享图统一经 `seo/site.ts#absoluteUrl()` + `seo/asset.ts#asset()` 补齐子路径前缀）、`lang`（随默认语言 zh-Hans / en）、robots、canonical、`themeColor`。
 - `page.tsx`：JSON-LD（WebSite + Person + 每个作品 CreativeWork）；内容经 SSR 输出，爬虫无需执行 JS 即可读取全部文案。
 - `/works/[id]`：每个作品独立可收录页面（标题、详情介绍、详情图、BreadcrumbList）。
-- `robots.txt`、`sitemap.xml`（含全部作品页）、`manifest.webmanifest`、`icon.svg`、`apple-icon.png`——均由构建期内容生成。
-- `/offline` 设为 noindex / Disallow。
+- `robots.txt`、`sitemap.xml`（含全部作品页）与 `manifest.webmanifest` 是可预渲染的 metadata routes；`src/app/icon.svg` 是 Next 图标路由，PWA 栅格图标由 `public/icons/` 提供。
+- `/offline/` 设为 noindex / Disallow；尾斜杠与静态导出的目录索引保持一致。
 - 站点 URL 在**构建期**定死（`NEXT_PUBLIC_SITE_URL` → `SITE_URL` → 平台注入变量 → localhost，见 `seo/site.ts`），
   静态托管没有请求时的 Host 可读。
-- `sitemap.xml` 的 `lastmod` 取 `published.json` 的 `exportedAt`，而不是构建时间，否则每次部署都等于「全站更新」。
+- `sitemap.xml` 的 `lastmod` 优先取 `published.json` 的 `exportedAt`；没有快照日期时回退到构建时间。默认内容因此不应被文档描述成始终有一个提交日期。
 
 ## 4. PWA / 离线
 
@@ -54,35 +56,47 @@
 
 | 请求 | 策略 |
 |---|---|
-| `_next/static`、`images`、`fonts`、`icons`、`gltfs` | cache-first |
-| 页面导航 | network-first → 缓存副本 → `offline` |
-| manifest | network-first，离线读缓存 |
-| 非 GET | 不缓存 |
+| `_next/static`、`_next/image`、`images`、`fonts`、`icons`、`gltfs` | cache-first，写入静态资源桶 |
+| 页面导航 | network-first → 页面缓存副本 → `/offline/` |
+| manifest | network-first，离线读页面缓存 |
+| 非 GET、Range 与跨域请求 | 不拦截、不缓存 |
 
 **没有一处写死绝对路径**：GitHub Pages 项目站在 `/repo/` 下，worker 用 `self.registration.scope`
-反推出自己的前缀（`BASE`），CORE 列表、静态资源前缀、离线兜底页全部由 `at()` 拼出来。
+反推出自己的前缀（`BASE`），静态资源前缀与 CORE 列表都由 `at()` 拼出来。首页、规范的
+`/offline/` 和 manifest 进页面桶；`/icons/icon-192.png` 进静态桶，和 fetch 时使用的桶一致。
+预缓存使用 `redirect: "error"`，避免把重定向响应作为离线页面；旧版本导航缓存命中时也会清理
+`redirected` 标记再响应。
+
+缓存命名包含编码后的 scope（根站与 `/repo/` 等项目站各有一组缓存）。激活时只清理本 scope
+的过期版本，不触碰同源其他项目的缓存。新 worker 不调用 `skipWaiting()` / `clients.claim()`，
+会等旧页面关闭后再接管并清理旧缓存，避免旧页面请求已被删除的哈希 chunk。
 `PwaRegister` 同时把脚本地址和 scope 都带上 `BASE_PATH`——注册在源站根目录的 worker 会 404，
-而且万一存在会接管整个 `*.github.io` 域（包括别人的项目）。实测：scope 是
-`/repo/`、缓存键全部带前缀、断网刷新仍能从缓存打开首页。
+而且万一存在会接管整个 `*.github.io` 域。
+
+Cache Storage 有数量上限：图片最多 60 项、页面最多 20 项、其他静态资源最多 128 项；页面首页、
+`/offline/`、manifest 与静态图标属于受保护的核心条目，FIFO 淘汰不超过对应预算。当前纯静态
+部署没有 `/api/media/*` 路由，因此没有单独的媒体 API 桶或 30 天数据库媒体 TTL。
 
 `PwaRegister` 仅在生产构建注册；开发模式反而会注销旧 SW。manifest 提供 192/512/maskable 图标
 与快捷方式，可安装为桌面应用（`id`/`start_url`/`scope`/icons 都带部署前缀，否则装上去会打开站根）。
-更新缓存：修改 `sw.js` 的 `VERSION`。
+`theme_color` 与 `background_color` 都跟随内容主题色。`build:static` 会用导出文件与 worker 源码的
+内容摘要自动命名缓存版本（排除仅带构建时间的 `sitemap.xml`）；普通文案或素材更新无需手工 bump `VERSION`.
 
 ## 5. 图片「画框」约定（换图不用管尺寸）
 
 Hero、肖像、画廊、两张点缀图、电视封面、作品详情页的所有图片都放在**设计固定尺寸的容器**中，
 `<img>` 绝对定位铺满、`object-fit: cover`、`max-width: none`，容器带 `overflow:hidden; contain: layout paint`。
 因此任意比例/像素的新图都只会被裁切，不会改变容器尺寸、不会触发回流，GSAP 时间线的测量值不变。
-电话亭改为 WebGL 模型（见第 6 节），模型未就绪时用透明抠图 `/images/phone-booth-cutout.png` 兜底，`object-fit: contain`。
+电话亭改为 WebGL 模型（见第 6 节），模型未就绪时使用内容字段指定的 `/images/telephone-booth.webp`，`object-fit: contain`。
 
 **响应式尺寸**：静态导出没有图片优化服务，`public/` 里是什么、访客就下载什么。所以
 `scripts/build-images.mjs`（`npm run images`，`build:static` / `dev` 之前自动执行）会把
 `public/images/**` 压成 480 / 800 / 1200 三档 WebP，写进 `public/images/opt/`，同时生成
 `src/portfolio/content/image-manifest.json`；`ui/Img.tsx` 按清单给每个 `<img>` 挂
-`srcSet` + `sizes`（`sizes` 是各版面实测的 vw 值，见组件调用处）。两条例外：`.webp` 源
-（也就是被换成照片的电视图）同样进管线；`tv.webp` 用 `OVERRIDES` 里单独的一档
-（1280/1920/2560，q76）——它的 `sizes` 不是视口宽度，而是 `max(160vw, 230vh)`。三条不变量：
+`srcSet` + `sizes`（`sizes` 是各版面实测的 vw 值，见组件调用处）。电视使用 `/images/tv2.webp`
+与 `/images/tv2-alpha.webp` 两张 `.webp` 源图，同样进管线；`scripts/build-images.mjs` 对它们各用
+1280 / 1536 两档、质量 80。电视图层 `<img>` 的 `sizes` 是
+`(max-aspect-ratio: 3/2) 295vh, 185vw`，画面锚点按原生比例铺满视口。三条不变量：
 
 1. `src` 永远是真实文件——清单没跟上、浏览器不支持 `srcSet`、图被删掉，都只是"没有优化"，不会 404/空白；
 2. 不包 `<picture>`——`.story-photo-mask img`、`.tv-frame` 这类选择器，以及 flex 几何，都要求 `<img>` 自己就是那个盒子；
@@ -99,8 +113,8 @@ Hero、肖像、画廊、两张点缀图、电视封面、作品详情页的所�
 指针离开或页面滚动后，canvas 随波纹衰减移除；标签页隐藏或组件卸载时立即清理，空闲时没有 RAF。
 `.tv-frame`、`.tv-frame-alpha` 等电视图层、视频、CRT 层和电话亭 canvas 都不带标记——电视合成层不会叠第二套扭曲。
 
-**电视图的分层**：未选中作品时只显示完整的 `tv.webp`。选中作品时，项目画面和雪花
-铺在 `works.tv.screen` 矩形内，外扩覆盖 `tv-alpha.webp` 的透明开口；抠好的电视图放在
+**电视图的分层**：未选中作品时只显示完整的 `tv2.webp`。选中作品时，项目画面和雪花
+铺在 `works.tv.screen` 矩形内，外扩覆盖 `tv2-alpha.webp` 的透明开口；抠好的电视图放在
 画面上层，边缘由真实 alpha 决定，不再使用猜测的圆角或混合模式。整个预览层通过透明度
 切换，离开作品或进入联系方式时还原原图。照片保持原生比例居中，左右不再做羽化遮罩；有余量的两侧是干净暗场，
 `.tv-box` 只保留必要的下缘遮罩。顶部 `.tv-seam` 继续负责较大范围的天空衔接，单独的 3px seam guard
@@ -112,7 +126,7 @@ Hero、肖像、画廊、两张点缀图、电视封面、作品详情页的所�
 **电视留言 → 穿屏 → Contact**（`scroll/choreography.ts#television` 的 `createMessage` / `createDive` + `contact()`）。
 
 1. 作品列表滚过后，电视「开机」：亮点 → 横线 → 整屏展开，第一行 `@BrainEno`（荧光字），第二行
-   `nodeman24@outlook.com`（字符发生器等宽小字，逐字打出 + 闪烁光标）。字幕画在 `tv-alpha.webp`
+   `nodeman24@outlook.com`（字符发生器等宽小字，逐字打出 + 闪烁光标）。字幕画在 `tv2-alpha.webp`
    边框**下面**（`sections.tsx#TvMessage`），带扫描线、荧光辉光、RGB 会聚误差、滚动亮带与玻璃反光；
    字号以屏幕容器单位（`cqi`）计算，任何视口都不会溢出玻璃。留言是**时间驱动**的，不再要求读者滚过
    一整屏静止画面。
@@ -181,7 +195,7 @@ Hero 的编号与标题组成同一行网格，三行略向右阶梯递进；cod
 ## 7. 已知限制 / 后续
 
 - 内容改动没有图形界面：`published.json` 是 JSON，字段含义见 `docs/QUICKSTART.md` 与 `content/types.ts`。
-- 更换电视照片时，需要同时更换与原图构图一致的 `public/images/tv-alpha.webp`，
+- 更换电视照片时，需要同时更换与原图构图一致的 `public/images/tv2-alpha.webp`，
   并调整 `works.tv.screen` 使矩形覆盖透明开口。仅替换原图会导致预览边框错位。
   `npm run tv-glass` 可绘出矩形辅助检查，照片比例变化时也要复核锚定尺寸。
 - 仓库同时保留原始 `telephone.gltf`（38 MB，在 `assets/models/`）与优化后的 `.glb`（2.15 MB，在 `public/gltfs/`），

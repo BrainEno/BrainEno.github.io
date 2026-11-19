@@ -1,8 +1,9 @@
 # 开发路线（ROADMAP）
 
-本文档是 **BrainEno 个人主页（<https://BrainEno.github.io>）** 的开发日志 + 待办。优先级：P0（上线前必须）→ P1（体验与健壮性）
-→ P2（长期演进）。反馈新问题时请附：现象截图、复现路径（URL / 滚动位置 / 语言 /
-桌面或移动端）、控台报错原文。
+本文档是 **BrainEno 个人主页（<https://BrainEno.github.io>）** 的历史开发日志 + 待办。优先级：P0（上线前必须）→ P1（体验与健壮性）
+→ P2（长期演进）。历史章节记录的是当时的素材名、测量值与代码状态，不作为当前实现说明；
+当前文件路径与配置以 `docs/ARCHITECTURE.md`、`docs/STATIC_EXPORT.md` 和源码为准。没有留存原始 trace / artifact 的性能数字明确视为未经复现的历史记录，不作为质量承诺。
+反馈新问题时请附：现象截图、复现路径（URL / 滚动位置 / 语言 / 桌面或移动端）、控台报错原文。
 
 **当前形态**：纯静态站。`npm run build:static` → `out/`，任何静态托管都能跑。
 没有数据库、没有 API、没有 `/admin`、没有登录——内容在仓库里，构建即发布。
@@ -65,11 +66,11 @@
 
 ### 顺手补的两件小事
 
-- **电视图现在也走响应式管线**：`tv.webp` 的 `sizes` 是 `max(160vw, 230vh)`（玻璃而不是盒子
-  要装进视口），默认 480/800/1200 三档会糊，所以加了 `OVERRIDES`（1280/1920/2560，q76，
-  合计 836 KB，按 DPR 与视口挑一档；只有老浏览器才下载 732 KB 的原图）。
-- **`npm run art` 不再覆盖 `tv.webp`**：矢量插画改写到 `tv-placeholder.webp`，`tv.webp` 只在
-  缺失时才播种——换了自己的照片以后再手滑跑一次 `art` 不会把照片变回插画。
+- **历史快照（已被后续素材演进取代）**：这一轮记载的 `tv.webp`、`max(160vw, 230vh)` 与
+  1280/1920/2560、q76 是当时的测量口径，不是当前配置。现在使用 `tv2.webp` / `tv2-alpha.webp`，
+  1280/1536、q80；准确值由 `docs/ARCHITECTURE.md` 与 `scripts/build-images.mjs` 维护。
+- **素材生成脚本后续已退役**：现在 `npm run art` 只读检查默认内容引用的图片，不再生成占位插画。
+  它不会覆盖素材，也不会向 `public/` 产生未使用文件；请用 `npm run images` 生成响应式衍生图。
 - **`npm run tv-glass`**：把 `works.tv.screen` 的矩形画到当前电视图上，换照片时用来核对。
   顺便关掉了 ROADMAP 里挂了很久的 P1「玻璃校准」（原本想做一个后台拖拽工具，后台已经删了）。
 
@@ -95,7 +96,7 @@ Pages 只是一个发文件的服务器。**代价不在框架，而在于子路
 | 电话亭模型 | 3D 不出、退化成兜底图又 404 | `BOOTH_MODEL_SRC = asset(...)` |
 | 电话亭兜底抠图 | 同上 | `asset(fallback)` |
 | `manifest.webmanifest` | 安装后打开 `github.io` 根、图标 404 | `id` / `start_url` / `scope` / icons 走 `BASE_PATH` |
-| `robots.txt` | `Disallow: /offline` 少了前缀（等于没屏蔽） | `Disallow: /<repo>/offline` |
+| `robots.txt` | `Disallow` 必须带部署前缀并匹配静态导出的规范路径 | `Disallow: /<repo>/offline/` |
 | Service Worker | 子路径下**直接不注册**，PWA/离线全失效 | scope 与脚本都带前缀；`sw.js` 从 `registration.scope` 反推 `BASE` |
 | `sitemap.xml` | 作品页少了尾斜杠，与 canonical 不一致（多一次 301） | 与 `trailingSlash` 对齐 |
 
@@ -163,7 +164,7 @@ Pages 只是一个发文件的服务器。**代价不在框架，而在于子路
 
 新增 `scripts/smoke.mjs`（无浏览器，约 2 s）：拉起 `preview.mjs` 托管 `out/`，
 按 `sitemap.xml` 遍历每个页面断言 200 + `text/html`，断言 `/admin/`、`/nope/`、
-`/works/not-a-project/` 是 404，断言 `robots.txt` 只 `Disallow: /offline`、
+`/works/not-a-project/` 是 404，断言 `robots.txt` 只 `Disallow: /offline/`、
 `sitemap.xml` / `manifest.webmanifest` 可访问，断言首页引用的 36 个图片 URL
 （含所有 `srcSet` 候选）全部存在，并断言 Brotli 生效。
 `static.yml` 拆成 `verify`（push + PR：typecheck → lint → build → smoke）与
@@ -205,17 +206,19 @@ mock。**不要再把这些条目当待办**；若将来真需要在线编辑，
 - [x] **自动适配 `BrainEno.github.io` 根路径与项目站子路径**：workflow 自动识别 `<owner>.github.io` 用户主页（`NEXT_PUBLIC_BASE_PATH=""`、`NEXT_PUBLIC_SITE_URL=https://BrainEno.github.io`）与项目站子路径，同时支持仓库变量 `SITE_URL` 覆盖自定义域名。
 - [ ] **真机回归**：iOS Safari / Android Chrome 各走一遍（pin、ScrollSmoother、
       中文断行、电话亭 WebGL 与拖拽、电视换台），留截图存档。
-- [ ] **Lighthouse 预算定档**：移动模拟、本地 Brotli 预览，第八轮前后：
+- [ ] **Lighthouse 预算定档（待复现）**：历史笔记曾报告移动模拟与本地 Brotli 预览的下列结果，
+      但原始 Lighthouse JSON、trace、浏览器版本与 CI artifact 均未保留。以下数字是**未经复现的历史记录**，
+      不是当前基线、验收结果或性能承诺；在重新测量前不要引用为已验证成绩。
 
-      | 指标 | 第七轮 | 第八轮 |
+      | 指标 | 第七轮历史记录 | 第八轮历史记录（未复现） |
       |---|---|---|
-      | 性能 | 77 | **99** |
+      | 性能 | 77 | 99 |
       | 无障碍 / 最佳实践 / SEO | 100 / 100 / 100 | 100 / 100 / 100 |
       | FCP / LCP | 1.7 s / 5.5 s | 1.3 s / 1.3 s |
       | TBT / CLS | 160 ms / 0 | 110 ms / 0 |
 
-      下次跑请用同一口径（`npm run build:static` + `npm run preview`，不要拿 dev server 量），
-      并把桌面档也补上。
+      重跑请用统一口径（`npm run build:static` + `npm run preview`，不要拿 dev server 量），
+      附上桌面与移动档的 Lighthouse JSON / trace，并保存 CI artifact。
 - [ ] **`out/` 体积守门**：现在 6.2 MB（其中 `gltfs/telephone.glb` 2.2 MB）。
       任何新素材进 `public/` 前先问一句"它会不会被拷进导出目录"。
 

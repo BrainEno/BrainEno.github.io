@@ -52,25 +52,8 @@ export function containsPoint(bounds: Bounds, x: number, y: number): boolean {
 }
 
 /** Playback text is localized at the component edge, kept here to avoid
- *  divergent labels between the keyboard button and its live announcement. */
+ *  divergent labels between the television's native control and live announcement. */
 export type VideoPlaybackState = "unavailable" | "playing" | "paused" | "blocked";
-
-/** A user-initiated row action that may wait for the CRT channel lock. */
-export type VideoPlaybackRequest = Readonly<{
-  workId: string;
-  action: "play" | "pause";
-  sequence: number;
-}>;
-
-/** Keep a queued row action until both channel intent and painted media agree. */
-export function isPlaybackRequestReady(
-  request: VideoPlaybackRequest,
-  activeWorkId: string | null,
-  shownWorkId: string | null,
-  videoReady: boolean
-): boolean {
-  return videoReady && request.workId === activeWorkId && request.workId === shownWorkId;
-}
 
 /** A play promise belongs only to the latest channel *and* playback action. */
 export function ownsPlaybackResult(

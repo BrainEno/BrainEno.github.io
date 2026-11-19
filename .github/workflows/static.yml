@@ -75,6 +75,18 @@ jobs:
       # Regression tests for the reduced-motion/static route and rapid TV retunes.
       - name: Motion and television interaction tests
         run: npm run test:interactions
+      # Verify bounded scroll-driven pointer work and reusable marquee time-scale tweens.
+      - name: Scroll performance contract tests
+        run: npm run test:scroll
+      # Offline navigation, canonical precaches, cache isolation and timeout behavior.
+      - name: Service worker regression tests
+        run: npm run test:service-worker
+      # `npm run art` is read-only now: it audits live artwork instead of writing stale files.
+      - name: Artwork contract tests
+        run: npm run test:art
+      # Keep the architecture and static-export guide aligned with current source facts.
+      - name: Documentation drift checks
+        run: npm run test:docs && npm run check:docs
       # The preview server must survive malformed URLs and confine paths to out/.
       - name: Static preview resolver tests
         run: npm run test:preview

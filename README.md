@@ -42,7 +42,7 @@ npm install
 npm run dev                     # http://localhost:3000
 ```
 
-站点只有两个页面类型：首页（四幕滚动叙事）和每个作品的 `/works/<id>`；`/offline` 是 PWA 离线兜底。
+站点只有两个页面类型：首页（四幕滚动叙事）和每个作品的 `/works/<id>/`；`/offline/` 是 PWA 离线兜底。
 没有后台、没有 `/admin`——内容在仓库里的静态文件中（见下）。
 
 要看成品的真实形态（静态导出的那份文件）：
@@ -119,7 +119,7 @@ npm run build:static
 | `npm run images` | 生成响应式 WebP 与图片清单（`build:static` / `dev` 前自动执行） |
 | `npm run smoke` | 用普通静态服务器托管 `out/` 并逐页爬一遍（CI 也跑这个） |
 | `npm run lint` · `typecheck` | ESLint · TypeScript |
-| `npm run art` | 重新生成电话亭抠图兜底与电视机**占位**插画（不会覆盖你自己的 `tv.webp`） |
+| `npm run art` | 只读检查 `defaults.ts` 引用的图片是否存在，不会生成或覆盖素材；更新图片衍生尺寸请运行 `npm run images` |
 | `npm run tv-glass` | 把 `works.tv.screen` 的矩形画到电视图上，核对玻璃位置（输出 `/tmp/tv-glass-check.png`） |
 | `python3 scripts/optimize-booth-model.py` | 由 `assets/models/telephone.gltf` 重新生成 `public/gltfs/telephone.glb`（需 ImageMagick） |
 
@@ -129,14 +129,14 @@ npm run build:static
 src/app/                 路由层（薄）：/ · /works/[id] · /offline · robots/sitemap/manifest
 src/portfolio/
   content/               types · defaults(默认站点内容) · published.json(可选快照) · normalize · source(唯一入口)
-  scroll/choreography.ts 全部 GSAP 时间线
+  scroll/                choreography(几何编排) · reveals(稳定入场) · hash-section(锚点) · motion-policy
   ui/                    Portfolio 壳 · 四幕 sections · Img(响应式) · PhoneBoothModel · TvShowreel · PwaRegister
   three/booth.ts         WebGL 电话亭（环境光、自转、拖拽、取景）
   seo/site.ts            站点 URL / JSON-LD / 标题规则
   styles/                portfolio.css · work-detail.css
 public/                  images(+ opt/ 生成的 WebP) · gltfs · icons · sw.js(离线缓存)
 assets/models/           建模源文件：telephone.gltf（38 MB，不进导出目录）
-scripts/                 build-static.mjs · build-images.mjs · smoke.mjs · preview.mjs · art/
+scripts/                 build-static.mjs · service-worker-build.mjs · smoke.mjs · preview.mjs · art/
 .github/workflows/static.yml
 ```
 
