@@ -125,7 +125,7 @@ export default async function WorkPage({ params }: Params) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(ld).replace(/</g, "\\u003c") }}
       />
-      <WorkDetail work={work} images={images} identity={content.identity} theme={content.theme} />
+      <WorkDetail work={work} images={images} identity={content.identity} />
     </>
   );
 }

@@ -8,7 +8,7 @@
  * 详见：LICENSE, TERMS.md
  */
 import type { Metadata, Viewport } from "next";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import "@fontsource-variable/inter/wght.css";
 import "@fontsource/inria-serif/latin-400.css";
 import "@fontsource/inria-serif/latin-400-italic.css";
@@ -86,17 +86,19 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export const viewport: Viewport = {
-  themeColor: "#000000",
-  colorScheme: "dark",
-  width: "device-width",
-  initialScale: 1,
-};
+export async function generateViewport(): Promise<Viewport> {
+  const { theme } = await getSiteContent();
+  return { themeColor: theme.stage, colorScheme: "dark", width: "device-width", initialScale: 1 };
+}
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const content = await getSiteContent();
   return (
-    <html lang={htmlLang(content.identity.defaultLanguage)} suppressHydrationWarning>
+    <html
+      lang={htmlLang(content.identity.defaultLanguage)}
+      style={{ "--stage": content.theme.stage, "--accent": content.theme.accent } as CSSProperties}
+      suppressHydrationWarning
+    >
       <body>
         {/* The page opens at the masthead. Browsers otherwise restore the
             previous scroll position on a reload, which drops the reader

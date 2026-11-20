@@ -20,6 +20,8 @@
 }
 
 :root {
+  --ink: #fcfcfc;
+  --muted: #898989;
   --font-sans: "Aeonik", "Inter Variable", "Inter", "Helvetica Neue", Arial, sans-serif;
   --font-serif: "Inria Serif", "Times New Roman", serif;
   --font-cjk: "PingFang SC", "PingFang TC", "Noto Sans SC", "Noto Sans CJK SC", "Noto Sans TC", "Microsoft YaHei", "Microsoft JhengHei", sans-serif;
@@ -29,5 +31,5 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: #000;
+  background: var(--stage);
 }

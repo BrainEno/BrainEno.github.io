@@ -88,6 +88,11 @@ export function slugify(value: string) {
 export function normalizeContent(input: Json): PortfolioContent {
   const content = coerce(defaultContent, input, "") as PortfolioContent;
   content.version = 2;
+  // Empty snapshot fields must not erase the inherited CSS variables or the
+  // browser chrome colour (the manifest uses this same normalized theme).
+  for (const key of ["stage", "accent"] as const) {
+    content.theme[key] = content.theme[key].trim() || defaultContent.theme[key];
+  }
   const seen = new Set<string>();
   content.works.items = content.works.items.map((work, index) => {
     let id = slugify(work.id) || `work-${index + 1}`;

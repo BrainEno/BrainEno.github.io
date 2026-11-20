@@ -13,10 +13,10 @@
   min-height: 100svh;
   padding: 10svh var(--gutter, 4vw) 12svh;
   background: var(--stage);
-  color: #fcfcfc;
+  color: var(--ink);
   font-family: var(--font-sans);
 }
-.wd-back, .wd-link { color: #fcfcfc; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,.3); transition: color .3s, border-color .3s; }
+.wd-back, .wd-link { color: var(--ink); text-decoration: none; border-bottom: 1px solid rgba(255,255,255,.3); transition: color .3s, border-color .3s; }
 .wd-back:hover, .wd-link:hover { color: var(--accent); border-color: var(--accent); }
 .wd-head { margin: 12svh 0 4svh; }
 .wd-meta { margin: 0 0 1.2em; color: #a3a3a3; letter-spacing: .06em; font-size: 13px; text-transform: uppercase; }
