@@ -1,3 +1,4 @@
+import { modifiedDate } from "./modified-date";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { defaultContent } from "./defaults";
@@ -84,6 +85,5 @@ export async function getContentUpdatedAt(): Promise<string | null> {
   const snapshot = readPublishedSnapshot();
   if (!snapshot || snapshot.error) return null;
   const { content, exportedAt } = unwrapSnapshot(snapshot.raw);
-  if (!content || !exportedAt || !/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2}))?$/.test(exportedAt)) return null;
-  return Number.isFinite(Date.parse(exportedAt)) ? exportedAt : null;
+  return content ? modifiedDate(exportedAt) ?? null : null;
 }

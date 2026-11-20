@@ -1,3 +1,4 @@
+import { modifiedDate } from "./modified-date";
 import { defaultContent } from "./defaults";
 import type { Language, LocalizedText, PortfolioContent } from "./types";
 
@@ -36,6 +37,9 @@ function coerce(template: Json, input: Json, path: string): Json {
     for (const key of Object.keys(template)) {
       out[key] = coerce(template[key], source[key], path ? `${path}.${key}` : key);
     }
+    // A work may omit its date. Never inherit it from the template (the first
+    // default work), even if that work later gains an authored timestamp.
+    if (path === "works.items[]") out.updatedAt = modifiedDate(source.updatedAt);
     // Forward-compatible: keep keys that exist in stored data but not in the
     // template yet, so a newer client never loses fields on a round-trip.
     // This includes nested objects (like `video`) so future field additions

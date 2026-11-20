@@ -1,3 +1,4 @@
+import { sitemapEntries } from "@/portfolio/seo/sitemap-entries";
 import type { MetadataRoute } from "next";
 import { getContentUpdatedAt, getSiteContent } from "@/portfolio/content/source";
 import { siteUrl } from "@/portfolio/seo/site";
@@ -14,19 +15,5 @@ export function generateStaticParams() {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const content = await getSiteContent();
   const origin = siteUrl().toString().replace(/\/$/, "");
-  // Never claim "now" as the last modification: every deployment would then
-  // look changed to crawlers. Use the committed snapshot's export date.
-  const lastModified = (await getContentUpdatedAt()) ?? undefined;
-  return [
-    { url: `${origin}/`, lastModified, changeFrequency: "monthly", priority: 1 },
-    ...content.works.items.map((work) => ({
-      // `trailingSlash: true` makes `/works/<id>/` the canonical address, so
-      // the sitemap must not advertise the extensionless form (GitHub Pages
-      // would answer it with a 301, which wastes a crawl).
-      url: `${origin}/works/${work.id}/`,
-      lastModified,
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-    })),
-  ];
+  return sitemapEntries(origin, content.works.items, (await getContentUpdatedAt()) ?? undefined);
 }

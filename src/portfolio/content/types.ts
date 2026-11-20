@@ -30,6 +30,8 @@ export type Video = {
 };
 
 export type Work = {
+  /** Last significant edit to this detail page, not its creation year or the site export time. */
+  updatedAt?: string;
   id: string;
   title: LocalizedText;
   /** Repository start date (or any date label) shown before the separator. */
