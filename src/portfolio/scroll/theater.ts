@@ -10,6 +10,7 @@
 import { gsap } from "gsap";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { focusAfterReveal } from "../ui/focus-after-reveal";
 import { motionPolicy } from "./motion-policy";
 
 /**
@@ -128,10 +129,28 @@ export function openTheater(section: HTMLElement): TheaterHandle | null {
   if (smoother) smoother.paused(true);
   else document.documentElement.style.overflow = "hidden";
 
+  const trigger = document.activeElement;
+  const keyboardEntry = section.closest(".pf")?.getAttribute("data-input") === "keys";
+  let cancelFocus: (() => void) | undefined;
+  const focusSheet = () => {
+    if (keyboardEntry && !cancelFocus && !closing && !disposed) {
+      cancelFocus = focusAfterReveal(sheet.querySelector(".tv-sheet-close"), trigger);
+    }
+  };
   const dur = reduce ? 0 : 1.15;
   let tl!: gsap.core.Timeline;
   ctx.add(() => {
     tl = gsap.timeline({ defaults: { ease: "expo.inOut", duration: dur } });
+    if (reduce) {
+      // A sequence of zero-duration from/to tweens can leave the sheet at its
+      // hidden start pose when refresh and opening coincide. Set the end pose.
+      gsap.set(box, { x: fit.x, y: fit.y, scale: fit.scale, rotation: 0 });
+      gsap.set([list, scrim], { autoAlpha: 0 });
+      gsap.set([sheet, veil, nav, ...sheet.querySelectorAll(".tv-sheet-reveal, .tv-sheet-fade")], { autoAlpha: 1, y: 0, yPercent: 0 });
+      focusSheet();
+      return;
+    }
+    tl.eventCallback("onComplete", focusSheet);
     tl.to(box, { x: fit.x, y: fit.y, scale: fit.scale, rotation: 0 }, 0)
       .to(list, { autoAlpha: 0, y: -24, duration: dur * 0.45, ease: "power2.in" }, 0)
       .to(scrim, { autoAlpha: 0, duration: dur * 0.5 }, 0)
@@ -208,6 +227,7 @@ export function openTheater(section: HTMLElement): TheaterHandle | null {
       gsap.set([list, scrim], { autoAlpha: 0 });
       gsap.set(veil, { autoAlpha: 1 });
     });
+    focusSheet();
     refit();
   };
   const onRefresh = () => {
@@ -230,6 +250,7 @@ export function openTheater(section: HTMLElement): TheaterHandle | null {
   const dispose = () => {
     if (disposed) return;
     disposed = true;
+    cancelFocus?.();
     cancelAnimationFrame(refreshFrame);
     ScrollTrigger.removeEventListener("refresh", onRefresh);
     ctx.revert();
@@ -251,11 +272,17 @@ export function openTheater(section: HTMLElement): TheaterHandle | null {
     if (closingPromise) return closingPromise;
     if (disposed) return Promise.resolve();
     closing = true;
+    cancelFocus?.();
     closingPromise = new Promise<void>((resolve) => {
       resolveClose = resolve;
       tl.kill();
       swapTl?.kill();
       refitTween?.kill();
+      if (reduce) {
+        dispose();
+        ScrollTrigger.refresh();
+        return;
+      }
       ctx.add(() => {
       const out = gsap.timeline({
         defaults: { ease: "expo.inOut", duration: dur },

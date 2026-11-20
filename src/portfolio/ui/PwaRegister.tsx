@@ -17,13 +17,17 @@ export default function PwaRegister() {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
     if (process.env.NODE_ENV !== "production") {
-      void navigator.serviceWorker.getRegistrations().then((list) => list.forEach((reg) => void reg.unregister()));
+      const scope = new URL(`${BASE_PATH}/`, location.origin).href;
+      void navigator.serviceWorker.getRegistration(scope).then((reg) => {
+        if (reg?.scope === scope) return reg.unregister();
+      }).catch(() => undefined);
       return;
     }
     const register = () =>
       void navigator.serviceWorker.register(`${BASE_PATH}/sw.js`, { scope: `${BASE_PATH}/` }).catch(() => undefined);
     if (document.readyState === "complete") register();
     else window.addEventListener("load", register, { once: true });
+    return () => window.removeEventListener("load", register);
   }, []);
   return null;
 }

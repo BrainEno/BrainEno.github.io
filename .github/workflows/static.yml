@@ -60,6 +60,8 @@ jobs:
           echo "NEXT_PUBLIC_SITE_URL=${site_url}" >> "$GITHUB_ENV"
           echo "Resolved target: site_url=${site_url} base_path='${base_path}'"
       - run: npm ci
+      - name: Audit locked dependencies
+        run: npm audit --audit-level=high
       - name: Typecheck
         run: npm run typecheck
       - name: Lint
@@ -123,6 +125,8 @@ jobs:
           NEXT_PUBLIC_BASE_PATH: ""
           NEXT_PUBLIC_SITE_URL: https://BrainEno.github.io
         run: npm run smoke
+      - name: Browser interaction regression (root export)
+        run: npx playwright install --with-deps chromium && npm run test:browser
       - name: Build (project site sub-path)
         env:
           NEXT_PUBLIC_BASE_PATH: /subpath-check

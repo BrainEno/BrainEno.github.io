@@ -81,19 +81,9 @@ export async function getSiteContent(): Promise<PortfolioContent> {
 
 /** When the committed snapshot was exported, for `sitemap.xml`'s lastmod. */
 export async function getContentUpdatedAt(): Promise<string | null> {
-  const file = publishedFilePath();
-  try {
-    if (!existsSync(file)) return null;
-    try {
-      const parsed: unknown = JSON.parse(readFileSync(file, "utf8"));
-      const { exportedAt } = unwrapSnapshot(parsed);
-      if (exportedAt) return exportedAt;
-    } catch {
-      // Fall through to the textual scan: a snapshot whose JSON is broken may
-      // still carry a readable timestamp near the top.
-    }
-    return readFileSync(file, "utf8").match(/"(?:exportedAt|exportedAtIso)":\s*"([^"]+)"/)?.[1] ?? null;
-  } catch {
-    return null;
-  }
+  const snapshot = readPublishedSnapshot();
+  if (!snapshot || snapshot.error) return null;
+  const { content, exportedAt } = unwrapSnapshot(snapshot.raw);
+  if (!content || !exportedAt || !/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2}))?$/.test(exportedAt)) return null;
+  return Number.isFinite(Date.parse(exportedAt)) ? exportedAt : null;
 }

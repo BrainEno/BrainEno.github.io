@@ -16,7 +16,7 @@ export function normalizeWorkerVersion(source) {
  * Derive a deterministic cache revision from the exported site, not a manually
  * maintained version string. `sw.js` is hashed with its version normalized so
  * its own injected revision does not make the digest recursive. Build metadata
- * and sitemap.xml are excluded because they carry per-build timestamps, not
+ * and sitemap.xml are excluded because they describe the export, not
  * offline application content.
  */
 export function computeStaticRevision(files) {
