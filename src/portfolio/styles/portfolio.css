@@ -9,9 +9,7 @@
  */
 
 :root {
-  --ink: #fcfcfc;
   --paper: #ffffff;
-  --muted: #898989;
   --muted-strong: #bbbbbb;
   --gutter: 3.125vw;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -44,9 +42,7 @@ body {
 }
 
 .pf {
-  --stage: #000;
   --handoff: var(--stage);
-  --accent: #e55139;
   position: relative;
   font-family: var(--font-sans);
   color: var(--ink);

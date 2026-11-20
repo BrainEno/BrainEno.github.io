@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type CSSProperties } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import type { PortfolioContent, Work, MediaImage } from "../content/types";
 import { t } from "../content/normalize";
@@ -8,8 +8,8 @@ import { Img } from "./Img";
 import { ArrowIcon } from "./Arrow";
 import { useLanguage } from "./useLanguage";
 
-export function WorkDetail({ work, identity, theme, images }: {
-  work: Work; identity: PortfolioContent["identity"]; theme: PortfolioContent["theme"]; images: MediaImage[];
+export function WorkDetail({ work, identity, images }: {
+  work: Work; identity: PortfolioContent["identity"]; images: MediaImage[];
 }) {
   const lang = useLanguage(identity.defaultLanguage);
   useEffect(() => {
@@ -17,7 +17,7 @@ export function WorkDetail({ work, identity, theme, images }: {
     document.title = `${t(work.title, lang)} — ${t(identity.siteName, lang) || identity.name}`;
   }, [lang, work.title, identity]);
   return (
-    <main className="wd" style={{ "--accent": theme.accent, "--stage": theme.stage } as CSSProperties}>
+    <main className="wd">
       <Link className="wd-back" href="/#works">← {identity.name}</Link>
       <header className="wd-head">
         <p className="wd-meta">{work.year} / {t(work.credit, lang)}</p>

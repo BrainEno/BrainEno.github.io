@@ -12,7 +12,7 @@
 import { gsap } from "gsap";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { t } from "../content/normalize";
 import type { Language, PortfolioContent, SectionId } from "../content/types";
 import {
@@ -702,11 +702,6 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
     // DOM, so it has to be rebuilt against the new geometry.
   }, [layoutLanguage, layoutKey, preview]);
 
-  const themeStyle = {
-    "--accent": content.theme.accent,
-    "--stage": content.theme.stage,
-  } as CSSProperties;
-
   const loadAnnouncement = loadStatus === null
     ? ""
     : lang === "zh"
@@ -714,7 +709,7 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
       : loadStatus === "loading" ? "Loading portfolio, please wait." : "Portfolio ready.";
 
   return (
-    <div ref={scopeRef} className={cx("pf", lang === "zh" && "lang-zh")} style={themeStyle}>
+    <div ref={scopeRef} className={cx("pf", lang === "zh" && "lang-zh")}>
       <a className="skip-link" href="#main-content">
         {lang === "zh" ? "跳到主要内容" : "Skip to main content"}
       </a>

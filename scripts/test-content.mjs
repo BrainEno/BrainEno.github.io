@@ -277,3 +277,10 @@ test("#26 updating one work does not re-date other work URLs on a new export", a
   assert.equal(after[4].lastModified, undefined);
   assert.ok(validateContent({ works: { items: works } }).some(issue => issue.path === "works.items[3].updatedAt"));
 });
+
+test("#22 authored theme is preserved and blank fields fall back independently", () => {
+  assert.deepEqual(normalizeContent({ theme: { stage: " #182036 ", accent: "#dddd55" } }).theme,
+    { stage: "#182036", accent: "#dddd55" });
+  assert.deepEqual(normalizeContent({ theme: { stage: " \t ", accent: "#abcd12" } }).theme,
+    { stage: defaultContent.theme.stage, accent: "#abcd12" });
+});

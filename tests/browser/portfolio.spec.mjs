@@ -67,3 +67,28 @@ test("normal-motion Contact keeps the booth clear of the header and resumes its 
     return booth.bottom <= innerHeight && booth.top > header.bottom;
   })).toBe(true);
 });
+
+test("home, work and offline shell inherit the root theme without hydration", async ({ browser, request, baseURL }) => {
+  const manifest = await (await request.get("/manifest.webmanifest")).json();
+  const sitemap = await (await request.get("/sitemap.xml")).text();
+  const work = sitemap.match(/<loc>([^<]+\/works\/[^<]+)<\/loc>/)?.[1];
+  const context = await browser.newContext({ baseURL, javaScriptEnabled: false });
+  try {
+    const page = await context.newPage();
+    const routes = [["/", ".pf", ".contact-reel-dot"], ["/offline/", "main", "main a"]];
+    if (work) routes.push([new URL(work).pathname, ".wd", ".wd-back"]);
+    for (const [path, stage, accent] of routes) {
+      await page.goto(path);
+      await expect(page.locator("meta[name='theme-color']")).toHaveAttribute("content", manifest.theme_color);
+      await expect(page.locator("html")).toHaveCSS("--stage", manifest.theme_color);
+      // Override only the source tokens. Local defaults or hard-coded consumer
+      // colours would still look correct with the stock snapshot, but fail here.
+      await page.addStyleTag({ content: ":root { --stage: #182036 !important; --accent: #dddd55 !important; }" });
+      await expect(page.locator(stage)).toHaveCSS("background-color", "rgb(24, 32, 54)");
+      if (stage === ".wd") await page.locator(accent).hover();
+      await expect(page.locator(accent).first()).toHaveCSS(stage === ".pf" ? "background-color" : "color", "rgb(221, 221, 85)");
+    }
+  } finally {
+    await context.close();
+  }
+});
