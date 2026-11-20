@@ -48,7 +48,7 @@
 - `/offline/` 设为 noindex / Disallow；尾斜杠与静态导出的目录索引保持一致。
 - 站点 URL 在**构建期**定死（`NEXT_PUBLIC_SITE_URL` → `SITE_URL` → 平台注入变量 → localhost，见 `seo/site.ts`），
   静态托管没有请求时的 Host 可读。
-- `sitemap.xml` 的 `lastmod` 优先取 `published.json` 的 `exportedAt`；没有快照日期时省略 lastmod。默认内容因此不应被文档描述成始终有一个提交日期。
+- `sitemap.xml` 的首页 `lastmod` 取快照的 `exportedAt`；作品页只取该作品自己的 `updatedAt`。缺少有效日期时省略 lastmod，不用构建或整站导出时间代替作品修改时间。
 
 ## 4. PWA / 离线
 

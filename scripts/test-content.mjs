@@ -38,7 +38,7 @@ registerHooks({
   resolve(specifier, context, nextResolve) {
     if ((specifier.startsWith("./") || specifier.startsWith("../")) && !/\.[cm]?[jt]s$/.test(specifier)) {
       const parent = context.parentURL ? fileURLToPath(context.parentURL) : null;
-      if (parent && parent.startsWith(CONTENT_DIR)) {
+      if (parent && parent.startsWith(path.join(ROOT, "src", "portfolio") + path.sep)) {
         const candidate = path.resolve(path.dirname(parent), `${specifier}.ts`);
         if (existsSync(candidate)) return nextResolve(pathToFileURL(candidate).href, context);
       }
@@ -252,4 +252,28 @@ test("undated or unusable content never advertises a sitemap modification time",
       assert.equal(await getContentUpdatedAt(), null);
     });
   }
+});
+
+
+test("#26 updating one work does not re-date other work URLs on a new export", async () => {
+  const { sitemapEntries } = await import("../src/portfolio/seo/sitemap-entries.ts");
+  const works = [
+    { id: "changed", updatedAt: "2024-02-29" },
+    { id: "stable", updatedAt: "2025-03-01T10:00:00+08:00" },
+    { id: "undated" },
+    { id: "invalid", updatedAt: "2026-02-30" },
+  ];
+  const entries = (exportedAt) => sitemapEntries("https://example.org/sub", normalizeContent({ works: { items: works } }).works.items, exportedAt);
+  const before = entries("2026-10-20");
+  works[0].updatedAt = "2026-11-20";
+  const after = entries("2026-11-21");
+  assert.equal(after[0].lastModified, "2026-11-21");
+  assert.equal(after[1].url, "https://example.org/sub/works/changed/");
+  assert.equal(before[1].lastModified, "2024-02-29");
+  assert.equal(after[1].lastModified, "2026-11-20");
+  assert.deepEqual(after.slice(2), before.slice(2));
+  assert.equal(after[2].lastModified, works[1].updatedAt);
+  assert.equal(after[3].lastModified, undefined);
+  assert.equal(after[4].lastModified, undefined);
+  assert.ok(validateContent({ works: { items: works } }).some(issue => issue.path === "works.items[3].updatedAt"));
 });

@@ -10,7 +10,7 @@
 - 有快照时，构建用 `src/portfolio/content/published.json`——由内容侧导出、写进仓库的副本。结构两种都接受（[#51](https://github.com/BrainEno/BrainEno.github.io/issues/51)）：
 
   ```json
-  // 包裹形式（推荐，带导出时间戳，sitemap.xml 的 lastmod 从这里来）
+  // 包裹形式（推荐，带导出时间戳，sitemap.xml 首页的 lastmod 从这里来）
   { "exportedAt": "2026-11-16T00:00:00.000Z", "content": { "version": 2, "identity": { ... }, ... } }
 
   // 裸内容（向后兼容）
@@ -60,3 +60,5 @@ npm run build:static && npm run smoke   # 跑完和 CI 等价
 - 开屏的 `preloader`（[#60](https://github.com/BrainEno/BrainEno.github.io/issues/60)）由 `documentElement.classList.add("js")` 门控——`<html>` 上没这个类，CSS 直接把整块盖层 `display:none`。脚本失败时用户落到的是真内容，不是一片黑。
 - 首页作品行的剧场播放依赖 JS；但每个作品详情页是纯静态文本，`/works/<id>/` 的直接链接与 sitemap 不依赖任何脚本。
 - 404 页的两个回退链接同样是无 JS 可用的 `<a>`。
+
+作品详情有实质修改时，可以在对应的 `works.items[]` 对象中维护 `"updatedAt": "2026-11-20"`，或填写带时区的 ISO 时间戳。只更新实际修改的作品；历史日期未知就不填。旧快照无需迁移。

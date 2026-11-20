@@ -19,6 +19,8 @@
  *     file that is not there. The build continues; the maintainer is told.
  */
 
+import { modifiedDate } from "./modified-date";
+
 export const MAX_STRING = 6000;
 export const MAX_LIST = 40;
 
@@ -230,6 +232,9 @@ export function validateContent(
     const seen = new Map<string, number>();
     works.items.forEach((item, i) => {
       if (!isRecord(item)) return;
+      if (item.updatedAt !== undefined && !modifiedDate(item.updatedAt)) {
+        issues.push({ severity: "warn", path: `works.items[${i}].updatedAt`, message: "invalid modification date; sitemap lastmod omitted" });
+      }
       const id = isNonEmptyString(item.id) ? item.id.trim() : "";
       const titleEn = isRecord(item.title) && isNonEmptyString(item.title.en) ? item.title.en : `items[${i}]`;
       if (id) {
