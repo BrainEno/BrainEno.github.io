@@ -83,7 +83,10 @@ test("home, work and offline shell inherit the root theme without hydration", as
       await expect(page.locator("html")).toHaveCSS("--stage", manifest.theme_color);
       // Override only the source tokens. Local defaults or hard-coded consumer
       // colours would still look correct with the stock snapshot, but fail here.
-      await page.addStyleTag({ content: ":root { --stage: #182036 !important; --accent: #dddd55 !important; }" });
+      await page.locator("html").evaluate(root => {
+        root.style.setProperty("--stage", "#182036");
+        root.style.setProperty("--accent", "#dddd55");
+      });
       await expect(page.locator(stage)).toHaveCSS("background-color", "rgb(24, 32, 54)");
       if (stage === ".wd") await page.locator(accent).hover();
       await expect(page.locator(accent).first()).toHaveCSS(stage === ".pf" ? "background-color" : "color", "rgb(221, 221, 85)");
