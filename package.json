@@ -34,14 +34,14 @@
     "next": "16.4.6",
     "react": "19.2.6",
     "react-dom": "19.2.6",
-    "three": "^0.181.2"
+    "three": "^0.187.0"
   },
   "devDependencies": {
     "@playwright/test": "1.65.1",
     "@types/node": "22.19.15",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
-    "@types/three": "^0.181.0",
+    "@types/three": "^0.187.0",
     "eslint": "9.39.4",
     "eslint-config-next": "16.4.6",
     "sharp": "0.35.5",
