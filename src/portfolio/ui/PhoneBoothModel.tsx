@@ -50,7 +50,9 @@ export function PhoneBoothModel({ src, fallback, spin = 0.16, plateText }: Props
     let viewportVisible = false;
     let documentVisible = !document.hidden;
     const syncPaused = () => {
-      handle?.setPaused(shouldPauseBooth(viewportVisible, documentVisible));
+      const paused = shouldPauseBooth(viewportVisible, documentVisible);
+      host.dataset.paused = String(paused);
+      handle?.setPaused(paused);
     };
     const onVisibilityChange = () => {
       documentVisible = !document.hidden;
@@ -103,9 +105,7 @@ export function PhoneBoothModel({ src, fallback, spin = 0.16, plateText }: Props
         }
         host.dataset.ready = "true";
       } catch (error) {
-        pauseObserver?.disconnect();
-        pauseObserver = null;
-        document.removeEventListener("visibilitychange", onVisibilityChange);
+        // Keep visibility tracking for the animated photographic fallback.
         motionQuery.removeEventListener("change", onMotionChange);
         if (disposed) return;
         // A failed decode / unsupported WebGL must not break the section.
@@ -149,7 +149,7 @@ export function PhoneBoothModel({ src, fallback, spin = 0.16, plateText }: Props
   }, [src, spin, plateText]);
 
   return (
-    <div ref={hostRef} className="contact-booth-canvas" aria-hidden="true">
+    <div ref={hostRef} className="contact-booth-canvas" data-paused="true" aria-hidden="true">
       {/* Kept a raw `<img>` rather than `Img`: the hand-over hides this node by
           writing `style.opacity` straight to the DOM, so it needs the ref. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}

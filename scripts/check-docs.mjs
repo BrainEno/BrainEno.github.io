@@ -156,8 +156,8 @@ export function checkDocumentation(root) {
   if (!manifest.includes("theme_color: content.theme.stage || \"#000000\"")) {
     errors.push("manifest theme_color must follow the current content theme stage");
   }
-  if (!architecture.includes("`exportedAt`") || !architecture.includes("回退到构建时间") || !staticGuide.includes("回退到构建时间")) {
-    errors.push("sitemap lastmod documentation must describe exportedAt and the build-time fallback");
+  if (!architecture.includes("`exportedAt`") || !architecture.includes("省略 lastmod") || !staticGuide.includes("省略 lastmod")) {
+    errors.push("sitemap lastmod documentation must describe exportedAt and the omission for undated content");
   }
   if (!readme.includes("只读检查") || !readme.includes("不会生成或覆盖素材")) {
     errors.push("README must describe `npm run art` as a read-only audit, not an artwork generator");

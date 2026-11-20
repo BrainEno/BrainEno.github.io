@@ -159,4 +159,4 @@ location = /sw.js { add_header Cache-Control "no-cache, max-age=0"; }
   `generateStaticParams()` 返回 `[]`，就是告诉 exporter「这个可以构建」。
 - 字体来自 `@fontsource`（`layout.tsx` 里 import CSS），不依赖构建期的网络请求，也不依赖
   Google Fonts；构建可以在完全离线的机器上完成。
-- `sitemap.xml` 的 `lastmod` 优先取 `published.json` 的 `exportedAt`；没有发布快照时回退到构建时间。
+- `sitemap.xml` 的 `lastmod` 优先取 `published.json` 的 `exportedAt`；没有发布快照时省略 lastmod。

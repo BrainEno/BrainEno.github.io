@@ -12,7 +12,7 @@
 import { gsap } from "gsap";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type RefObject } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { t } from "../content/normalize";
 import type { Language, PortfolioContent, SectionId } from "../content/types";
 import {
@@ -28,6 +28,7 @@ import { sectionFromHash } from "../scroll/hash-section";
 import { motionPolicy } from "../scroll/motion-policy";
 import { setupReveals } from "../scroll/reveals";
 import { openTheater, type TheaterHandle } from "../scroll/theater";
+import { focusAfterReveal } from "./focus-after-reveal";
 import { cx } from "./cx";
 import {
   Contact,
@@ -37,9 +38,8 @@ import {
   videoAtPoint,
 } from "./sections";
 
-const LANG_KEY = "pf-lang";
-const subscribeNever = () => () => {};
-const readStoredLang = () => (typeof window === "undefined" ? null : window.localStorage.getItem(LANG_KEY));
+import { useLanguage, changeLanguage } from "./useLanguage";
+
 const SEEN_KEY = "pf-preloaded";
 const SECTIONS: SectionId[] = ["intro", "works", "contact"];
 
@@ -279,12 +279,7 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
   const scopeRef = useRef<HTMLDivElement>(null);
   const lastWorkRef = useRef(-1);
   const syncPointerRef = useRef<(() => void) | null>(null);
-  // Language preference: the stored value is read as an external store rather
-  // than copied into state from an effect (which would render the wrong
-  // language for a frame, and fights hydration).
-  const [langOverride, setLangOverride] = useState<Language | null>(null);
-  const storedLang = useSyncExternalStore(subscribeNever, readStoredLang, () => null);
-  const lang: Language = langOverride ?? (storedLang === "zh" || storedLang === "en" ? storedLang : content.identity.defaultLanguage);
+  const lang = useLanguage(content.identity.defaultLanguage);
   const [section, setSection] = useState<SectionId>("intro");
   const [loadStatus, setLoadStatus] = useState<"loading" | "ready" | null>(null);
   const [activeWork, setActiveWork] = useState(-1);
@@ -333,11 +328,6 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
     };
   }, []);
 
-  const changeLanguage = useCallback((next: Language) => {
-    setLangOverride(next);
-    window.localStorage.setItem(LANG_KEY, next);
-  }, []);
-
   const preview = useCallback((index: number) => {
     // While a project is screening, the tube belongs to it: hover/scroll
     // tuning from the (hidden) index is ignored until the theater closes.
@@ -370,7 +360,11 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
   useLayoutEffect(() => {
     const previous = shownTheaterRef.current;
     shownTheaterRef.current = theaterWork;
-    if (theaterWork < 0) return;
+    if (theaterWork < 0) {
+      if (previous < 0) return;
+      const row = scopeRef.current?.querySelector<HTMLButtonElement>(`.work-row[data-work-index="${previous}"] .work-row-hit`);
+      return focusAfterReveal(row ?? null, document.activeElement);
+    }
     if (theaterRef.current) {
       if (previous >= 0 && previous !== theaterWork) theaterRef.current.swap(stepDirectionRef.current);
       else if (!closingRef.current) theaterRef.current.relabel();
@@ -406,7 +400,6 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
         layoutDirtyRef.current = false;
         setLayoutKey((key) => key + 1);
       }
-      scopeRef.current?.querySelector<HTMLElement>(`.work-row[data-work-index="${lastWorkRef.current}"]`)?.focus({ preventScroll: true });
       syncPointerRef.current?.();
     });
     closingRef.current = closing;
@@ -544,7 +537,11 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
       };
     }
 
-    const quick = window.sessionStorage.getItem(SEEN_KEY) === "1";
+    let quick = false;
+    try { quick = window.sessionStorage.getItem(SEEN_KEY) === "1"; } catch { /* Storage is optional. */ }
+    const markSeen = () => {
+      try { window.sessionStorage.setItem(SEEN_KEY, "1"); } catch { /* Still dismiss the loader. */ }
+    };
     // Announce on the next task rather than synchronously deriving render state
     // inside the effect. If readiness wins first, hideLoader cancels the timer.
     announceTimer = window.setTimeout(() => {
@@ -584,7 +581,7 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
       if (!loader) {
         entrance.play();
         smoother.paused(false);
-        window.sessionStorage.setItem(SEEN_KEY, "1");
+        markSeen();
         hideLoader();
         return;
       }
@@ -595,7 +592,7 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
         entrance: () => entrance.play(),
         done: () => {
           smoother.paused(false);
-          window.sessionStorage.setItem(SEEN_KEY, "1");
+          markSeen();
           hideLoader();
         },
       });

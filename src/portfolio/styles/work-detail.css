@@ -12,12 +12,12 @@
 .wd {
   min-height: 100svh;
   padding: 10svh var(--gutter, 4vw) 12svh;
-  background: #000;
+  background: var(--stage);
   color: #fcfcfc;
   font-family: var(--font-sans);
 }
 .wd-back, .wd-link { color: #fcfcfc; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,.3); transition: color .3s, border-color .3s; }
-.wd-back:hover, .wd-link:hover { color: #e55139; border-color: #e55139; }
+.wd-back:hover, .wd-link:hover { color: var(--accent); border-color: var(--accent); }
 .wd-head { margin: 12svh 0 4svh; }
 .wd-meta { margin: 0 0 1.2em; color: #a3a3a3; letter-spacing: .06em; font-size: 13px; text-transform: uppercase; }
 .wd-title { margin: 0; font-family: var(--font-sans); font-weight: 500; font-size: clamp(2.6rem, 9vw, 8rem); line-height: .95; letter-spacing: -.045em; overflow-wrap: anywhere; }
@@ -36,9 +36,9 @@
   line-height: 1.7;
 }
 .wd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: 2vw; }
-/* Every image sits in a fixed 4:3 frame: sources of any size/ratio are cropped, never stretched. */
+/* Every image sits in a fixed 4:3 frame: sources of any size/ratio remain fully visible. */
 .wd-frame { position: relative; margin: 0; aspect-ratio: 4 / 3; overflow: hidden; background: #0d0d0d; contain: layout paint; }
-.wd-frame img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; max-width: none; object-fit: cover; }
+.wd-frame img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; max-width: none; object-fit: contain; }
 
 /* The ripple overlay is global (`ui/WaterHover.tsx`) and this page does not
    load portfolio.css, so it carries the same two invariants. */

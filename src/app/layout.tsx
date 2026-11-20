@@ -37,7 +37,6 @@ export async function generateMetadata(): Promise<Metadata> {
     applicationName: content.identity.name,
     authors: [{ name: content.identity.name }],
     creator: content.identity.name,
-    keywords: [content.identity.name, ...content.works.items.map((w) => pickText(w.title, lang))],
     alternates: { canonical: "/" },
     manifest: "/manifest.webmanifest",
     // iOS takes the home-screen icon from this link, not from the manifest, and

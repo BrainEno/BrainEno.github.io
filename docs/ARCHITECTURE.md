@@ -48,7 +48,7 @@
 - `/offline/` 设为 noindex / Disallow；尾斜杠与静态导出的目录索引保持一致。
 - 站点 URL 在**构建期**定死（`NEXT_PUBLIC_SITE_URL` → `SITE_URL` → 平台注入变量 → localhost，见 `seo/site.ts`），
   静态托管没有请求时的 Host 可读。
-- `sitemap.xml` 的 `lastmod` 优先取 `published.json` 的 `exportedAt`；没有快照日期时回退到构建时间。默认内容因此不应被文档描述成始终有一个提交日期。
+- `sitemap.xml` 的 `lastmod` 优先取 `published.json` 的 `exportedAt`；没有快照日期时省略 lastmod。默认内容因此不应被文档描述成始终有一个提交日期。
 
 ## 4. PWA / 离线
 
@@ -80,7 +80,7 @@ Cache Storage 有数量上限：图片最多 60 项、页面最多 20 项、其�
 `PwaRegister` 仅在生产构建注册；开发模式反而会注销旧 SW。manifest 提供 192/512/maskable 图标
 与快捷方式，可安装为桌面应用（`id`/`start_url`/`scope`/icons 都带部署前缀，否则装上去会打开站根）。
 `theme_color` 与 `background_color` 都跟随内容主题色。`build:static` 会用导出文件与 worker 源码的
-内容摘要自动命名缓存版本（排除仅带构建时间的 `sitemap.xml`）；普通文案或素材更新无需手工 bump `VERSION`.
+内容摘要自动命名缓存版本（排除 `sitemap.xml`）；普通文案或素材更新无需手工 bump `VERSION`.
 
 ## 5. 图片「画框」约定（换图不用管尺寸）
 

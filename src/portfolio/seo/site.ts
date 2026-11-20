@@ -73,6 +73,7 @@ export function absoluteUrl(src: string) {
  * the card out before the bytes arrive, and nothing new has to be generated.
  */
 export function shareImage(src: string, fallbackAlt = "") {
+  if (!src) return { url: absoluteUrl("/icons/icon-512.png"), width: 512, height: 512, type: "image/png", alt: fallbackAlt };
   const entry = (manifest as { images: Record<string, { width: number; height: number; variants: { type: string; srcSet: string }[] }> }).images[src];
   const candidates =
     entry?.variants

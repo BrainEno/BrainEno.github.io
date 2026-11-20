@@ -244,3 +244,12 @@ test("the committed defaults themselves are warning-free and keep their identity
 });
 
 console.log("\n[content tests] done");
+
+
+test("undated or unusable content never advertises a sitemap modification time", async () => {
+  for (const snapshot of [null, { version: 2 }, { exportedAt: "yesterday", content: { version: 2 } }, '{"exportedAt":"2026-10-01",']) {
+    await withFixture(snapshot ? snapshotFixture(snapshot) : {}, async () => {
+      assert.equal(await getContentUpdatedAt(), null);
+    });
+  }
+});

@@ -2431,6 +2431,10 @@ canvas[data-water-canvas] {
   will-change: transform;
 }
 
+.contact-booth-float:has(> [data-paused="true"]) {
+  animation-play-state: paused;
+}
+
 @keyframes booth-float {
   from { transform: translateY(0) rotate(0deg); }
   to { transform: translateY(-1.1vh) rotate(0.7deg); }
@@ -3206,7 +3210,7 @@ canvas[data-water-canvas] {
     scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition: none !important;
   }
 
   .pf .preloader,
