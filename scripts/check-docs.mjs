@@ -153,7 +153,7 @@ export function checkDocumentation(root) {
   if (!serviceWorkerBuild.includes("computeStaticRevision") || !architecture.includes("内容摘要自动命名缓存版本")) {
     errors.push("cache revision must be described as a build-generated content digest");
   }
-  if (!manifest.includes("theme_color: content.theme.stage || \"#000000\"")) {
+  if (!/theme_color:\s*content\.theme\.stage,/.test(manifest) || !/background_color:\s*content\.theme\.stage,/.test(manifest)) {
     errors.push("manifest theme_color must follow the current content theme stage");
   }
   if (!architecture.includes("`exportedAt`") || !architecture.includes("省略 lastmod") || !staticGuide.includes("省略 lastmod")) {

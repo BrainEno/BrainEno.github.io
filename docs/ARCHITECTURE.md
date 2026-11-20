@@ -79,7 +79,7 @@ Cache Storage 有数量上限：图片最多 60 项、页面最多 20 项、其�
 
 `PwaRegister` 仅在生产构建注册；开发模式反而会注销旧 SW。manifest 提供 192/512/maskable 图标
 与快捷方式，可安装为桌面应用（`id`/`start_url`/`scope`/icons 都带部署前缀，否则装上去会打开站根）。
-`theme_color` 与 `background_color` 都跟随内容主题色。`build:static` 会用导出文件与 worker 源码的
+`theme_color` 与 `background_color` 都跟随 `theme.stage`，与页面的 `theme-color` 一致。根布局输出共享配色，见 [主题色的边界](DESIGN.md)。`build:static` 会用导出文件与 worker 源码的
 内容摘要自动命名缓存版本（排除 `sitemap.xml`）；普通文案或素材更新无需手工 bump `VERSION`.
 
 ## 5. 图片「画框」约定（换图不用管尺寸）
