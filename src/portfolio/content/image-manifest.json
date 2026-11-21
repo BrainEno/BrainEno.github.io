@@ -149,14 +149,58 @@
         }
       ]
     },
-    "/images/works/flutter-blog.jpg": {
-      "width": 1200,
-      "height": 878,
+    "/images/works/flutter-blog/cover.webp": {
+      "width": 1024,
+      "height": 768,
       "quality": 78,
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/works-flutter-blog-480.3fda114c.webp 480w, /images/opt/works-flutter-blog-800.3fda114c.webp 800w, /images/opt/works-flutter-blog-1200.3fda114c.webp 1200w"
+          "srcSet": "/images/opt/works-flutter-blog-cover-480.28ec7b5a.webp 480w, /images/opt/works-flutter-blog-cover-800.28ec7b5a.webp 800w, /images/opt/works-flutter-blog-cover-1024.28ec7b5a.webp 1024w"
+        }
+      ]
+    },
+    "/images/works/flutter-blog/feed.webp": {
+      "width": 720,
+      "height": 1560,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/works-flutter-blog-feed-480.ae76999b.webp 480w, /images/opt/works-flutter-blog-feed-720.ae76999b.webp 720w"
+        }
+      ]
+    },
+    "/images/works/flutter-blog/read-aloud.webp": {
+      "width": 720,
+      "height": 1560,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/works-flutter-blog-read-aloud-480.a971f221.webp 480w, /images/opt/works-flutter-blog-read-aloud-720.a971f221.webp 720w"
+        }
+      ]
+    },
+    "/images/works/flutter-blog/reader.webp": {
+      "width": 720,
+      "height": 1560,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/works-flutter-blog-reader-480.e8d4fbca.webp 480w, /images/opt/works-flutter-blog-reader-720.e8d4fbca.webp 720w"
+        }
+      ]
+    },
+    "/images/works/flutter-blog/saved.webp": {
+      "width": 720,
+      "height": 1560,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/works-flutter-blog-saved-480.edc24a34.webp 480w, /images/opt/works-flutter-blog-saved-720.edc24a34.webp 720w"
         }
       ]
     },

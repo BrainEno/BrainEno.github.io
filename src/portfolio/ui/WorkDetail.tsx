@@ -4,7 +4,8 @@ import { useEffect } from "react";
 import Link from "next/link";
 import type { PortfolioContent, Work, MediaImage } from "../content/types";
 import { t } from "../content/normalize";
-import { Img } from "./Img";
+import { asset } from "../seo/asset";
+import { Img, intrinsicSize } from "./Img";
 import { ArrowIcon } from "./Arrow";
 import { useLanguage } from "./useLanguage";
 
@@ -12,6 +13,12 @@ export function WorkDetail({ work, identity, images }: {
   work: Work; identity: PortfolioContent["identity"]; images: MediaImage[];
 }) {
   const lang = useLanguage(identity.defaultLanguage);
+  const poster = work.video?.poster || work.image.src;
+  const stills = images.filter((image) => !work.video?.src || image.src !== poster);
+  const portraitGallery = stills.length > 0 && stills.every(({ src }) => {
+    const size = intrinsicSize(src);
+    return size && size.height > size.width;
+  });
   useEffect(() => {
     document.documentElement.lang = lang === "zh" ? "zh-Hans" : "en";
     document.title = `${t(work.title, lang)} — ${t(identity.siteName, lang) || identity.name}`;
@@ -40,8 +47,18 @@ export function WorkDetail({ work, identity, images }: {
           {work.url.replace(/^https?:\/\//, "")} <ArrowIcon />
         </a>
       ) : null}
-      <div className="wd-grid">
-        {images.map((image, index) => (
+      <div className={portraitGallery ? "wd-grid wd-grid-portrait" : "wd-grid"}>
+        {work.video?.src && (
+          <figure className="wd-frame">
+            <video
+              controls playsInline preload="none"
+              src={asset(work.video.src)}
+              poster={asset(poster)}
+              aria-label={lang === "zh" ? `${t(work.title, lang)} 演示视频` : `${t(work.title, lang)} walkthrough`}
+            />
+          </figure>
+        )}
+        {stills.map((image, index) => (
           <figure key={`${image.src}-${index}`} className="wd-frame">
             {/* Show the entire screenshot without changing the frame geometry. */}
             <Img

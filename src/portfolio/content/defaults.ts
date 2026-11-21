@@ -245,22 +245,27 @@ export const defaultContent: PortfolioContent = {
         title: { zh: "flutter-blog", en: "flutter-blog" },
         year: "2025.01.17",
         credit: { zh: "Flutter · Dart · 编辑式阅读", en: "Flutter · Dart · Editorial reading" },
+        updatedAt: "2026-11-20",
         image: {
-          src: "/images/works/flutter-blog.jpg",
-          // An illustrated ident rather than a screenshot: the repository has no
-          // public capture, and the site's own palette stands in until one exists.
+          src: "/images/works/flutter-blog/cover.webp",
           alt: {
-            zh: "flutter-blog（No Wave 移动端）示意图",
-            en: "flutter-blog (No Wave mobile) — illustrated card",
+            zh: "No Wave 移动客户端：深色首页中的最新文章",
+            en: "No Wave mobile: the latest article on the dark-mode home screen",
           },
         },
+        video: { src: "/videos/flutter-blog-tour.mp4" },
         url: "https://github.com/BrainEno/flutter-blog",
         isPrivate: false,
         description: {
           zh: "No Wave 的 Flutter 移动客户端：离线缓存阅读、本地草稿、点赞收藏、标签浏览与全文搜索，正文以 Markdown 呈现，数据来自自托管的 no-wave API；界面沿用纸色与墨色的编辑式排版，并跟随系统的深浅色与字号设置。",
           en: "The Flutter client for No Wave: offline reading with a local cache, on-device drafts, likes and bookmarks, tag browsing and full-text search, Markdown bodies served by the self-hosted no-wave API — set in the same paper-and-ink editorial layout, and following the system theme and type scale.",
         },
-        detailImages: [],
+        detailImages: [
+          { src: "/images/works/flutter-blog/feed.webp", alt: { zh: "深色首页：最新文章与标签", en: "Dark-mode feed with the latest article and its tags" } },
+          { src: "/images/works/flutter-blog/reader.webp", alt: { zh: "文章页：《没有写完的稿纸》与朗读控件", en: "Article cover, byline and read-aloud controls" } },
+          { src: "/images/works/flutter-blog/read-aloud.webp", alt: { zh: "朗读中的正文与底部播放栏", en: "Article text above the pinned playback bar" } },
+          { src: "/images/works/flutter-blog/saved.webp", alt: { zh: "深色收藏页中的双列文章书架", en: "Two-column shelf of bookmarked articles in dark mode" } },
+        ],
       },
       {
         id: "win7-book-management",
