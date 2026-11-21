@@ -6,7 +6,7 @@ on:
 jobs:
   capture:
     permissions:
-      contents: write
+      contents: read
     runs-on: macos-latest
     timeout-minutes: 25
     steps:
@@ -57,9 +57,26 @@ jobs:
           if kill -0 "$rec" 2>/dev/null; then kill -TERM -- "-$rec"; exit 1; fi
           wait "$rec" || true
           cat "$RUNNER_TEMP/api.log"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-recording
+          path: capture/
+          retention-days: 3
+  compress:
+    needs: capture
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: ios-recording
+          path: capture
       - name: Save only compressed media to this branch
         run: |
-          command -v ffmpeg || brew install ffmpeg
+          sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg
           dest=public/images/works/flutter-blog-ios
           mkdir -p "$dest" public/videos
           for scene in feed reader margin; do
@@ -67,7 +84,7 @@ jobs:
           done
           clip=public/videos/flutter-blog-ios.mp4
           ffmpeg -loglevel error -i capture/walkthrough.mp4 -vf 'fps=20,scale=512:-2' -c:v libx264 -crf 24 -an -pix_fmt yuv420p -movflags +faststart "$clip"
-          test $(stat -f%z "$clip") -lt 2097152
+          test $(stat -c%s "$clip") -lt 2097152
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add "$dest" "$clip"
