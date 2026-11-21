@@ -1,5 +1,7 @@
 # flutter-blog · Works media
 
-The four mobile stills are from the Flutter project's [review capture set](https://github.com/BrainEno/flutter-blog/tree/1983c15d9ad8c27c77c50e5f4876a1a26946fb5f/tool/screens/out). Its Flutter test harness renders the real widgets and router at a phone viewport with fixture articles; these are not screenshots of the No Wave website. `feed`, `reader`, `read-aloud`, and `saved` correspond to `07-home-dark`, `03-article`, `04-article-reading`, and `12-saved-dark`.
+[Capture run](https://github.com/BrainEno/BrainEno.github.io/actions/runs/44900604233) · [Flutter client revision](https://github.com/BrainEno/flutter-blog/commit/de15e346f621c2f3506d9184fde3ae48c1689b80).
 
-The WebP stills under `public/images/works/flutter-blog/` retain the entire phone viewport. The landscape poster frames the feed for the 4:3 television on the Works index. `npm run images` builds the responsive derivatives. The optional `flutter-blog-tour.mp4` is an 11.2-second silent edit of the four stills, not a device recording.
+The iPhone simulator ran the project's native Debug build against a loopback-only fixture API with three demo articles. The sequence is one continuous simulator recording: latest feed → tap *Notes on Moving Water* → scroll to the text and related reading. No real account or production data was used.
+
+`public/images/works/flutter-blog/{feed,reader,reading}.webp` are full-viewport stills. The landscape poster and `public/videos/flutter-blog-walkthrough.mp4` frame that portrait view for the Works index's television without cropping the app. The video is silent H.264, 20 fps, with the MP4 index at the front for progressive playback. Run `npm run images` after editing the stills to refresh responsive derivatives.
