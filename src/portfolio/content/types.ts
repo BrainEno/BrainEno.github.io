@@ -90,7 +90,8 @@ export type PortfolioContent = {
     portrait: MediaImage;
     portraitCredit: LocalizedText;
     primaryText: LocalizedText;
-    gallery: MediaImage[];
+    gallery: (MediaImage & { note?: LocalizedText })[];
+    galleryTitle?: LocalizedText;
     accentImages: [MediaImage, MediaImage];
     secondaryText: LocalizedText;
   };

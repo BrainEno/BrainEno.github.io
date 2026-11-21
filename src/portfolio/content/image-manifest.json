@@ -28,6 +28,39 @@
         }
       ]
     },
+    "/images/game-giant-door.jpg": {
+      "width": 640,
+      "height": 360,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/game-giant-door-480.d6a56964.webp 480w, /images/opt/game-giant-door-640.d6a56964.webp 640w"
+        }
+      ]
+    },
+    "/images/game-painted-threshold.jpg": {
+      "width": 640,
+      "height": 360,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/game-painted-threshold-480.4bddacd5.webp 480w, /images/opt/game-painted-threshold-640.4bddacd5.webp 640w"
+        }
+      ]
+    },
+    "/images/game-paper-tear.jpg": {
+      "width": 800,
+      "height": 450,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/game-paper-tear-480.14b4227b.webp 480w, /images/opt/game-paper-tear-800.14b4227b.webp 800w"
+        }
+      ]
+    },
     "/images/game-papercut-corridor.jpg": {
       "width": 960,
       "height": 1200,

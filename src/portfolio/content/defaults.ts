@@ -55,30 +55,47 @@ export const defaultContent: PortfolioContent = {
       zh: "BrainEno，独立开发者与界面设计师。在做文档、音频和内容发布工具，常用的技术包括 TypeScript、Python 和 Flutter。ScribeForge、LyricForge KTV 以及一些网页实验的代码和记录放在 GitHub。",
       en: "BrainEno, independent developer and interface designer. I build tools for documents, audio and publishing, mostly with TypeScript, Python and Flutter. Code and notes for ScribeForge, LyricForge KTV and smaller web experiments are on GitHub.",
     },
+    galleryTitle: { zh: "Where Is School · 开发中游戏", en: "Where Is School · Game in development" },
     gallery: [
-      { src: "/images/red2.webp", alt: { zh: "视觉摄影 01", en: "Editorial frame 01" } },
       {
         src: "/images/game-expressionist-room.jpg",
-        alt: { zh: "开发中游戏画面 · 表现主义房间", en: "In-development game still · expressionist room" },
+        alt: { zh: "表现主义房间", en: "Expressionist room" },
+        note: { zh: "先看右边那块亮黄，再沿窗影退回蓝绿的暗部。", en: "Start with the yellow on the right, then follow the window shadows back into teal." },
       },
       {
         src: "/images/game-collage-classroom.jpg",
-        alt: { zh: "开发中游戏画面 · 拼贴教室", en: "In-development game still · collage classroom" },
+        alt: { zh: "拼贴教室", en: "Collage classroom" },
+        note: { zh: "让前景的人影先留住视线，再去读后墙那些碎纸般的色块。", en: "Let the figure in front catch your eye before reading the scraps of colour on the back wall." },
       },
-      { src: "/images/red1.webp", alt: { zh: "视觉摄影 04", en: "Editorial frame 04" } },
       {
-        src: "/images/game-window-cross.jpg",
-        alt: { zh: "开发中游戏画面 · 窗格光影", en: "In-development game still · window-grid light" },
+        src: "/images/game-painted-threshold.jpg",
+        alt: { zh: "画框里的走廊", en: "Painted threshold" },
+        note: { zh: "先认出画框的边，再看走廊的斜线怎样把视线拉进画里。", en: "Find the frame first; the diagonals of the corridor draw your eye through it." },
+      },
+      {
+        src: "/images/game-paper-tear.jpg",
+        alt: { zh: "窗帘后的纸面", en: "A tear in the curtain" },
+        note: { zh: "目光先落在缺口的毛边上：同一间教室，一侧有颜色，另一侧只剩铅笔线。", en: "Look at the ragged edge: one side of the classroom is in colour, the other in pencil." },
+      },
+      {
+        src: "/images/game-papercut-yard.jpg",
+        alt: { zh: "剪纸庭院", en: "Papercut courtyard" },
+        note: { zh: "先找浅色台阶上的小人，扁平的纸楼一下就有了尺度。", en: "Find the tiny figure on the pale steps; it gives the flat paper building its scale." },
+      },
+      {
+        src: "/images/game-giant-door.jpg",
+        alt: { zh: "失真的走廊", en: "Distorted corridor" },
+        note: { zh: "从近处压过来的墙面望向远处的人影，走廊的比例才开始显得不对。", en: "Look past the looming wall to the distant figure, and the corridor’s proportions start to slip." },
       },
     ],
     accentImages: [
       {
-        src: "/images/game-papercut-yard.jpg",
-        alt: { zh: "开发中游戏画面 · 剪纸庭院", en: "In-development game still · paper-cut courtyard" },
+        src: "/images/game-window-cross.jpg",
+        alt: { zh: "窗格光影", en: "Window-grid shadows" },
       },
       {
         src: "/images/game-papercut-corridor.jpg",
-        alt: { zh: "开发中游戏画面 · 剪纸走廊", en: "In-development game still · paper-cut corridor" },
+        alt: { zh: "剪纸走廊", en: "Papercut corridor" },
       },
     ],
     secondaryText: {

@@ -345,7 +345,7 @@ export type ChoreographyOptions = {
  * boxes that use the variable leaves the colour at every scroll position
  * identical without touching the tree.
  */
-const HANDOFF_PAINTED = ".journey, .story-photo-mask, .rail-item, .coda-pic";
+const HANDOFF_PAINTED = ".journey, .story-photo-mask, .coda-pic";
 
 /** `.works::before` reads `--handoff` from its own section, so the write is
  *  scoped there instead of on the page root (which restyled every descendant). */
@@ -394,13 +394,11 @@ function heroScroll(desktop: boolean) {
 
 function journeyDesktop(scope: HTMLElement, reduce: boolean, scrub: boolean | number) {
   const stage = scope.querySelector<HTMLElement>(".journey");
-  const rail = scope.querySelector<HTMLElement>(".rail");
   const portrait = scope.querySelector<HTMLElement>(".story-photo-box");
-  if (!stage || !rail || !portrait) return;
+  if (!stage || !portrait) return;
 
   const vw = () => window.innerWidth;
   const vh = () => window.innerHeight;
-  const railWidth = () => rail.scrollWidth;
 
   // The pre-pin flight below owns the portrait's x/y and has already landed
   // it on the grid when the pin starts. This beat now only settles the mask:
@@ -409,11 +407,11 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean, scrub: boolean | nu
   const approach = 0.7;
   const hold1 = dwell(scope.querySelector(".story-copy-inner"), 0.75, 1.4);
   const push = 1;
-  const traverse = Math.max(0.6, ((railWidth() - vw() * 0.68) / vh()) * 0.8);
+  const sheetHold = 1.15; // A stationary beat to compare and open the frames.
   const coda = 1;
   const hold2 = dwell(scope.querySelector(".coda-text"), 0.5, 1.1);
   const outro = 0.3;
-  const total = settle + approach + hold1 + push + traverse + coda + hold2 + outro;
+  const total = settle + approach + hold1 + push + sheetHold + coda + hold2 + outro;
 
   const tl = gsap.timeline({
     defaults: { ease: "none" },
@@ -435,9 +433,8 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean, scrub: boolean | nu
     approach: settle,
     hold1: settle + approach,
     push: settle + approach + hold1,
-    traverse: settle + approach + hold1 + push,
-    coda: settle + approach + hold1 + push + traverse,
-    hold2: settle + approach + hold1 + push + traverse + coda,
+    coda: settle + approach + hold1 + push + sheetHold,
+    hold2: settle + approach + hold1 + push + sheetHold + coda,
     outro: total - outro,
   };
 
@@ -540,10 +537,8 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean, scrub: boolean | nu
     .to(".story-layer", { x: () => -vw() * 1.08, duration: push, ease: "power1.inOut" }, at.push)
     // Soft parallax: the portrait lingers a touch behind the copy as both leave.
     .fromTo(".story-photo-box", { xPercent: 0 }, { xPercent: 12, duration: push, ease: "power1.in" }, at.push)
-    .fromTo(".rail", { x: () => vw() }, { x: () => vw() * 0.06, duration: push, ease: "power1.inOut" }, at.push)
-    .fromTo(".rail-image", { xPercent: 10 }, { xPercent: -10, duration: push + traverse + coda }, at.push)
-    .to(".rail", { x: () => -(railWidth() - vw() * 0.62), duration: traverse }, at.traverse)
-    .to(".rail", { x: () => -(railWidth() + vw() * 0.05), duration: coda, ease: "power1.in" }, at.coda)
+    .fromTo(".proof-sheet", { x: () => vw(), autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: push, ease: "power1.inOut" }, at.push)
+    .to(".proof-sheet", { x: () => -vw(), autoAlpha: 0, duration: coda, ease: "power1.in" }, at.coda)
     .fromTo(".coda", { x: 0 }, { x: () => -vw() * 0.95, duration: coda, ease: "power2.out" }, at.coda)
     .fromTo(
       ".coda-pic-1",
@@ -607,7 +602,7 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean, scrub: boolean | nu
     );
 }
 
-function journeyFlow(scope: HTMLElement, desktop: boolean, reduce: boolean, scrub: boolean | number, touch: boolean) {
+function journeyFlow(scope: HTMLElement, desktop: boolean, reduce: boolean, scrub: boolean | number) {
   // Same colour hand-over as desktop, spread over the section's own scroll.
   const journey = scope.querySelector<HTMLElement>(".journey");
   if (journey) {
@@ -654,25 +649,6 @@ function journeyFlow(scope: HTMLElement, desktop: boolean, reduce: boolean, scru
       }
     );
   });
-
-  const rail = scope.querySelector<HTMLElement>(".rail");
-  const railStage = scope.querySelector<HTMLElement>(".rail-stage");
-  if (rail && railStage) {
-    gsap.to(rail, {
-      x: () => -(rail.scrollWidth - window.innerWidth + 20),
-      ease: "none",
-      scrollTrigger: {
-        trigger: railStage,
-        start: "center center",
-        end: () => `+=${rail.scrollWidth * 0.9}`,
-        pin: true,
-        pinType: pinType(),
-        scrub,
-        anticipatePin: touch ? 1 : 0,
-        invalidateOnRefresh: true,
-      },
-    });
-  }
 }
 
 type TvPhase = "rows" | "phone" | "exit";
@@ -1239,7 +1215,7 @@ function sectionTracking(opts: ChoreographyOptions) {
  *  reader was already flinging through the section — the pin re-measured, the
  *  page jumped, and the rail appeared to shake. Only these images are awaited;
  *  later loads elsewhere on the page must never refresh the intro again. */
-const JOURNEY_MEDIA_SELECTOR = ".story-photo, .rail-image";
+const JOURNEY_MEDIA_SELECTOR = ".story-photo, .proof-image";
 
 function waitForJourneyMedia(scope: HTMLElement, signal: AbortSignal): Promise<void> {
   const images = Array.from(scope.querySelectorAll<HTMLImageElement>(JOURNEY_MEDIA_SELECTOR));
@@ -1273,7 +1249,7 @@ export function setupChoreography(opts: ChoreographyOptions) {
       if (policy.scrollTransforms) {
         heroScroll(desktop);
         if (journeyPinned) journeyDesktop(scope, false, introScrub);
-        else journeyFlow(scope, desktop, false, introScrub, touch);
+        else journeyFlow(scope, desktop, false, introScrub);
       }
       const tvCleanup = television(scope, opts, desktop, reduce);
       const contactCleanup = contact(scope, desktop, !policy.ambientLoops);
