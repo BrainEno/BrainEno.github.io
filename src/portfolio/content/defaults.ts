@@ -210,7 +210,7 @@ export const defaultContent: PortfolioContent = {
         id: "scribeforge",
         title: { zh: "ScribeForge", en: "ScribeForge" },
         year: "2026.10.02",
-        credit: { zh: "Python · Flutter · AI 写作", en: "Python · Flutter · AI Editorial" },
+        credit: { zh: "Python · Flutter · 扫描书 OCR", en: "Python · Flutter · Book OCR" },
         image: {
           src: "/images/works/scribeforge.jpg",
           alt: { zh: "ScribeForge 仓库预览", en: "ScribeForge repository" },
@@ -218,8 +218,8 @@ export const defaultContent: PortfolioContent = {
         url: "https://github.com/BrainEno/ScribeForge",
         isPrivate: false,
         description: {
-          zh: "面向深度长文创作的 AI 写作台：Python 后端统筹知识检索与上下文生成编排，Flutter 桌面端提供沉浸式离线草稿与实时排版预览。",
-          en: "An AI workbench built for long-form writing: a Python backend orchestrates retrieval and context-aware generation while a native Flutter client delivers offline drafting and live typographic preview.",
+          zh: "将扫描书整理成可读的电子书。在桌面端导入 PDF，逐页核对两路 OCR 的分歧，确认修订后导出 EPUB。",
+          en: "Turn a scanned book into an EPUB: import a PDF, review disagreements between two OCR readings page by page, and export the corrected text.",
         },
         detailImages: [],
       },
@@ -261,8 +261,8 @@ export const defaultContent: PortfolioContent = {
         url: "https://github.com/BrainEno/win7-book-management",
         isPrivate: false,
         description: {
-          zh: "专为老旧 Windows 7 环境打造的轻量级图书管理软件：单包免依赖部署，内置本地数据库检索、借阅台账与批量导入导出，在低配硬件上依然迅捷稳定。",
-          en: "A lightweight desktop library manager engineered for legacy Windows 7 hardware: dependency-free installation, instant local cataloguing, and bulk import/export that stays snappy on ageing machines.",
+          zh: "面向 Windows 7 的书店进销存桌面软件。工作台汇总店内业务，可按书目查库存、登记采购与销售，再查看经营报表。",
+          en: "A desktop stock manager for bookstores running Windows 7. Check stock by title, record purchases and sales, and review business reports from the dashboard.",
         },
         detailImages: [],
       },
