@@ -40,7 +40,10 @@ jobs:
           sim launch "$UDID" com.nodeman24.nowave -AppleLanguages '(en)' -AppleLocale en_US
           sleep 12
           sim io "$UDID" screenshot capture/feed.png
-          sim io "$UDID" recordVideo --codec=h264 capture/walkthrough.mp4 &
+          # Start simctl directly. Signalling a background shell function only
+          # interrupts its wrapper, not the recorder that must flush the MP4.
+          set -m
+          xcrun simctl io "$UDID" recordVideo --codec=h264 capture/walkthrough.mp4 &
           rec=$!
           sleep 4
           sim openurl "$UDID" nowave://article/notes-on-moving-water
@@ -49,8 +52,10 @@ jobs:
           sim openurl "$UDID" nowave://article/the-quiet-margin
           sleep 4
           sim io "$UDID" screenshot capture/margin.png
-          kill -INT $rec
-          wait $rec || true
+          kill -INT -- "-$rec"
+          for _ in {1..20}; do kill -0 "$rec" 2>/dev/null || break; sleep 1; done
+          if kill -0 "$rec" 2>/dev/null; then kill -TERM -- "-$rec"; exit 1; fi
+          wait "$rec" || true
           cat "$RUNNER_TEMP/api.log"
       - name: Save only compressed media to this branch
         run: |
