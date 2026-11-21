@@ -31,6 +31,12 @@ function coerce(template: Json, input: Json, path: string): Json {
     return template.map((item, index) => coerce(item, source[index], `${path}[]`));
   }
 
+  // The first work supplies the list shape, not media for unrelated channels.
+  if (path === "works.items[].video") {
+    if (!isRecord(input) || typeof input.src !== "string" || !input.src.trim()) return undefined;
+    template = { src: "", poster: "", previewSrc: "" };
+  }
+
   if (isRecord(template)) {
     const source = isRecord(input) ? input : {};
     const out: Record<string, Json> = {};

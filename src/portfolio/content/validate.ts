@@ -193,6 +193,7 @@ export function collectMediaRefs(content: Record<string, unknown>): ImageRef[] {
       const video = isRecord(item.video) ? item.video : null;
       if (video) {
         push(`works.items[${i}].video.src`, video.src);
+        push(`works.items[${i}].video.previewSrc`, video.previewSrc);
         push(`works.items[${i}].video.poster`, video.poster);
       }
     });

@@ -26,6 +26,8 @@ export type MediaImage = {
  */
 export type Video = {
   src: string;
+  /** Optional editorial cut for the Works TV. Detail pages use the full take. */
+  previewSrc?: string;
   poster?: string;
 };
 

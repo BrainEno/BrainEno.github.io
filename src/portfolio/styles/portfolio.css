@@ -694,6 +694,11 @@ canvas[data-water-canvas] {
   pointer-events: none;
 }
 
+/* Only the photograph receives input, and only after the Hero handoff. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .journey.is-story-pinned .story-photo { pointer-events: auto; }
+}
+
 .story-photo-box {
   position: relative;
   z-index: 5;
@@ -2689,6 +2694,10 @@ canvas[data-water-canvas] {
   /* The desktop 12-column grid is a pinned-scene device; in flow the section
      is a plain vertical stack again, and the copy must not inherit the
      `translateX(100vw)` off-stage start. */
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .story-photo { pointer-events: auto; }
+  }
+
   .story-layer,
   .story-visual {
     position: relative;
