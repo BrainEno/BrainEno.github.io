@@ -207,23 +207,6 @@ export const defaultContent: PortfolioContent = {
         detailImages: [],
       },
       {
-        id: "remix-partfolio",
-        title: { zh: "remix-partfolio", en: "remix-partfolio" },
-        year: "2022.11.11",
-        credit: { zh: "React Router · GSAP · 滚动叙事", en: "React Router · GSAP · Scroll Craft" },
-        image: {
-          src: "/images/works/remix-partfolio.jpg",
-          alt: { zh: "remix-partfolio 仓库预览", en: "remix-partfolio repository" },
-        },
-        url: "https://github.com/BrainEno/remix-partfolio",
-        isPrivate: false,
-        description: {
-          zh: "本站的前身与动效原型：以 GSAP ScrollSmoother 编排长卷式滚动叙事与复古电视机作品索引，探索内容数据与复杂视差动效的彻底解耦。",
-          en: "The motion prototype behind this site: scroll-driven storytelling orchestrated with GSAP ScrollSmoother, a vintage CRT index, and static-first delivery with content cleanly decoupled from choreography.",
-        },
-        detailImages: [],
-      },
-      {
         id: "scribeforge",
         title: { zh: "ScribeForge", en: "ScribeForge" },
         year: "2026.10.02",

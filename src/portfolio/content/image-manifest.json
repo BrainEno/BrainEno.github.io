@@ -204,17 +204,6 @@
         }
       ]
     },
-    "/images/works/remix-partfolio.jpg": {
-      "width": 1600,
-      "height": 1000,
-      "quality": 78,
-      "variants": [
-        {
-          "type": "image/webp",
-          "srcSet": "/images/opt/works-remix-partfolio-480.56839916.webp 480w, /images/opt/works-remix-partfolio-800.56839916.webp 800w, /images/opt/works-remix-partfolio-1200.56839916.webp 1200w, /images/opt/works-remix-partfolio-1600.56839916.webp 1600w"
-        }
-      ]
-    },
     "/images/works/scribeforge.jpg": {
       "width": 1600,
       "height": 1000,
