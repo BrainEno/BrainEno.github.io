@@ -6,6 +6,7 @@ const VARIABLE_LISTS = new Set(["intro.gallery", "works.items", "works.items[].d
 
 /** Item template for variable lists whose default array is empty. */
 const LIST_TEMPLATES: Record<string, Json> = {
+  "intro.gallery": { src: "", alt: { zh: "", en: "" }, note: { zh: "", en: "" } },
   "works.items[].detailImages": { src: "", alt: { zh: "", en: "" } },
 };
 const MAX_LIST = 40;
@@ -43,6 +44,7 @@ function coerce(template: Json, input: Json, path: string): Json {
     for (const key of Object.keys(template)) {
       out[key] = coerce(template[key], source[key], path ? `${path}.${key}` : key);
     }
+    if (path === "intro" && !source.galleryTitle) delete out.galleryTitle;
     // A work may omit its date. Never inherit it from the template (the first
     // default work), even if that work later gains an authored timestamp.
     if (path === "works.items[]") out.updatedAt = modifiedDate(source.updatedAt);

@@ -95,3 +95,22 @@ test("home, work and offline shell inherit the root theme without hydration", as
     await context.close();
   }
 });
+
+test("intro contact sheet opens an uncropped frame and returns focus", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  await expect(page.locator(".preloader")).toBeHidden();
+  const frames = page.locator(".proof-frame");
+  test.skip(await frames.count() < 2, "Need two frames to check navigation");
+  await frames.first().click();
+  const dialog = page.locator(".proof-dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator("img")).toHaveCSS("object-fit", "contain");
+  const next = await frames.nth(1).locator("img").getAttribute("alt");
+  await page.keyboard.press("ArrowRight");
+  await expect(dialog.locator("h3")).toHaveText(next);
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(frames.first()).toBeFocused();
+});
