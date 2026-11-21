@@ -109,24 +109,22 @@ export const defaultContent: PortfolioContent = {
         title: { zh: "lyric-forge-ktv", en: "lyric-forge-ktv" },
         year: "2026.04.22",
         credit: { zh: "Flutter · Dart · 本地优先", en: "Flutter · Dart · Local-first" },
+        updatedAt: "2026-11-20",
         image: {
-          src: "/images/works/lyric-forge-ktv.jpg",
-          alt: { zh: "lyric-forge-ktv 仓库预览", en: "lyric-forge-ktv repository" },
+          src: "/images/works/lyric-forge-ktv-poster.webp",
+          alt: { zh: "沿河灯火的歌词校对界面", en: "Lyric editor for Riverside Lights" },
         },
-        // Video example: uncomment and replace with your own video to show a clip on the TV.
-        // The TV displays the poster (or `image` as fallback) until the user clicks to play.
-        // `preload="metadata"` — never auto-plays, never burns bandwidth on a clip nobody watches.
-        // video: {
-        //   src: "/videos/lyric-forge-ktv.mp4",
-        //   poster: "/images/works/lyric-forge-ktv-poster.jpg",
-        // },
+        video: { src: "/videos/lyric-forge-ktv.mp4", poster: "/images/works/lyric-forge-ktv-poster.webp" },
         url: "https://github.com/BrainEno/lyric-forge-ktv",
         isPrivate: false,
         description: {
           zh: "本地优先的 KTV 编排与伴唱工具：集逐字时间轴打轴、伴奏音轨对齐与离线曲库管理于一体，单机即可流畅开唱，零服务端依赖。",
           en: "A local-first KTV authoring and playback studio: syllable-level lyric timing, backing-track sync, and an offline songbook running entirely on a single device with zero server dependency.",
         },
-        detailImages: [],
+        detailImages: [{
+          src: "/images/works/lyric-forge-ktv-detail.webp",
+          alt: { zh: "Elysium Player 的本地工程列表", en: "Local projects in Elysium Player" },
+        }],
       },
       {
         id: "sureshot-archive",
@@ -207,77 +205,74 @@ export const defaultContent: PortfolioContent = {
         detailImages: [],
       },
       {
-        id: "remix-partfolio",
-        title: { zh: "remix-partfolio", en: "remix-partfolio" },
-        year: "2022.11.11",
-        credit: { zh: "React Router · GSAP · 滚动叙事", en: "React Router · GSAP · Scroll Craft" },
-        image: {
-          src: "/images/works/remix-partfolio.jpg",
-          alt: { zh: "remix-partfolio 仓库预览", en: "remix-partfolio repository" },
-        },
-        url: "https://github.com/BrainEno/remix-partfolio",
-        isPrivate: false,
-        description: {
-          zh: "本站的前身与动效原型：以 GSAP ScrollSmoother 编排长卷式滚动叙事与复古电视机作品索引，探索内容数据与复杂视差动效的彻底解耦。",
-          en: "The motion prototype behind this site: scroll-driven storytelling orchestrated with GSAP ScrollSmoother, a vintage CRT index, and static-first delivery with content cleanly decoupled from choreography.",
-        },
-        detailImages: [],
-      },
-      {
         id: "scribeforge",
         title: { zh: "ScribeForge", en: "ScribeForge" },
         year: "2026.10.02",
-        credit: { zh: "Python · Flutter · AI 写作", en: "Python · Flutter · AI Editorial" },
+        credit: { zh: "Python · Flutter · 扫描书 OCR", en: "Python · Flutter · Book OCR" },
+        updatedAt: "2026-11-20",
         image: {
-          src: "/images/works/scribeforge.jpg",
-          alt: { zh: "ScribeForge 仓库预览", en: "ScribeForge repository" },
+          src: "/images/works/scribeforge-poster.webp",
+          alt: { zh: "扫描书的双路 OCR 人工复核界面", en: "Manual review of two OCR readings" },
         },
+        video: { src: "/videos/scribeforge.mp4", poster: "/images/works/scribeforge-poster.webp" },
         url: "https://github.com/BrainEno/ScribeForge",
         isPrivate: false,
         description: {
-          zh: "面向深度长文创作的 AI 写作台：Python 后端统筹知识检索与上下文生成编排，Flutter 桌面端提供沉浸式离线草稿与实时排版预览。",
-          en: "An AI workbench built for long-form writing: a Python backend orchestrates retrieval and context-aware generation while a native Flutter client delivers offline drafting and live typographic preview.",
+          zh: "将扫描书整理成可读的电子书。在桌面端导入 PDF，逐页核对两路 OCR 的分歧，确认修订后导出 EPUB。",
+          en: "Turn a scanned book into an EPUB: import a PDF, review disagreements between two OCR readings page by page, and export the corrected text.",
         },
-        detailImages: [],
+        detailImages: [{
+          src: "/images/works/scribeforge-detail.webp",
+          alt: { zh: "ScribeForge 书籍工作区", en: "ScribeForge book workspace" },
+        }],
       },
       {
         id: "flutter-blog",
         title: { zh: "flutter-blog", en: "flutter-blog" },
         year: "2025.01.17",
         credit: { zh: "Flutter · Dart · 编辑式阅读", en: "Flutter · Dart · Editorial reading" },
+        updatedAt: "2026-11-20",
         image: {
-          src: "/images/works/flutter-blog.jpg",
-          // An illustrated ident rather than a screenshot: the repository has no
-          // public capture, and the site's own palette stands in until one exists.
+          src: "/images/works/flutter-blog/cover.webp",
           alt: {
-            zh: "flutter-blog（No Wave 移动端）示意图",
-            en: "flutter-blog (No Wave mobile) — illustrated card",
+            zh: "No Wave 移动客户端：iPhone 首页中的最新文章",
+            en: "No Wave mobile: the latest article on the iPhone home screen",
           },
         },
+        video: { src: "/videos/flutter-blog-walkthrough.mp4" },
         url: "https://github.com/BrainEno/flutter-blog",
         isPrivate: false,
         description: {
           zh: "No Wave 的 Flutter 移动客户端：离线缓存阅读、本地草稿、点赞收藏、标签浏览与全文搜索，正文以 Markdown 呈现，数据来自自托管的 no-wave API；界面沿用纸色与墨色的编辑式排版，并跟随系统的深浅色与字号设置。",
           en: "The Flutter client for No Wave: offline reading with a local cache, on-device drafts, likes and bookmarks, tag browsing and full-text search, Markdown bodies served by the self-hosted no-wave API — set in the same paper-and-ink editorial layout, and following the system theme and type scale.",
         },
-        detailImages: [],
+        detailImages: [
+          { src: "/images/works/flutter-blog/feed.webp", alt: { zh: "iPhone 首页：最新文章列表与首篇封面", en: "iPhone feed with the latest articles and lead cover" } },
+          { src: "/images/works/flutter-blog/reader.webp", alt: { zh: "《Notes on Moving Water》的标题、作者与朗读工具", en: "Notes on Moving Water with its author, cover and read-aloud controls" } },
+          { src: "/images/works/flutter-blog/reading.webp", alt: { zh: "滚动后的文章正文、篇末标记与相关阅读", en: "Scrolled article text, end mark and related reading" } },
+        ],
       },
       {
         id: "win7-book-management",
         title: { zh: "win7-book-management", en: "win7-book-management" },
         year: "2026.09.29",
         credit: { zh: "C# · .NET · 桌面软件", en: "C# · .NET · Desktop Suite" },
+        updatedAt: "2026-11-20",
         image: {
-          src: "/images/works/win7-book-management.jpg",
-          alt: { zh: "win7-book-management 仓库预览", en: "win7-book-management repository" },
+          src: "/images/works/win7-book-management-poster.webp",
+          alt: { zh: "BOOK DESK 图书档案与库存检索", en: "Book records in BOOK DESK" },
         },
+        video: { src: "/videos/win7-book-management.mp4", poster: "/images/works/win7-book-management-poster.webp" },
         url: "https://github.com/BrainEno/win7-book-management",
         isPrivate: false,
         description: {
-          zh: "专为老旧 Windows 7 环境打造的轻量级图书管理软件：单包免依赖部署，内置本地数据库检索、借阅台账与批量导入导出，在低配硬件上依然迅捷稳定。",
-          en: "A lightweight desktop library manager engineered for legacy Windows 7 hardware: dependency-free installation, instant local cataloguing, and bulk import/export that stays snappy on ageing machines.",
+          zh: "面向 Windows 7 的书店进销存桌面软件。工作台汇总店内业务，可按书目查库存、登记采购与销售，再查看经营报表。",
+          en: "A desktop stock manager for bookstores running Windows 7. Check stock by title, record purchases and sales, and review business reports from the dashboard.",
         },
-        detailImages: [],
+        detailImages: [{
+          src: "/images/works/win7-book-management-detail.webp",
+          alt: { zh: "BOOK DESK 经营工作台", en: "BOOK DESK dashboard" },
+        }],
       },
     ],
   },

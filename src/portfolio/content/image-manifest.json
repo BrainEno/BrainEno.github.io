@@ -149,47 +149,91 @@
         }
       ]
     },
-    "/images/works/flutter-blog.jpg": {
-      "width": 1200,
-      "height": 878,
+    "/images/works/flutter-blog/cover.webp": {
+      "width": 1120,
+      "height": 840,
       "quality": 78,
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/works-flutter-blog-480.3fda114c.webp 480w, /images/opt/works-flutter-blog-800.3fda114c.webp 800w, /images/opt/works-flutter-blog-1200.3fda114c.webp 1200w"
+          "srcSet": "/images/opt/works-flutter-blog-cover-480.83102a2c.webp 480w, /images/opt/works-flutter-blog-cover-800.83102a2c.webp 800w, /images/opt/works-flutter-blog-cover-1120.83102a2c.webp 1120w"
         }
       ]
     },
-    "/images/works/lyric-forge-ktv.jpg": {
-      "width": 1600,
-      "height": 1000,
+    "/images/works/flutter-blog/feed.webp": {
+      "width": 720,
+      "height": 1566,
       "quality": 78,
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/works-lyric-forge-ktv-480.ccd595e9.webp 480w, /images/opt/works-lyric-forge-ktv-800.ccd595e9.webp 800w, /images/opt/works-lyric-forge-ktv-1200.ccd595e9.webp 1200w, /images/opt/works-lyric-forge-ktv-1600.ccd595e9.webp 1600w"
+          "srcSet": "/images/opt/works-flutter-blog-feed-480.d0b9e2e9.webp 480w, /images/opt/works-flutter-blog-feed-720.d0b9e2e9.webp 720w"
         }
       ]
     },
-    "/images/works/remix-partfolio.jpg": {
-      "width": 1600,
-      "height": 1000,
+    "/images/works/flutter-blog/reader.webp": {
+      "width": 720,
+      "height": 1566,
       "quality": 78,
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/works-remix-partfolio-480.56839916.webp 480w, /images/opt/works-remix-partfolio-800.56839916.webp 800w, /images/opt/works-remix-partfolio-1200.56839916.webp 1200w, /images/opt/works-remix-partfolio-1600.56839916.webp 1600w"
+          "srcSet": "/images/opt/works-flutter-blog-reader-480.632b5571.webp 480w, /images/opt/works-flutter-blog-reader-720.632b5571.webp 720w"
         }
       ]
     },
-    "/images/works/scribeforge.jpg": {
-      "width": 1600,
-      "height": 1000,
+    "/images/works/flutter-blog/reading.webp": {
+      "width": 720,
+      "height": 1566,
       "quality": 78,
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/works-scribeforge-480.1776914a.webp 480w, /images/opt/works-scribeforge-800.1776914a.webp 800w, /images/opt/works-scribeforge-1200.1776914a.webp 1200w, /images/opt/works-scribeforge-1600.1776914a.webp 1600w"
+          "srcSet": "/images/opt/works-flutter-blog-reading-480.3dda6301.webp 480w, /images/opt/works-flutter-blog-reading-720.3dda6301.webp 720w"
+        }
+      ]
+    },
+    "/images/works/lyric-forge-ktv-detail.webp": {
+      "width": 1028,
+      "height": 681,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/works-lyric-forge-ktv-detail-480.1dfbbb01.webp 480w, /images/opt/works-lyric-forge-ktv-detail-800.1dfbbb01.webp 800w, /images/opt/works-lyric-forge-ktv-detail-1028.1dfbbb01.webp 1028w"
+        }
+      ]
+    },
+    "/images/works/lyric-forge-ktv-poster.webp": {
+      "width": 1028,
+      "height": 681,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/works-lyric-forge-ktv-poster-480.dda2fd35.webp 480w, /images/opt/works-lyric-forge-ktv-poster-800.dda2fd35.webp 800w, /images/opt/works-lyric-forge-ktv-poster-1028.dda2fd35.webp 1028w"
+        }
+      ]
+    },
+    "/images/works/scribeforge-detail.webp": {
+      "width": 1028,
+      "height": 681,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/works-scribeforge-detail-480.d96f3a12.webp 480w, /images/opt/works-scribeforge-detail-800.d96f3a12.webp 800w, /images/opt/works-scribeforge-detail-1028.d96f3a12.webp 1028w"
+        }
+      ]
+    },
+    "/images/works/scribeforge-poster.webp": {
+      "width": 1028,
+      "height": 681,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/works-scribeforge-poster-480.2424141a.webp 480w, /images/opt/works-scribeforge-poster-800.2424141a.webp 800w, /images/opt/works-scribeforge-poster-1028.2424141a.webp 1028w"
         }
       ]
     },
@@ -215,14 +259,25 @@
         }
       ]
     },
-    "/images/works/win7-book-management.jpg": {
-      "width": 1600,
-      "height": 1000,
+    "/images/works/win7-book-management-detail.webp": {
+      "width": 1280,
+      "height": 768,
       "quality": 78,
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/works-win7-book-management-480.e1932f14.webp 480w, /images/opt/works-win7-book-management-800.e1932f14.webp 800w, /images/opt/works-win7-book-management-1200.e1932f14.webp 1200w, /images/opt/works-win7-book-management-1600.e1932f14.webp 1600w"
+          "srcSet": "/images/opt/works-win7-book-management-detail-480.6bb391d8.webp 480w, /images/opt/works-win7-book-management-detail-800.6bb391d8.webp 800w, /images/opt/works-win7-book-management-detail-1200.6bb391d8.webp 1200w"
+        }
+      ]
+    },
+    "/images/works/win7-book-management-poster.webp": {
+      "width": 1280,
+      "height": 768,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/works-win7-book-management-poster-480.e3ea2e35.webp 480w, /images/opt/works-win7-book-management-poster-800.e3ea2e35.webp 800w, /images/opt/works-win7-book-management-poster-1200.e3ea2e35.webp 1200w"
         }
       ]
     }
