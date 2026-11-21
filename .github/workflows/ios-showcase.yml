@@ -28,8 +28,12 @@ jobs:
           echo "UDID=$udid" >> "$GITHUB_ENV"
           xcrun simctl boot "$udid"
           flutter build ios --simulator --debug --no-codesign --dart-define=API_BASE_URL=http://127.0.0.1:4000
-      - name: Record the feed and article deep links
+      - name: Record the feed, tap an article, and scroll its text
         run: |
+          mkdir "$RUNNER_TEMP/axe"
+          curl -fsSL 'https://github.com/cameroncooke/AXe/releases/download/v2.1.1/AXe-macOS-v2.1.1-universal.tar.gz' | tar xz -C "$RUNNER_TEMP/axe"
+          AXE=$(find "$RUNNER_TEMP/axe" -type f -iname axe | head -1)
+          test -x "$AXE"
           python3 scripts/showcase/demo-feed.py > "$RUNNER_TEMP/api.log" 2>&1 &
           server=$!; trap 'kill "$server" || true' EXIT
           mkdir capture
@@ -46,10 +50,10 @@ jobs:
           xcrun simctl io "$UDID" recordVideo --codec=h264 capture/walkthrough.mp4 &
           rec=$!
           sleep 4
-          sim openurl "$UDID" nowave://article/notes-on-moving-water
+          "$AXE" tap --udid "$UDID" -x 160 -y 545
           sleep 4
           sim io "$UDID" screenshot capture/reader.png
-          sim openurl "$UDID" nowave://article/the-quiet-margin
+          "$AXE" swipe --udid "$UDID" --start-x 170 --start-y 620 --end-x 170 --end-y 275
           sleep 4
           sim io "$UDID" screenshot capture/margin.png
           kill -INT -- "-$rec"
@@ -80,10 +84,10 @@ jobs:
           dest=public/images/works/flutter-blog-ios
           mkdir -p "$dest" public/videos
           for scene in feed reader margin; do
-            ffmpeg -loglevel error -i "capture/$scene.png" -vf scale=720:-2 -c:v libwebp -quality 82 "$dest/$scene.webp"
+            ffmpeg -y -loglevel error -i "capture/$scene.png" -vf scale=720:-2 -c:v libwebp -quality 82 "$dest/$scene.webp"
           done
           clip=public/videos/flutter-blog-ios.mp4
-          ffmpeg -loglevel error -i capture/walkthrough.mp4 -vf 'fps=20,scale=512:-2' -c:v libx264 -crf 24 -an -pix_fmt yuv420p -movflags +faststart "$clip"
+          ffmpeg -y -loglevel error -i capture/walkthrough.mp4 -vf 'fps=20,scale=512:-2' -c:v libx264 -crf 24 -an -pix_fmt yuv420p -movflags +faststart "$clip"
           test $(stat -c%s "$clip") -lt 2097152
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
