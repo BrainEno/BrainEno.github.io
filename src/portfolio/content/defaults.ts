@@ -109,24 +109,22 @@ export const defaultContent: PortfolioContent = {
         title: { zh: "lyric-forge-ktv", en: "lyric-forge-ktv" },
         year: "2026.04.22",
         credit: { zh: "Flutter · Dart · 本地优先", en: "Flutter · Dart · Local-first" },
+        updatedAt: "2026-11-20",
         image: {
-          src: "/images/works/lyric-forge-ktv.jpg",
-          alt: { zh: "lyric-forge-ktv 仓库预览", en: "lyric-forge-ktv repository" },
+          src: "/images/works/lyric-forge-ktv-poster.webp",
+          alt: { zh: "沿河灯火的歌词校对界面", en: "Lyric editor for Riverside Lights" },
         },
-        // Video example: uncomment and replace with your own video to show a clip on the TV.
-        // The TV displays the poster (or `image` as fallback) until the user clicks to play.
-        // `preload="metadata"` — never auto-plays, never burns bandwidth on a clip nobody watches.
-        // video: {
-        //   src: "/videos/lyric-forge-ktv.mp4",
-        //   poster: "/images/works/lyric-forge-ktv-poster.jpg",
-        // },
+        video: { src: "/videos/lyric-forge-ktv.mp4", poster: "/images/works/lyric-forge-ktv-poster.webp" },
         url: "https://github.com/BrainEno/lyric-forge-ktv",
         isPrivate: false,
         description: {
           zh: "本地优先的 KTV 编排与伴唱工具：集逐字时间轴打轴、伴奏音轨对齐与离线曲库管理于一体，单机即可流畅开唱，零服务端依赖。",
           en: "A local-first KTV authoring and playback studio: syllable-level lyric timing, backing-track sync, and an offline songbook running entirely on a single device with zero server dependency.",
         },
-        detailImages: [],
+        detailImages: [{
+          src: "/images/works/lyric-forge-ktv-detail.webp",
+          alt: { zh: "Elysium Player 的本地工程列表", en: "Local projects in Elysium Player" },
+        }],
       },
       {
         id: "sureshot-archive",
@@ -211,17 +209,22 @@ export const defaultContent: PortfolioContent = {
         title: { zh: "ScribeForge", en: "ScribeForge" },
         year: "2026.10.02",
         credit: { zh: "Python · Flutter · 扫描书 OCR", en: "Python · Flutter · Book OCR" },
+        updatedAt: "2026-11-20",
         image: {
-          src: "/images/works/scribeforge.jpg",
-          alt: { zh: "ScribeForge 仓库预览", en: "ScribeForge repository" },
+          src: "/images/works/scribeforge-poster.webp",
+          alt: { zh: "扫描书的双路 OCR 人工复核界面", en: "Manual review of two OCR readings" },
         },
+        video: { src: "/videos/scribeforge.mp4", poster: "/images/works/scribeforge-poster.webp" },
         url: "https://github.com/BrainEno/ScribeForge",
         isPrivate: false,
         description: {
           zh: "将扫描书整理成可读的电子书。在桌面端导入 PDF，逐页核对两路 OCR 的分歧，确认修订后导出 EPUB。",
           en: "Turn a scanned book into an EPUB: import a PDF, review disagreements between two OCR readings page by page, and export the corrected text.",
         },
-        detailImages: [],
+        detailImages: [{
+          src: "/images/works/scribeforge-detail.webp",
+          alt: { zh: "ScribeForge 书籍工作区", en: "ScribeForge book workspace" },
+        }],
       },
       {
         id: "flutter-blog",
@@ -254,17 +257,22 @@ export const defaultContent: PortfolioContent = {
         title: { zh: "win7-book-management", en: "win7-book-management" },
         year: "2026.09.29",
         credit: { zh: "C# · .NET · 桌面软件", en: "C# · .NET · Desktop Suite" },
+        updatedAt: "2026-11-20",
         image: {
-          src: "/images/works/win7-book-management.jpg",
-          alt: { zh: "win7-book-management 仓库预览", en: "win7-book-management repository" },
+          src: "/images/works/win7-book-management-poster.webp",
+          alt: { zh: "BOOK DESK 图书档案与库存检索", en: "Book records in BOOK DESK" },
         },
+        video: { src: "/videos/win7-book-management.mp4", poster: "/images/works/win7-book-management-poster.webp" },
         url: "https://github.com/BrainEno/win7-book-management",
         isPrivate: false,
         description: {
           zh: "面向 Windows 7 的书店进销存桌面软件。工作台汇总店内业务，可按书目查库存、登记采购与销售，再查看经营报表。",
           en: "A desktop stock manager for bookstores running Windows 7. Check stock by title, record purchases and sales, and review business reports from the dashboard.",
         },
-        detailImages: [],
+        detailImages: [{
+          src: "/images/works/win7-book-management-detail.webp",
+          alt: { zh: "BOOK DESK 经营工作台", en: "BOOK DESK dashboard" },
+        }],
       },
     ],
   },
