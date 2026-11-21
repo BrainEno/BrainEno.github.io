@@ -1,0 +1,71 @@
+name: Capture flutter-blog on iPhone
+on:
+  push:
+    branches: [arena/d3e4a8ec-braineno-github-io]
+    paths: ['.github/workflows/ios-showcase.yml']
+jobs:
+  capture:
+    permissions:
+      contents: write
+    runs-on: macos-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: BrainEno/flutter-blog
+          ref: de15e346f621c2f3506d9184fde3ae48c1689b80
+          path: client
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          flutter-version: '3.47.8'
+          channel: stable
+      - name: Boot a phone and build the simulator app
+        working-directory: client
+        run: |
+          udid=$(xcrun simctl list devices available -j | python3 -c "import json,sys; print(next(d['udid'] for ds in reversed(list(json.load(sys.stdin)['devices'].values())) for d in ds if d['name'].startswith('iPhone')))" )
+          echo "UDID=$udid" >> "$GITHUB_ENV"
+          xcrun simctl boot "$udid"
+          flutter build ios --simulator --debug --no-codesign --dart-define=API_BASE_URL=http://127.0.0.1:4000
+      - name: Record the feed and article deep links
+        run: |
+          python3 scripts/showcase/demo-feed.py > "$RUNNER_TEMP/api.log" 2>&1 &
+          server=$!; trap 'kill "$server" || true' EXIT
+          mkdir capture
+          sim() { xcrun simctl "$@"; }
+          sim bootstatus "$UDID" -b
+          sim status_bar "$UDID" override --time 9:41
+          sim install "$UDID" client/build/ios/iphonesimulator/Runner.app
+          sim launch "$UDID" com.nodeman24.nowave -AppleLanguages '(en)' -AppleLocale en_US
+          sleep 12
+          sim io "$UDID" screenshot capture/feed.png
+          sim io "$UDID" recordVideo --codec=h264 capture/walkthrough.mp4 &
+          rec=$!
+          sleep 4
+          sim openurl "$UDID" nowave://article/notes-on-moving-water
+          sleep 4
+          sim io "$UDID" screenshot capture/reader.png
+          sim openurl "$UDID" nowave://article/the-quiet-margin
+          sleep 4
+          sim io "$UDID" screenshot capture/margin.png
+          kill -INT $rec
+          wait $rec || true
+          cat "$RUNNER_TEMP/api.log"
+      - name: Save only compressed media to this branch
+        run: |
+          command -v ffmpeg || brew install ffmpeg
+          dest=public/images/works/flutter-blog-ios
+          mkdir -p "$dest" public/videos
+          for scene in feed reader margin; do
+            ffmpeg -loglevel error -i "capture/$scene.png" -vf scale=720:-2 -c:v libwebp -quality 82 "$dest/$scene.webp"
+          done
+          clip=public/videos/flutter-blog-ios.mp4
+          ffmpeg -loglevel error -i capture/walkthrough.mp4 -vf 'fps=20,scale=512:-2' -c:v libx264 -crf 24 -an -pix_fmt yuv420p -movflags +faststart "$clip"
+          test $(stat -f%z "$clip") -lt 2097152
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$dest" "$clip"
+          git commit -m 'Import compressed iPhone simulator captures'
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git push origin "HEAD:$GITHUB_REF_NAME"
