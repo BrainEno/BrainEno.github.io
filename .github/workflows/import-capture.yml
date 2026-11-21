@@ -1,0 +1,38 @@
+name: Import compressed mobile capture
+on:
+  push:
+    branches: [arena/d3e4a8ec-braineno-github-io]
+    paths: ['.github/workflows/import-capture.yml']
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      actions: read
+      contents: write
+    env:
+      CAPTURE_RUN: '44894789653'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for and download the Android recording
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run watch "$CAPTURE_RUN" --interval 30 --exit-status
+          gh run download "$CAPTURE_RUN" -n flutter-blog-capture -D "$RUNNER_TEMP/capture"
+      - name: Encode web-size copies only
+        run: |
+          sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg
+          mkdir -p public/images/works/flutter-blog public/videos
+          for scene in feed index reader; do
+            ffmpeg -loglevel error -i "$RUNNER_TEMP/capture/$scene.png" -vf scale=720:-2 -c:v libwebp -quality 82 "public/images/works/flutter-blog/$scene.webp"
+          done
+          ffmpeg -loglevel error -i "$RUNNER_TEMP/capture/walkthrough.mp4" -vf 'fps=20,scale=512:-2' -c:v libx264 -preset slow -crf 25 -pix_fmt yuv420p -an -movflags +faststart public/videos/flutter-blog.mp4
+          test $(stat -c%s public/videos/flutter-blog.mp4) -lt 2097152
+      - name: Save to the capture branch (never deploy)
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/images/works/flutter-blog/{feed,index,reader}.webp public/videos/flutter-blog.mp4
+          git commit -m 'Import compressed emulator screenshots and walkthrough'
+          git push origin "HEAD:$GITHUB_REF_NAME"
