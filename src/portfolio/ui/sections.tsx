@@ -403,7 +403,7 @@ export function Works({
                       id: active.id,
                       src: active.image.src,
                       alt: active.image.alt,
-                      videoSrc: active.video?.src,
+                      videoSrc: active.video?.previewSrc || active.video?.src,
                       videoPoster: active.video?.poster,
                     }
                   : null

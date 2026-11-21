@@ -421,6 +421,7 @@ function journeyDesktop(scope: HTMLElement, reduce: boolean, scrub: boolean | nu
       trigger: stage,
       start: "top top",
       end: () => `+=${total * vh()}`,
+      toggleClass: { targets: stage, className: "is-story-pinned" },
       pin: true,
       pinType: pinType(),
       scrub,

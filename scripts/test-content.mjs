@@ -284,3 +284,15 @@ test("#22 authored theme is preserved and blank fields fall back independently",
   assert.deepEqual(normalizeContent({ theme: { stage: " \t ", accent: "#abcd12" } }).theme,
     { stage: defaultContent.theme.stage, accent: "#abcd12" });
 });
+
+test("TV edits are per-work and do not replace full takes or leak to other channels", () => {
+  const { works } = normalizeContent({ works: { items: [
+    { id: "edit", video: { src: "/full.mp4", previewSrc: "/edit.mp4" } },
+    { id: "full-only", video: { src: "/other.mp4" } },
+    { id: "still" },
+  ] } });
+  assert.equal(works.items[0].video.src, "/full.mp4");
+  assert.equal(works.items[0].video.previewSrc, "/edit.mp4");
+  assert.ok(!works.items[1].video.previewSrc);
+  assert.equal(works.items[2].video, undefined);
+});
