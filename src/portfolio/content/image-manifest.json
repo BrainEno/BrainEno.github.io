@@ -123,7 +123,7 @@
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/profilephoto-480.0715ed08.webp 480w, /images/opt/profilephoto-800.0715ed08.webp 800w, /images/opt/profilephoto-1000.0715ed08.webp 1000w"
+          "srcSet": "/images/opt/profilephoto-480.3452e68a.webp 480w, /images/opt/profilephoto-800.3452e68a.webp 800w, /images/opt/profilephoto-1000.3452e68a.webp 1000w"
         }
       ]
     },
