@@ -125,8 +125,8 @@ export const defaultContent: PortfolioContent = {
           alt: { zh: "沿河灯火的歌词校对界面", en: "Lyric editor for Riverside Lights" },
         },
         video: {
-          src: "/videos/lyric-forge-ktv.mp4",
-          previewSrc: "/videos/lyric-forge-ktv-edit.mp4",
+          src: "/videos/lyric-forge-ktv-film.mp4",
+          previewSrc: "/videos/lyric-forge-ktv-film.mp4",
           poster: "/images/works/lyric-forge-ktv-poster.webp",
         },
         url: "https://github.com/BrainEno/lyric-forge-ktv",
@@ -229,8 +229,8 @@ export const defaultContent: PortfolioContent = {
           alt: { zh: "扫描书的双路 OCR 人工复核界面", en: "Manual review of two OCR readings" },
         },
         video: {
-          src: "/videos/scribeforge.mp4",
-          previewSrc: "/videos/scribeforge-edit.mp4",
+          src: "/videos/scribeforge-film.mp4",
+          previewSrc: "/videos/scribeforge-film.mp4",
           poster: "/images/works/scribeforge-poster.webp",
         },
         url: "https://github.com/BrainEno/ScribeForge",
@@ -257,7 +257,11 @@ export const defaultContent: PortfolioContent = {
             en: "No Wave mobile: the latest article on the iPhone home screen",
           },
         },
-        video: { src: "/videos/flutter-blog-walkthrough.mp4" },
+        video: {
+          src: "/videos/flutter-blog-film.mp4",
+          previewSrc: "/videos/flutter-blog-film.mp4",
+          poster: "/images/works/flutter-blog-poster.webp",
+        },
         url: "https://github.com/BrainEno/flutter-blog",
         isPrivate: false,
         description: {
@@ -281,8 +285,8 @@ export const defaultContent: PortfolioContent = {
           alt: { zh: "BOOK DESK 图书档案与库存检索", en: "Book records in BOOK DESK" },
         },
         video: {
-          src: "/videos/win7-book-management.mp4",
-          previewSrc: "/videos/win7-book-management-edit.mp4",
+          src: "/videos/win7-book-management-film.mp4",
+          previewSrc: "/videos/win7-book-management-film.mp4",
           poster: "/images/works/win7-book-management-poster.webp",
         },
         url: "https://github.com/BrainEno/win7-book-management",
