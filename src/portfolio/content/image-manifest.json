@@ -226,6 +226,17 @@
         }
       ]
     },
+    "/images/works/flutter-blog-poster.webp": {
+      "width": 1280,
+      "height": 800,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/works-flutter-blog-poster-480.2e26eaa7.webp 480w, /images/opt/works-flutter-blog-poster-800.2e26eaa7.webp 800w, /images/opt/works-flutter-blog-poster-1200.2e26eaa7.webp 1200w"
+        }
+      ]
+    },
     "/images/works/lyric-forge-ktv-detail.webp": {
       "width": 1028,
       "height": 681,
@@ -238,13 +249,13 @@
       ]
     },
     "/images/works/lyric-forge-ktv-poster.webp": {
-      "width": 1028,
-      "height": 681,
+      "width": 1280,
+      "height": 800,
       "quality": 78,
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/works-lyric-forge-ktv-poster-480.dda2fd35.webp 480w, /images/opt/works-lyric-forge-ktv-poster-800.dda2fd35.webp 800w, /images/opt/works-lyric-forge-ktv-poster-1028.dda2fd35.webp 1028w"
+          "srcSet": "/images/opt/works-lyric-forge-ktv-poster-480.cad3cec4.webp 480w, /images/opt/works-lyric-forge-ktv-poster-800.cad3cec4.webp 800w, /images/opt/works-lyric-forge-ktv-poster-1200.cad3cec4.webp 1200w"
         }
       ]
     },
@@ -260,13 +271,13 @@
       ]
     },
     "/images/works/scribeforge-poster.webp": {
-      "width": 1028,
-      "height": 681,
+      "width": 1280,
+      "height": 800,
       "quality": 78,
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/works-scribeforge-poster-480.2424141a.webp 480w, /images/opt/works-scribeforge-poster-800.2424141a.webp 800w, /images/opt/works-scribeforge-poster-1028.2424141a.webp 1028w"
+          "srcSet": "/images/opt/works-scribeforge-poster-480.bdb03da0.webp 480w, /images/opt/works-scribeforge-poster-800.bdb03da0.webp 800w, /images/opt/works-scribeforge-poster-1200.bdb03da0.webp 1200w"
         }
       ]
     },
@@ -305,12 +316,12 @@
     },
     "/images/works/win7-book-management-poster.webp": {
       "width": 1280,
-      "height": 768,
+      "height": 800,
       "quality": 78,
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/works-win7-book-management-poster-480.e3ea2e35.webp 480w, /images/opt/works-win7-book-management-poster-800.e3ea2e35.webp 800w, /images/opt/works-win7-book-management-poster-1200.e3ea2e35.webp 1200w"
+          "srcSet": "/images/opt/works-win7-book-management-poster-480.bd53757e.webp 480w, /images/opt/works-win7-book-management-poster-800.bd53757e.webp 800w, /images/opt/works-win7-book-management-poster-1200.bd53757e.webp 1200w"
         }
       ]
     }

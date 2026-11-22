@@ -82,6 +82,22 @@ export const Hero = memo(function Hero({ lang, content, name }: SectionProps<"he
           </div>
         </div>
       </div>
+      {/* The hero used to be headline-only, which left the lower third of the
+          first screen empty. This rail is the fixed register that fills it: a
+          hairline, four facts and an availability dot — the same paper/ink
+          language as the contact sheet, so it reads as a caption block rather
+          than another floating element. It is anchored to the fold, so it lives
+          outside `.hero-box` (which is 80vw tall and runs past the viewport). */}
+      <div className="hero-rail" aria-hidden="true">
+        <span className="hero-rail-rule" />
+        <span className="hero-rail-role">{(content.words ?? []).map((word, index) => (
+          <span key={index} className="hero-rail-cell">{t(word, lang)}</span>
+        ))}</span>
+        <span className="hero-rail-status">
+          <i className="hero-rail-dot" />
+          {zh ? "接受合作中" : "Available for work"}
+        </span>
+      </div>
     </section>
   );
 });
