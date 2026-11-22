@@ -10,7 +10,6 @@
 "use client";
 
 import { memo, type CSSProperties } from "react";
-import { ContactSheet } from "./ContactSheet";
 import TvShowreel from "./TvShowreel";
 import { Img } from "./Img";
 import { asset } from "../seo/asset";
@@ -202,7 +201,34 @@ export const Journey = memo(function Journey({ lang, content, name }: JourneyPro
         </div>
       </div>
 
-      <ContactSheet images={content.gallery} title={content.galleryTitle} lang={lang} />
+      <div className="rail-stage">
+        <div
+          className="rail"
+          role="region"
+          tabIndex={0}
+          aria-label={zh ? `项目图片画廊，共 ${content.gallery.length} 张` : `Project image gallery, ${content.gallery.length} images`}
+        >
+          {content.gallery.map((image, index) => (
+            <figure key={`${image.src}-${index}`} className="rail-item">
+              <Img
+                className="rail-image"
+                src={image.src}
+                alt={t(image.alt, lang)}
+                sizes="(max-width: 1023px) 78vw, 40vw"
+                // Eager + decoded before ScrollTrigger.refresh(): a lazy fetch
+                // or a late decode during the fling is a visible pop in the
+                // pinned gallery and re-measures the pin at the worst moment.
+                loading="eager"
+                decoding="async"
+              />
+              <figcaption className="rail-caption" aria-hidden="true">
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <span>{String(content.gallery.length).padStart(2, "0")}</span>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      </div>
 
       <div className="coda">
         <p className={cx("copy coda-text", zh && "is-zh")}>
