@@ -3,6 +3,8 @@ import { defineConfig } from "@playwright/test";
 // Run against the domain-root production export, not the development server.
 export default defineConfig({
   testDir: "./tests/browser",
+  // TEMP diag: match the 1-worker CI runner that fails the contact test.
+  workers: 1,
   outputDir: ".qa/browser-results",
   use: {
     baseURL: "http://127.0.0.1:3311",
