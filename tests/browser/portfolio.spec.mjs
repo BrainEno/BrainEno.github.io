@@ -53,19 +53,62 @@ test("keyboard screening returns focus to a real work button", async ({ page }) 
 });
 
 test("normal-motion Contact keeps the booth clear of the header and resumes its float", async ({ page }) => {
+  // The arrival is a scroll-scrubbed dive, not a jump: the Contact click hands
+  // the sheet over from the works exit while the smoother animates ~11 000 px,
+  // and the booth's 2 MB model compiles on the same main thread. Measured on
+  // CI that landing takes ~1.4 s on a quiet worker and ~5 s on a loaded one, so
+  // a single fixed window raced it — the booth was already on its mark by the
+  // time the assertion gave up, and `toBeInViewport` reports ratio 0 for the
+  // parked `visibility: hidden` state either way. Wait for the states this
+  // test is actually about; the geometry assertions are unchanged.
+  test.setTimeout(90000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   const booth = page.locator(".contact-booth-float");
   await expect(booth).toHaveCSS("animation-play-state", "paused");
   await expect(page.locator(".preloader")).toBeHidden({ timeout: 20000 });
+
   await page.locator(".nav-entry").last().click();
-  await expect(booth).toBeInViewport();
+
+  // 1. The nav entry really reached the end of the document.
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const doc = document.documentElement;
+          return Math.round(window.scrollY) >= doc.scrollHeight - window.innerHeight - 2;
+        }),
+      { timeout: 30000, message: "Contact nav never settled at the end of the page" }
+    )
+    .toBe(true);
+
+  // 2. The dive landed: `#contact` is back in the flow, untransformed and
+  //    interactive, so the booth is no longer parked at `visibility: hidden`.
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const contact = document.querySelector("#contact");
+          if (!contact) return false;
+          return !contact.style.transform && getComputedStyle(contact).visibility === "visible";
+        }),
+      { timeout: 30000, message: "The dive never landed (#contact still transformed)" }
+    )
+    .toBe(true);
+
+  await expect(booth).toBeInViewport({ timeout: 30000 });
   await expect(booth).toHaveCSS("animation-play-state", "running");
-  await expect.poll(() => page.evaluate(() => {
-    const booth = document.querySelector(".contact-booth").getBoundingClientRect();
-    const header = document.querySelector(".header").getBoundingClientRect();
-    return booth.bottom <= innerHeight && booth.top > header.bottom;
-  })).toBe(true);
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const booth = document.querySelector(".contact-booth").getBoundingClientRect();
+          const header = document.querySelector(".header").getBoundingClientRect();
+          return booth.bottom <= innerHeight && booth.top > header.bottom;
+        }),
+      { timeout: 30000 }
+    )
+    .toBe(true);
 });
 
 test("home, work and offline shell inherit the root theme without hydration", async ({ browser, request, baseURL }) => {
