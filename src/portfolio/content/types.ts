@@ -83,8 +83,6 @@ export type PortfolioContent = {
   navigation: Record<SectionId, LocalizedText>;
   hero: {
     headlines: [LocalizedText, LocalizedText, LocalizedText];
-    /** Short facts printed on the hero rail (stack / discipline / location). */
-    words?: LocalizedText[];
     image: MediaImage;
   };
   intro: {
