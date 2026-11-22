@@ -59,7 +59,29 @@ test("normal-motion Contact keeps the booth clear of the header and resumes its 
   await expect(booth).toHaveCSS("animation-play-state", "paused");
   await expect(page.locator(".preloader")).toBeHidden({ timeout: 20000 });
   await page.locator(".nav-entry").last().click();
-  await expect(booth).toBeInViewport();
+  const dump = async (tag) => console.log(`DIAGTEST ${tag} ` + JSON.stringify(await page.evaluate(() => {
+    const pick = (sel) => {
+      const el = document.querySelector(sel);
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      const cs = getComputedStyle(el);
+      return { top: Math.round(r.top), bottom: Math.round(r.bottom), h: Math.round(r.height), vis: cs.visibility, op: Number(cs.opacity).toFixed(2) };
+    };
+    return {
+      scrollY: Math.round(window.scrollY),
+      maxScroll: document.documentElement.scrollHeight - innerHeight,
+      contact: pick("#contact"), booth: pick(".contact-booth"), float: pick(".contact-booth-float"),
+      contactInline: document.querySelector("#contact")?.getAttribute("style") || "",
+      floatInline: document.querySelector(".contact-booth-float")?.getAttribute("style") || "",
+    };
+  })));
+  await dump("after-click");
+  try {
+    await expect(booth).toBeInViewport();
+  } catch (error) {
+    await dump("after-timeout");
+    throw error;
+  }
   await expect(booth).toHaveCSS("animation-play-state", "running");
   await expect.poll(() => page.evaluate(() => {
     const booth = document.querySelector(".contact-booth").getBoundingClientRect();
