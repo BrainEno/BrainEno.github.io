@@ -1,61 +1,71 @@
-// TEMPORARY DIAGNOSTIC — not part of the suite. Prints the geometry the
-// "Contact keeps the booth clear of the header" test relies on, so the CI log
-// can tell us where the scroll actually lands. Delete before merging.
+// TEMPORARY DIAGNOSTIC — not part of the suite. Replicates the failing
+// "Contact keeps the booth clear of the header" flow under CPU throttling to
+// imitate the slower 1-worker CI runner, and logs the geometry each step.
+// Delete before merging.
 import { test } from "@playwright/test";
 
-test.setTimeout(90000);
+test.setTimeout(120000);
 
-test("diag: contact arrival geometry", async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/");
-  await page.locator(".contact-booth-float").waitFor({ state: "attached" });
-  await page.locator(".preloader").waitFor({ state: "hidden", timeout: 20000 });
+for (const rate of [4, 8]) {
+  test(`diag: contact arrival under ${rate}x CPU throttle`, async ({ page }) => {
+    const client = await page.context().newCDPSession(page);
+    await client.send("Emulation.setCPUThrottlingRate", { rate });
 
-  const snap = () =>
-    page.evaluate(() => {
-      const rect = (sel) => {
-        const el = document.querySelector(sel);
-        if (!el) return null;
-        const r = el.getBoundingClientRect();
-        const cs = getComputedStyle(el);
-        return {
-          top: Math.round(r.top),
-          bottom: Math.round(r.bottom),
-          h: Math.round(r.height),
-          w: Math.round(r.width),
-          vis: cs.visibility,
-          op: Number(cs.opacity).toFixed(2),
-          disp: cs.display,
-          inline: el.getAttribute("style") || "",
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    const booth = page.locator(".contact-booth-float");
+    await booth.waitFor({ state: "attached" });
+    const pausedAtLoad = await booth.evaluate((el) => getComputedStyle(el).animationPlayState);
+    await page.locator(".preloader").waitFor({ state: "hidden", timeout: 40000 });
+
+    const snap = () =>
+      page.evaluate(() => {
+        const pick = (sel) => {
+          const el = document.querySelector(sel);
+          if (!el) return null;
+          const r = el.getBoundingClientRect();
+          const cs = getComputedStyle(el);
+          return {
+            top: Math.round(r.top),
+            bottom: Math.round(r.bottom),
+            h: Math.round(r.height),
+            vis: cs.visibility,
+            op: Number(cs.opacity).toFixed(2),
+          };
         };
-      };
-      const content = document.getElementById("smooth-content");
-      return {
-        ih: innerHeight,
-        scrollY: Math.round(window.scrollY),
-        docH: document.documentElement.scrollHeight,
-        maxScroll: document.documentElement.scrollHeight - innerHeight,
-        contentTop: content ? Math.round(content.getBoundingClientRect().top) : null,
-        booth: rect(".contact-booth"),
-        stage: rect(".contact-stage"),
-        contact: rect("#contact"),
-        header: rect(".header"),
-        boothVar: getComputedStyle(document.querySelector(".contact-stage") || document.body)
-          .getPropertyValue("--booth-h")
-          .trim(),
-        navLabels: [...document.querySelectorAll(".nav-entry")].map((n) => n.textContent.trim()),
-        hash: location.hash,
-      };
-    });
+        return {
+          scrollY: Math.round(window.scrollY),
+          maxScroll: document.documentElement.scrollHeight - innerHeight,
+          contact: pick("#contact"),
+          booth: pick(".contact-booth"),
+          float: pick(".contact-booth-float"),
+          anim: (() => {
+            const el = document.querySelector(".contact-booth-float");
+            return el ? getComputedStyle(el).animationPlayState : null;
+          })(),
+          contactInline: document.querySelector("#contact")?.getAttribute("style") || "",
+        };
+      });
 
-  const probe = (label, data) => console.log(`DIAG ${label} ${JSON.stringify(data)}`);
+    const log = (label, data) =>
+      console.log(`DIAG rate=${rate} pausedAtLoad=${pausedAtLoad} ${label} ${JSON.stringify(data)}`);
 
-  probe("before-click", await snap());
+    log("before-click", await snap());
+    const t0 = Date.now();
+    await page.locator(".nav-entry").last().click();
+    log("clicked", { ms: 0 });
 
-  await page.locator(".nav-entry").last().click();
-
-  for (let i = 0; i < 16; i++) {
-    await page.waitForTimeout(400);
-    probe(`t+${(i + 1) * 400}`, await snap());
-  }
-});
+    let firstVisible = null;
+    for (let i = 0; i < 24; i++) {
+      await page.waitForTimeout(500);
+      const s = await snap();
+      const ms = Date.now() - t0;
+      if (firstVisible === null && s.float && s.float.vis === "visible" && s.float.top < 900 && s.float.bottom > 0) {
+        firstVisible = ms;
+      }
+      log(`t+${ms}`, { ...s, firstVisible });
+      if (firstVisible !== null && ms > firstVisible + 1000) break;
+    }
+    log("summary", { firstVisible, total: Date.now() - t0 });
+  });
+}
