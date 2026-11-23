@@ -39,13 +39,6 @@ export const defaultContent: PortfolioContent = {
       { zh: "原生应用", en: "Flutter" },
       { zh: "全栈开发", en: "Full Stack" },
     ],
-    // Short facts printed on the hero rail at the fold.
-    words: [
-      { zh: "TypeScript", en: "TypeScript" },
-      { zh: "Python", en: "Python" },
-      { zh: "Flutter", en: "Flutter" },
-      { zh: "台湾 · 桃园", en: "Taoyuan, TW" },
-    ],
     image: {
       src: "/images/headline.png",
       alt: { zh: "人物主视觉", en: "Portrait artwork" },
