@@ -177,7 +177,7 @@ jobs:
       # Pages needs a .nojekyll marker, or files/directories starting with an
       # underscore (`_next/`) are dropped from the published output.
       - run: touch out/.nojekyll
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v3
         with:
           path: out
